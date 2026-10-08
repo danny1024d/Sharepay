@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#111827" />
+  <meta name="description" content="北海道 12/24 至 12/28 行程、交通班次與訂票提醒。" />
+  <title>北海道行程 | 旅遊分帳</title>
+  <link rel="stylesheet" href="itinerary.css" />
+  <script type="module" src="itinerary.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="masthead-topline">
+        <a class="back-link" href="index.html">回到旅遊分帳</a>
+        <span class="trip-window">12/24 — 12/28</span>
+      </div>
+      <div class="masthead-content">
+        <div>
+          <h1>北海道行程</h1>
+          <p class="masthead-subtitle">桃園・新千歲・札幌・旭川</p>
+        </div>
+        <div class="route-summary" aria-label="行程路線">
+          <span>12/24　桃園 → 旭川</span>
+          <span>12/28　旭川 → 桃園</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-main">
+    <section class="date-bar" aria-label="行程日期">
+      <h2>選擇日期</h2>
+      <div class="date-tabs" role="tablist" aria-label="切換行程日期">
+        <button class="date-tab" id="tab-12-24" type="button" role="tab" aria-controls="itinerary-panel" aria-selected="true" tabindex="0" data-day="12-24">
+          <span>12/24</span><small>前往旭川</small>
+        </button>
+        <button class="date-tab" id="tab-12-28" type="button" role="tab" aria-controls="itinerary-panel" aria-selected="false" tabindex="-1" data-day="12-28">
+          <span>12/28</span><small>返回桃園</small>
+        </button>
+      </div>
+    </section>
+
+    <div class="workbench" id="itinerary-panel" role="tabpanel" aria-labelledby="tab-12-24" tabindex="0">
+      <section class="agenda-panel" aria-labelledby="agenda-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="agenda-title">當日行程</h2>
+            <p id="agenda-description">依時間查看交通與轉乘</p>
+          </div>
+          <span class="day-tag" id="day-tag">12/24</span>
+        </div>
+        <ol class="timeline" id="timeline"></ol>
+      </section>
+
+      <aside class="side-stack" aria-label="交通與訂票資訊">
+        <section class="connection-panel" aria-labelledby="connection-title">
+          <div class="section-heading compact-heading">
+            <div>
+              <h2 id="connection-title">關鍵交通</h2>
+              <p id="connection-caption">本日主要轉乘</p>
+            </div>
+          </div>
+          <p class="connection-copy" id="connection-copy"></p>
+          <div class="connection-links" id="connection-links"></div>
+        </section>
+
+        <section class="options-panel" aria-labelledby="options-title">
+          <div class="section-heading compact-heading">
+            <div>
+              <h2 id="options-title">交通班次</h2>
+              <p id="options-description"></p>
+            </div>
+          </div>
+          <div class="table-wrap" id="options-table"></div>
+          <div class="section-links" id="options-links"></div>
+        </section>
+
+        <section class="booking-panel" aria-labelledby="booking-title">
+          <div class="section-heading compact-heading">
+            <div>
+              <h2 id="booking-title">訂票提醒</h2>
+              <p id="booking-progress" aria-live="polite"></p>
+            </div>
+          </div>
+          <ul class="booking-list" id="booking-list"></ul>
+          <p class="storage-note" id="storage-note">勾選狀態保存在此瀏覽器。</p>
+        </section>
+      </aside>
+    </div>
+
+    <footer class="page-footer">
+      <p>行程時間依原始資料整理；訂票及交通資訊請以營運單位公告為準。</p>
+      <a href="index.html">旅遊分帳首頁</a>
+    </footer>
+  </main>
+</body>
+</html>
