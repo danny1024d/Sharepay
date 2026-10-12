@@ -1,0 +1,19 @@
+name = "sharepay-openai-api"
+main = "src/index.js"
+compatibility_date = "2026-10-12"
+workers_dev = true
+
+[vars]
+FIREBASE_PROJECT_ID = "sharepay-f60d3"
+ALLOWED_EMAILS = "zzdanny781024@gmail.com,ben155373@gmail.com"
+ALLOWED_ORIGINS = "https://sharepay-f60d3.web.app,https://sharepay-f60d3.firebaseapp.com,http://localhost:5000"
+OPENAI_MODEL = "gpt-4.1-mini"
+DAILY_REQUEST_LIMIT = "30"
+
+[[durable_objects.bindings]]
+name = "USER_DAILY_LIMITER"
+class_name = "UserDailyRateLimiter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["UserDailyRateLimiter"]

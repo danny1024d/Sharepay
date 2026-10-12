@@ -12,6 +12,7 @@ import {
   updateDoc
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { allowedEmails, appName, firebaseConfig } from "./firebase-config.js";
+import { requestPlaceCoordinates } from "./ai-client.js";
 
 const people = ["高", "n"];
 const categories = ["住宿", "餐費", "交通", "滑雪", "雜支"];
@@ -23,6 +24,7 @@ let placeMarkers;
 let placeMapNeedsFit = true;
 let placeDialogTags = [];
 let database;
+let currentUser = null;
 
 function isAllowed(email) {
   return Boolean(email) && allowedEmails.some(value => value.toLowerCase() === email.toLowerCase());
@@ -232,9 +234,17 @@ function renderPlaceResults() {
   mapSection.classList.add("hidden");
   mapLegend.classList.add("hidden");
   const list = filteredPlaces.map(place => {
-    const query = encodeURIComponent([place.name, place.address].filter(Boolean).join(" "));
+    const latitude = Number(place.latitude);
+    const longitude = Number(place.longitude);
+    const hasCoordinates = place.latitude != null && place.longitude != null
+      && Number.isFinite(latitude) && Number.isFinite(longitude)
+      && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+    const locationQuery = hasCoordinates
+      ? `${latitude},${longitude}`
+      : [place.name, place.address].filter(Boolean).join(" ");
+    const query = encodeURIComponent(locationQuery);
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
-    const embedUrl = `https://www.google.com/maps?q=${query}&output=embed`;
+    const embedUrl = `https://www.google.com/maps?q=${query}&output=embed${hasCoordinates ? "&z=16" : ""}`;
     const tags = placeTags(place);
     const tagChips = tags.map(tag => `<span class="rounded-md px-2 py-0.5 text-xs font-medium" style="${tagChipStyle(tag)}">${escapeHtml(tag)}</span>`).join("");
     return `<article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -313,26 +323,10 @@ function renderPlaceMap(places) {
     if (bounds.length === 1) placeMap.setView(bounds[0], 13);
     else placeMap.fitBounds(bounds, { padding: [36, 36], maxZoom: 14 });
   });
-  const located = `已取得 GPS ${bounds.length} / ${places.length} 筆。`;
+  const located = `已定位 ${bounds.length} / ${places.length} 筆。`;
   mapStatus.textContent = missingCoordinates.length
-    ? `${located}${missingCoordinates.length} 個地點尚未定位，可編輯地址或填寫經緯度後重新儲存。地圖資料 © OpenStreetMap contributors。`
+    ? `${located}${missingCoordinates.length} 個地點尚未定位，可編輯名稱或地址後重新儲存，由 AI 再次搜尋。地圖資料 © OpenStreetMap contributors。`
     : `${located}地圖資料 © OpenStreetMap contributors。`;
-}
-
-async function geocodePlace({ name, address }) {
-  // Nominatim rarely matches "name + address" together, so try each field on its own first.
-  const candidates = [...new Set([address, name, [name, address].filter(Boolean).join(" ")]
-    .map(text => (text || "").trim()).filter(Boolean))];
-  for (const [index, queryText] of candidates.entries()) {
-    // Nominatim usage policy: at most 1 request per second.
-    if (index) await new Promise(resolve => setTimeout(resolve, 1100));
-    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=zh-TW&q=${encodeURIComponent(queryText)}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const [match] = await response.json();
-    if (match) return { latitude: Number(match.lat), longitude: Number(match.lon) };
-  }
-  return null;
 }
 
 function coordinatesFromText(text = "") {
@@ -344,6 +338,18 @@ function coordinatesFromText(text = "") {
   const latitude = Number(match[1]);
   const longitude = Number(match[2]);
   return Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180 ? { latitude, longitude } : null;
+}
+
+function coordinateSourcesMarkup(sources = []) {
+  return (Array.isArray(sources) ? sources : []).slice(0, 3).map(source => {
+    try {
+      const url = new URL(source.url);
+      if (url.protocol !== "https:") return "";
+      return `<a href="${escapeHtml(url.href)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800"><i data-lucide="external-link" class="h-3 w-3"></i>${escapeHtml(source.title || url.hostname)}</a>`;
+    } catch {
+      return "";
+    }
+  }).filter(Boolean).join("");
 }
 
 function emptyState(icon, title, detail) {
@@ -418,6 +424,9 @@ function setupPlaceDialog() {
     const button = event.target.closest("[data-existing-tag]");
     if (button) addPlaceDialogTag(button.dataset.existingTag);
   });
+  dialog.querySelector("#place-coordinates").addEventListener("input", () => {
+    dialog.dataset.coordinatesEdited = "true";
+  });
   dialog.querySelector(".btn-primary").addEventListener("click", savePlace);
   document.getElementById("place-delete-btn").addEventListener("click", () => removeEntry("places", dialog.dataset.id));
 }
@@ -477,10 +486,14 @@ window.openPaymentDialog = isEdit => {
 window.openPlaceDialog = isEdit => {
   const dialog = document.getElementById("place-dialog");
   dialog.dataset.id = isEdit ? dialog.dataset.id : "";
+  dialog.dataset.coordinatesEdited = "false";
+  dialog.querySelector("#place-name-display").classList.toggle("hidden", !isEdit);
+  dialog.querySelector("#place-coordinates-field").classList.toggle("hidden", !isEdit);
   if (!isEdit) {
-    dialog.querySelector("#place-name").value = "";
-    dialog.querySelector("#place-address").value = "";
+    dialog.querySelector("#place-name-value").textContent = "";
+    dialog.querySelector("#place-maps-link").value = "";
     dialog.querySelector("#place-coordinates").value = "";
+    dialog.querySelector("#place-coordinate-sources").innerHTML = "";
     dialog.querySelector("#place-note").value = "";
     placeDialogTags = [];
   }
@@ -496,10 +509,14 @@ window.editPlace = id => {
   if (!place) return;
   const dialog = document.getElementById("place-dialog");
   dialog.dataset.id = id;
-  dialog.querySelector("#place-name").value = place.name || "";
-  dialog.querySelector("#place-address").value = place.address || "";
+  dialog.querySelector("#place-name-value").textContent = place.name || "";
   const hasCoordinates = place.latitude != null && place.longitude != null;
+  const mapsUrl = place.mapsUrl || (hasCoordinates
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.latitude},${place.longitude}`)}`
+    : "");
+  dialog.querySelector("#place-maps-link").value = mapsUrl;
   dialog.querySelector("#place-coordinates").value = hasCoordinates ? `${place.latitude}, ${place.longitude}` : "";
+  dialog.querySelector("#place-coordinate-sources").innerHTML = coordinateSourcesMarkup(place.coordinateSources);
   dialog.querySelector("#place-note").value = place.note || "";
   placeDialogTags = [...placeTags(place)];
   window.openPlaceDialog(true);
@@ -560,32 +577,75 @@ async function savePayment() {
 
 async function savePlace() {
   const dialog = document.getElementById("place-dialog");
-  const name = dialog.querySelector("#place-name").value.trim();
-  if (!name) return alert("請輸入地點名稱。");
   const existing = state.places.find(place => place.id === dialog.dataset.id);
-  const address = dialog.querySelector("#place-address").value.trim();
-  const coordinatesText = dialog.querySelector("#place-coordinates").value.trim();
+  const mapsUrl = dialog.querySelector("#place-maps-link").value.trim();
+  if (!mapsUrl) return alert("請貼上 Google Maps 分享連結。");
+  let name = existing?.name || "";
+  const address = existing?.address || "";
+  const coordinatesWereEdited = dialog.dataset.id && dialog.dataset.coordinatesEdited === "true";
+  const coordinatesText = coordinatesWereEdited
+    ? dialog.querySelector("#place-coordinates").value.trim()
+    : "";
   let coordinates = coordinatesText ? coordinatesFromText(coordinatesText) : null;
-  if (coordinatesText && !coordinates) return alert("經緯度格式錯誤，請輸入「緯度, 經度」，例如 35.68124, 139.76712，或貼上 Google 地圖網址。");
+  if (coordinatesText && !coordinates) return alert("經緯度格式錯誤，請輸入「緯度, 經度」，例如 43.7706, 142.3650，或貼上 Google 地圖網址。");
+  let coordinateSources = [];
+  let coordinateScope = null;
+  let coordinateMethod = null;
+  let coordinateLabel = "";
+  if (coordinates && existing && coordinates.latitude === Number(existing.latitude) && coordinates.longitude === Number(existing.longitude)) {
+    coordinateSources = existing.coordinateSources || [];
+    coordinateScope = existing.coordinateScope || null;
+    coordinateMethod = existing.coordinateMethod || "cached";
+    coordinateLabel = existing.coordinateLabel || "";
+  } else if (coordinates) {
+    coordinateMethod = "manual";
+  } else if (!coordinates && existing && !coordinatesWereEdited
+    && mapsUrl === (existing.mapsUrl || "")
+    && existing.latitude != null && existing.longitude != null
+    && Number.isFinite(Number(existing.latitude)) && Number.isFinite(Number(existing.longitude))) {
+    coordinates = { latitude: Number(existing.latitude), longitude: Number(existing.longitude) };
+    coordinateSources = existing.coordinateSources || [];
+    coordinateScope = existing.coordinateScope || null;
+    coordinateMethod = existing.coordinateMethod || "cached";
+    coordinateLabel = existing.coordinateLabel || "";
+  }
   const saveButton = dialog.querySelector(".btn-primary");
   saveButton.disabled = true;
   let lookupError = null;
   if (!coordinates) {
-    saveButton.textContent = "定位中…";
+    saveButton.textContent = "解析地圖連結／辨識地點中…";
     try {
-      coordinates = await geocodePlace({ name, address });
+      const result = await requestPlaceCoordinates({ user: currentUser, name, address, mapsUrl });
+      name = result.identifiedPlaceName || result.suggestedName || name;
+      if (result.found) {
+        coordinates = { latitude: result.latitude, longitude: result.longitude };
+        coordinateSources = result.sources;
+        coordinateScope = result.scope;
+        coordinateMethod = result.method || "nominatim";
+        coordinateLabel = result.identifiedPlaceName || result.resolvedName || "";
+      }
     } catch (error) {
       lookupError = error;
-      console.warn(`Unable to locate place: ${name}`, error);
+      console.warn(`Unable to identify and geocode place: ${name}`, error);
     }
+  }
+  if (!name) {
+    saveButton.disabled = false;
+    saveButton.textContent = "儲存";
+    return alert("無法從分享連結取得地點名稱，請補上地點名稱後再儲存。");
   }
   const entry = {
     name,
     tags: [...placeDialogTags],
     address,
+    mapsUrl,
     note: dialog.querySelector("#place-note").value.trim(),
     latitude: coordinates?.latitude ?? null,
     longitude: coordinates?.longitude ?? null,
+    coordinateSources,
+    coordinateScope,
+    coordinateMethod,
+    coordinateLabel,
     createdAt: existing?.createdAt || Date.now(),
     updatedAt: Date.now()
   };
@@ -594,12 +654,16 @@ async function savePlace() {
     await saveEntry("places", dialog.dataset.id, entry);
     closeDialog("place-dialog");
     alert(coordinatesText
-      ? "已儲存，使用填寫的經緯度。"
-      : coordinates
-        ? `已儲存，GPS 定位成功（${coordinates.latitude.toFixed(5)}, ${coordinates.longitude.toFixed(5)}）。`
+      ? "已儲存，使用人工輸入的經緯度。"
+      : coordinateMethod === "google_maps_link"
+        ? `已使用 Google Maps 分享連結定位（${coordinates.latitude.toFixed(5)}, ${coordinates.longitude.toFixed(5)}）。`
+      : coordinateMethod === "nominatim"
+        ? `已儲存，AI 辨識為「${coordinateLabel || name}」，由 OpenStreetMap 定位（${coordinates.latitude.toFixed(5)}, ${coordinates.longitude.toFixed(5)}）。`
+        : coordinates
+          ? `已儲存座標（${coordinates.latitude.toFixed(5)}, ${coordinates.longitude.toFixed(5)}）。`
         : lookupError
-          ? "已儲存，但 GPS 定位服務暫時無法使用，請稍後再編輯儲存一次。"
-          : "已儲存，但找不到 GPS 位置。請補上更完整的地址，或直接填寫經緯度。");
+          ? "地點辨識或定位服務暫時無法使用，已儲存但座標留空；可稍後編輯地點再試。"
+          : "找不到可確認的北海道地點，已儲存但座標留空；可補充地址後再試。");
   } catch (error) {
     showDataError(error);
   } finally {
@@ -633,11 +697,13 @@ if (!isConfigured) {
   setupDialogs();
   document.getElementById("logout-btn").addEventListener("click", () => signOut(auth));
   onAuthStateChanged(auth, user => {
+    currentUser = null;
     if (!user || !isAllowed(user.email)) {
       if (user) signOut(auth);
       window.location.replace("login.html");
       return;
     }
+    currentUser = user;
     onSnapshot(query(collection(database, "ledgers", appName, "expenses"), orderBy("date", "desc")), snapshot => {
       state.expenses = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }));
       render();

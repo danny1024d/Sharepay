@@ -64,6 +64,8 @@ node_modules/
 
 # dotenv environment variables file
 .env
+.dev.vars*
+.wrangler/
 
 # dataconnect generated files
 .dataconnect
