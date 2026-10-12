@@ -29,7 +29,6 @@
     };
   </script>
   <link rel="stylesheet" href="shared.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <style>
     .dialog-header {
@@ -40,40 +39,6 @@
       font-weight: 600;
       line-height: 1;
       letter-spacing: -0.025em;
-    }
-    .place-map-marker {
-      width: max-content !important;
-      height: auto !important;
-      border: 0;
-      background: transparent;
-    }
-    .place-map-marker span {
-      display: inline-flex;
-      max-width: 220px;
-      align-items: center;
-      gap: 0.4rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 9999px;
-      background: #fff;
-      padding: 0.25rem 0.55rem;
-      box-shadow: 0 1px 5px rgb(15 23 42 / 0.22);
-      color: #0f172a;
-      font-size: 12px;
-      line-height: 1.25rem;
-    }
-    .place-map-marker i {
-      width: 10px;
-      height: 10px;
-      flex: none;
-      border: 2px solid #fff;
-      border-radius: 9999px;
-      background: var(--marker-color);
-      box-shadow: 0 0 0 1px var(--marker-color);
-    }
-    .place-map-marker b {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
     .dialog-footer {
       display: flex;
@@ -242,7 +207,8 @@
       <div id="tab-places" class="tab-content hidden"></div>
 
       <!-- ================= Settlement Tab ================= -->
-      <div id="tab-settlement" class="tab-content hidden">
+      <div id="tab-settlement" class="tab-content hidden"></div>
+      <template id="legacy-settlement-demo">
                 <span class="text-xl font-bold text-white">10,774</span>
                 <span class="text-xs text-emerald-100 ml-1">元</span>
               </div>
@@ -372,6 +338,7 @@
 
         </div>
       </div>
+      </template>
 
     </main>
 
@@ -560,7 +527,23 @@
           <p class="text-xs text-slate-500">地點（唯讀）</p>
           <p id="place-name-value" class="mt-0.5 break-words text-sm font-medium text-slate-900"></p>
         </div>
-        <div class="space-y-2">
+        <div id="place-ai-introduction-panel" class="hidden">
+          <div id="place-ai-introduction-content"></div>
+          <p id="place-ai-introduction-empty" class="hidden rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500">儲存時自動查詢繁體中文介紹。</p>
+        </div>
+      
+        <div class="space-y-1.5">
+          <label class="label" for="place-maps-link">Google Maps 分享連結 <span class="text-rose-600">必填</span></label>
+          <input type="url" class="input-field" id="place-maps-link" placeholder="貼上 maps.app.goo.gl 或 Google Maps 網址" maxlength="2000" required />
+          <p class="text-xs leading-5 text-slate-500">貼上連結，自動辨識名稱與座標。</p>
+        </div>
+        <div id="place-coordinates-field" class="hidden space-y-1.5">
+          <label class="label" for="place-coordinates">經緯度（人工覆寫）</label>
+          <input type="text" class="input-field" id="place-coordinates" placeholder="例：43.7706, 142.3650；留空則由 AI 重新定位" maxlength="500" />
+          <p class="text-xs leading-5 text-slate-500">留空時會重新定位，搜尋範圍限北海道。</p>
+          <div id="place-coordinate-sources" class="flex flex-wrap gap-x-3 gap-y-1 text-xs"></div>
+        </div>
+          <div class="space-y-2">
           <label class="label" for="place-tag-input">標籤</label>
           <div id="place-tags-selected" class="flex flex-wrap gap-1.5"></div>
           <div class="flex gap-2">
@@ -568,18 +551,6 @@
             <button type="button" id="place-tag-add" class="btn-outline btn-flex shrink-0">新增</button>
           </div>
           <div id="place-tags-existing" class="flex flex-wrap gap-1.5"></div>
-        </div>
-        <div class="space-y-1.5">
-          <label class="label" for="place-maps-link">Google Maps 分享連結 <span class="text-rose-600">必填</span></label>
-          <input type="url" class="input-field" id="place-maps-link" placeholder="貼上 maps.app.goo.gl 或 Google Maps 網址" maxlength="2000" required />
-          <p class="text-xs leading-5 text-slate-500">儲存後會自動辨識地點名稱；連結含座標時直接定位，否則再搜尋地圖資料。</p>
-        </div>
-        <p class="text-xs leading-5 text-slate-500">沒有座標的連結會由 AI 辨識，再以 OpenStreetMap Nominatim 定位。<a href="https://operations.osmfoundation.org/policies/nominatim/" target="_blank" rel="noopener noreferrer" class="text-indigo-600 underline underline-offset-2">Nominatim 使用規範</a> · 地圖資料 © OpenStreetMap contributors。</p>
-        <div id="place-coordinates-field" class="hidden space-y-1.5">
-          <label class="label" for="place-coordinates">經緯度（人工覆寫）</label>
-          <input type="text" class="input-field" id="place-coordinates" placeholder="例：43.7706, 142.3650；留空則由 AI 重新定位" maxlength="500" />
-          <p class="text-xs leading-5 text-slate-500">留空時，儲存前會先搜尋北海道旭川；查無可信結果再擴大到北海道。</p>
-          <div id="place-coordinate-sources" class="flex flex-wrap gap-x-3 gap-y-1 text-xs"></div>
         </div>
         <div class="space-y-1.5">
           <label class="label" for="place-note">備註</label>
@@ -692,7 +663,6 @@
       document.getElementById(id).classList.remove('open');
     }
   </script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script type="module" src="home.js"></script>
 </body>
 </html>

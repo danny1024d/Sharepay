@@ -3,28 +3,38 @@ import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/fi
 import {
   addDoc,
   collection,
+  deleteField,
   deleteDoc,
   doc,
+  getDoc,
   getFirestore,
   onSnapshot,
   orderBy,
   query,
+  setDoc,
+  writeBatch,
   updateDoc
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { allowedEmails, appName, firebaseConfig } from "./firebase-config.js";
+import { allowedEmails, appName, firebaseConfig, googleMapsApiKey } from "./firebase-config.js";
 import { requestPlaceCoordinates } from "./ai-client.js";
 
 const people = ["高", "n"];
 const categories = ["住宿", "餐費", "交通", "滑雪", "雜支"];
 const state = { expenses: [], payments: [], places: [], expensePayer: "高", paymentPayer: "高", placeTagFilter: null, placeView: "list" };
+const googlePlaceCoordinateLifetimeMs = 30 * 24 * 60 * 60 * 1000;
 const currency = new Intl.NumberFormat("zh-TW");
 const isConfigured = !Object.values(firebaseConfig).some(value => value.includes("YOUR_"));
 let placeMap;
-let placeMarkers;
+let placeMarkers = [];
+let placeMapInfoWindow;
 let placeMapNeedsFit = true;
+let placeMapRenderGeneration = 0;
+let googleMapsApiPromise;
+let placeExpiryTimer;
 let placeDialogTags = [];
 let database;
 let currentUser = null;
+const refreshingGooglePlaces = new Set();
 
 function isAllowed(email) {
   return Boolean(email) && allowedEmails.some(value => value.toLowerCase() === email.toLowerCase());
@@ -182,7 +192,7 @@ function renderPlaces() {
     + `<span class="inline-flex items-center gap-1.5 text-xs text-slate-600"><span class="h-2.5 w-2.5 rounded-full" style="background:${tagColor()}"></span>${untaggedLabel}</span>`;
   const viewButton = (view, icon, label) => `<button type="button" data-place-view="${view}" aria-pressed="${state.placeView === view}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${state.placeView === view ? "bg-slate-900 text-white" : "text-slate-500"}"><i data-lucide="${icon}" class="h-4 w-4"></i>${label}</button>`;
   const viewToggle = `<div class="flex shrink-0 rounded-lg bg-slate-100 p-1" role="group" aria-label="地點檢視模式">${viewButton("list", "list", "清單")}${viewButton("map", "map", "地圖")}</div>`;
-  document.getElementById("tab-places").innerHTML = `<div class="px-4 py-4"><div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div class="flex items-start justify-between gap-3"><div><p class="text-xs text-slate-500">待去地點</p><p class="mt-0.5 text-2xl font-bold text-slate-900">${state.places.length} <span class="text-sm font-normal text-slate-400">個</span></p></div>${viewToggle}</div><div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="地點標籤篩選">${filters}</div></div></div><div class="space-y-3 px-4 pb-4"><div id="place-results" class="space-y-3"></div><section id="place-map-section" class="hidden overflow-hidden rounded-xl border border-slate-200 bg-white"><div id="place-map" class="h-[60vh] min-h-[360px] max-h-[680px] w-full"></div><div id="place-map-status" class="px-3 py-2 text-xs text-slate-500" aria-live="polite"></div></section><div id="place-map-legend" class="hidden flex-wrap gap-x-4 gap-y-2 px-1" aria-label="地圖標籤圖例">${legend}</div></div><button id="place-add-btn" onclick="openPlaceDialog(false)" class="fixed bottom-20 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 transition-transform active:scale-95" style="right: max(1rem, calc(50% - 18rem + 1rem))" aria-label="新增地點"><i data-lucide="plus" class="h-6 w-6"></i></button>`;
+  document.getElementById("tab-places").innerHTML = `<div class="px-4 py-4"><div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div class="flex items-start justify-between gap-3"><div><p class="text-xs text-slate-500">待去地點</p><p class="mt-0.5 text-2xl font-bold text-slate-900">${state.places.length} <span class="text-sm font-normal text-slate-400">個</span></p></div>${viewToggle}</div><div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="地點標籤篩選">${filters}</div></div></div><div class="space-y-3 px-4 pb-4"><div id="place-results" class="space-y-3"></div><section id="place-map-section" class="hidden overflow-hidden rounded-xl border border-slate-200 bg-white"><div id="place-map" class="h-[60vh] min-h-[360px] max-h-[680px] w-full"></div><div id="place-map-status" class="px-3 py-2 text-xs text-slate-500" aria-live="polite"></div><div id="place-map-unlocated" class="hidden border-t border-slate-100 p-3"><h3 id="place-map-unlocated-heading" class="text-sm font-semibold text-slate-700"></h3><div id="place-map-unlocated-list" class="mt-2 divide-y divide-slate-100"></div></div></section><div id="place-map-legend" class="hidden flex-wrap gap-x-4 gap-y-2 px-1" aria-label="地圖標籤圖例">${legend}</div></div><button id="place-add-btn" onclick="openPlaceDialog(false)" class="fixed bottom-20 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 transition-transform active:scale-95" style="right: max(1rem, calc(50% - 18rem + 1rem))" aria-label="新增地點"><i data-lucide="plus" class="h-6 w-6"></i></button>`;
   document.querySelector("[data-place-tag-all]").addEventListener("click", () => {
     state.placeTagFilter = null;
     placeMapNeedsFit = true;
@@ -256,6 +266,7 @@ function renderPlaceResults() {
             ${tagChips ? `<div class="mt-1 flex flex-wrap gap-1">${tagChips}</div>` : ""}
             <p class="mt-1 text-xs leading-5 text-slate-500">${escapeHtml(place.address || "尚未填寫地址")}</p>
             ${place.note ? `<p class="mt-1.5 text-xs leading-5 text-slate-500">${escapeHtml(place.note)}</p>` : ""}
+            ${placeIntroductionMarkup(place.aiIntroduction) || `<p class="mt-3 border-t border-slate-100 pt-3 text-xs leading-5 text-slate-500">尚無繁體中文 AI 景點介紹；編輯並儲存可重新查詢。</p>`}
           </div>
           <button type="button" data-place-id="${escapeHtml(place.id)}" class="shrink-0 p-1 text-slate-400 hover:text-indigo-600" aria-label="編輯${escapeHtml(place.name)}"><i data-lucide="pencil" class="h-4 w-4"></i></button>
         </div>
@@ -274,59 +285,329 @@ function renderPlaceResults() {
   lucide.createIcons();
 }
 
+function placeGoogleMapsUrl(place) {
+  try {
+    const url = new URL(place.mapsUrl);
+    if (url.protocol === "https:" && ["maps.app.goo.gl", "goo.gl", "www.google.com", "google.com", "maps.google.com"].includes(url.hostname.toLowerCase())) {
+      return url.href;
+    }
+  } catch {
+  }
+  const query = encodeURIComponent([place.name, place.address].filter(Boolean).join(" "));
+  return `https://www.google.com/maps/search/?api=1&query=${query}`;
+}
+
 function renderPlaceMap(places) {
+  const renderGeneration = ++placeMapRenderGeneration;
   const mapStatus = document.getElementById("place-map-status");
-  if (!window.L) {
-    mapStatus.textContent = "地圖載入失敗，請確認網路連線後重新整理。";
+  const unlocatedPanel = document.getElementById("place-map-unlocated");
+  const unlocatedHeading = document.getElementById("place-map-unlocated-heading");
+  const unlocatedList = document.getElementById("place-map-unlocated-list");
+  if (!googleMapsApiKey?.trim()) {
+    mapStatus.textContent = "請在 public/firebase-config.js 設定 googleMapsApiKey，並啟用 Maps JavaScript API。";
     return;
   }
-  if (!placeMap) {
-    placeMap = L.map("place-map").setView([20, 0], 2);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
-    }).addTo(placeMap);
-    placeMarkers = L.layerGroup().addTo(placeMap);
-  } else {
-    // renderPlaces() rebuilds the tab HTML; move the existing map container back in instead of re-creating the map.
-    const placeholder = document.getElementById("place-map");
-    if (placeholder && placeholder !== placeMap.getContainer()) placeholder.replaceWith(placeMap.getContainer());
+  void updateGooglePlaceMap(places, renderGeneration, mapStatus, unlocatedPanel, unlocatedHeading, unlocatedList);
+}
+
+async function loadGoogleMapsLibrary() {
+  if (!googleMapsApiKey?.trim()) throw new Error("google_maps_key_missing");
+  if (!window.google?.maps?.importLibrary) {
+    if (!googleMapsApiPromise) {
+      googleMapsApiPromise = new Promise((resolve, reject) => {
+        const callbackName = `__sharePayMapsReady${Date.now()}`;
+        const timeoutId = setTimeout(() => finish(reject, new Error("google_maps_load_timeout")), 15_000);
+        const finish = (callback, value) => {
+          clearTimeout(timeoutId);
+          delete window[callbackName];
+          callback(value);
+        };
+        window[callbackName] = () => finish(resolve);
+        const script = document.createElement("script");
+        script.async = true;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(googleMapsApiKey)}&loading=async&callback=${callbackName}&language=zh-TW&region=JP&v=weekly`;
+        script.onerror = () => finish(reject, new Error("google_maps_load_failed"));
+        document.head.append(script);
+      }).catch(error => {
+        googleMapsApiPromise = null;
+        throw error;
+      });
+    }
+    await googleMapsApiPromise;
   }
-  placeMarkers.clearLayers();
-  const bounds = [];
+  const { Map, InfoWindow, OverlayView } = await window.google.maps.importLibrary("maps");
+  return { Map, InfoWindow, Marker: window.google.maps.Marker, OverlayView };
+}
+
+async function updateGooglePlaceMap(places, renderGeneration, mapStatus, unlocatedPanel, unlocatedHeading, unlocatedList) {
+  let googleMaps;
+  try {
+    googleMaps = await loadGoogleMapsLibrary();
+  } catch (error) {
+    const errorMessage = String(error?.message || error || "Unknown error");
+    const safeErrorMessage = googleMapsApiKey ? errorMessage.replaceAll(googleMapsApiKey, "[redacted]") : errorMessage;
+    console.error("Google Maps JavaScript API failed to load", { name: error?.name || "Error", message: safeErrorMessage });
+    if (renderGeneration === placeMapRenderGeneration) {
+      mapStatus.textContent = `Google Maps 載入失敗：${safeErrorMessage}`;
+    }
+    return;
+  }
+  if (renderGeneration !== placeMapRenderGeneration || state.placeView !== "map") return;
+
+  const mapElement = document.getElementById("place-map");
+  if (!placeMap) {
+    placeMap = new googleMaps.Map(mapElement, {
+      center: { lat: 43.77, lng: 142.36 },
+      zoom: 8,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: true
+    });
+    placeMapInfoWindow = new googleMaps.InfoWindow();
+  } else if (mapElement && mapElement !== placeMap.getDiv()) {
+    mapElement.replaceWith(placeMap.getDiv());
+  }
+  placeMarkers.forEach(({ marker, labelOverlay }) => {
+    marker.setMap(null);
+    labelOverlay.setMap(null);
+  });
+  placeMarkers = [];
+
+  const bounds = new google.maps.LatLngBounds();
   const missingCoordinates = [];
+  let locatedCount = 0;
   places.forEach(place => {
     const latitude = Number(place.latitude);
     const longitude = Number(place.longitude);
-    if (Number.isFinite(latitude) && Number.isFinite(longitude) && (latitude !== 0 || longitude !== 0)) {
-      const tags = placeTags(place);
-      const color = tagColor(tags[0]);
-      const tagText = tags.length ? tags.join("、") : "無標籤";
-      const marker = L.marker([latitude, longitude], {
-        icon: L.divIcon({
-          className: "place-map-marker",
-          html: `<span style="--marker-color:${color}"><i></i><b>${escapeHtml(place.name || "未命名地點")}</b></span>`,
-          iconAnchor: [12, 14]
-        }),
-        title: `${place.name || "未命名地點"}（${tagText}）`
-      }).addTo(placeMarkers);
-      marker.bindPopup(`<strong>${escapeHtml(place.name || "未命名地點")}</strong><br><span>${escapeHtml(tagText)}</span>`);
-      bounds.push([latitude, longitude]);
+    const hasCoordinates = place.latitude != null && place.longitude != null
+      && Number.isFinite(latitude) && Number.isFinite(longitude)
+      && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180
+      && (latitude !== 0 || longitude !== 0);
+    const cacheIsFresh = place.coordinateMethod !== "google_places"
+      || Number(place.googleCoordinatesExpireAt) > Date.now();
+    if (cacheIsFresh && hasCoordinates) {
+      const position = { lat: latitude, lng: longitude };
+      const marker = new googleMaps.Marker({
+        map: placeMap,
+        position,
+        title: place.name || "未命名地點",
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: "#EA580C",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 2
+        }
+      });
+      const labelOverlay = new googleMaps.OverlayView();
+      labelOverlay.onAdd = function () {
+        const label = document.createElement("span");
+        const name = document.createElement("span");
+        name.textContent = place.name || "未命名地點";
+        Object.assign(name.style, { overflow: "hidden", textOverflow: "ellipsis" });
+        label.setAttribute("aria-label", place.name || "未命名地點");
+        label.append(name);
+        Object.assign(label.style, {
+          display: "inline-flex",
+          position: "absolute",
+          transform: "translate(12px, -50%)",
+          alignItems: "center",
+          gap: "4px",
+          padding: "2px 6px",
+          border: "1px solid #bfdbfe",
+          borderRadius: "4px",
+          background: "rgba(255, 255, 255, 0.96)",
+          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.2)",
+          color: "#111827",
+          fontSize: "12px",
+          fontWeight: "600",
+          lineHeight: "16px",
+          maxWidth: "180px",
+          overflow: "hidden",
+          pointerEvents: "none",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
+        });
+        this.labelElement = label;
+        this.getPanes().overlayMouseTarget.appendChild(label);
+      };
+      labelOverlay.draw = function () {
+        if (!this.labelElement) return;
+        const point = this.getProjection().fromLatLngToDivPixel(new google.maps.LatLng(position));
+        if (!point) return;
+        this.labelElement.style.left = `${point.x}px`;
+        this.labelElement.style.top = `${point.y}px`;
+      };
+      labelOverlay.onRemove = function () {
+        this.labelElement?.remove();
+        this.labelElement = null;
+      };
+      labelOverlay.setMap(placeMap);
+      marker.addListener("click", () => {
+        const content = document.createElement("div");
+        const heading = document.createElement("strong");
+        heading.textContent = place.name || "未命名地點";
+        heading.style.color = "#2563eb";
+        const tagLabel = document.createElement("p");
+        tagLabel.textContent = placeTags(place).join("、") || "無標籤";
+        const link = document.createElement("a");
+        link.href = placeGoogleMapsUrl(place);
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = "Google Maps";
+        content.append(heading, tagLabel, link);
+        placeMapInfoWindow.setContent(content);
+        placeMapInfoWindow.open({ map: placeMap, anchor: marker });
+      });
+      placeMarkers.push({ marker, labelOverlay });
+      bounds.extend(position);
+      locatedCount += 1;
     } else {
       missingCoordinates.push(place);
     }
   });
-  requestAnimationFrame(() => {
-    placeMap.invalidateSize();
-    if (!placeMapNeedsFit || !bounds.length) return;
+  if (placeMapNeedsFit && locatedCount) {
+    if (locatedCount === 1) {
+      const position = placeMarkers[0].marker.getPosition();
+      placeMap.setCenter(position);
+      placeMap.setZoom(13);
+    } else {
+      placeMap.fitBounds(bounds, { padding: 36, maxZoom: 14 });
+    }
     placeMapNeedsFit = false;
-    if (bounds.length === 1) placeMap.setView(bounds[0], 13);
-    else placeMap.fitBounds(bounds, { padding: [36, 36], maxZoom: 14 });
-  });
-  const located = `已定位 ${bounds.length} / ${places.length} 筆。`;
+  }
   mapStatus.textContent = missingCoordinates.length
-    ? `${located}${missingCoordinates.length} 個地點尚未定位，可編輯名稱或地址後重新儲存，由 AI 再次搜尋。地圖資料 © OpenStreetMap contributors。`
-    : `${located}地圖資料 © OpenStreetMap contributors。`;
+    ? `已定位 ${locatedCount} / ${places.length} 筆；未定位地點列於下方。`
+    : `已定位 ${locatedCount} / ${places.length} 筆。`;
+  unlocatedPanel.classList.toggle("hidden", !missingCoordinates.length);
+  unlocatedHeading.textContent = `尚未定位（${missingCoordinates.length}）`;
+  unlocatedList.innerHTML = missingCoordinates.map(place => {
+    const tags = placeTags(place);
+    const tagText = tags.length ? tags.join("、") : "無標籤";
+    const mapsUrl = placeGoogleMapsUrl(place);
+    const refreshMessage = place.coordinateRefreshError === "daily_limit"
+      ? "今日更新額度已用完"
+      : place.coordinateRefreshError === "refreshing" ? "定位更新中…" : "座標尚未更新";
+    const retryButton = place.coordinateMethod === "google_places"
+      ? `<button type="button" data-refresh-place-id="${escapeHtml(place.id)}" class="p-1 text-xs text-slate-500 hover:text-slate-900" ${refreshingGooglePlaces.has(place.id) ? "disabled" : ""}>重試</button>`
+      : "";
+    return `<article class="flex flex-wrap items-center justify-between gap-2 py-2.5"><div class="min-w-0"><p class="truncate text-sm font-medium text-slate-800">${escapeHtml(place.name || "未命名地點")}</p><p class="mt-0.5 text-xs text-slate-500">${escapeHtml(place.address || tagText)} · ${refreshMessage}</p></div><div class="flex shrink-0 items-center gap-3"><a href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600"><i data-lucide="external-link" class="h-3.5 w-3.5"></i>Google Maps</a>${retryButton}<button type="button" data-unlocated-place-id="${escapeHtml(place.id)}" class="p-1 text-xs text-slate-500 hover:text-slate-900">編輯</button></div></article>`;
+  }).join("");
+  unlocatedList.querySelectorAll("[data-refresh-place-id]").forEach(button => {
+    button.addEventListener("click", () => {
+      const place = state.places.find(entry => entry.id === button.dataset.refreshPlaceId);
+      if (place) void refreshGooglePlaceCoordinates(place);
+    });
+  });
+  unlocatedList.querySelectorAll("[data-unlocated-place-id]").forEach(button => {
+    button.addEventListener("click", () => editPlace(button.dataset.unlocatedPlaceId));
+  });
+  lucide.createIcons();
+}
+
+function placeGoogleLocationRef(placeId) {
+  return doc(database, "ledgers", appName, "places", placeId, "googleLocations", "places-api");
+}
+
+function updatePlaceState(placeId, changes) {
+  state.places = state.places.map(place => place.id === placeId ? { ...place, ...changes } : place);
+  renderPlaceResults();
+}
+
+async function refreshGooglePlaceCoordinates(place, user = currentUser) {
+  if (!user || place.coordinateMethod !== "google_places" || refreshingGooglePlaces.has(place.id)) return;
+  refreshingGooglePlaces.add(place.id);
+  updatePlaceState(place.id, { coordinateRefreshError: "refreshing" });
+  try {
+    const locationRef = placeGoogleLocationRef(place.id);
+    const locationSnapshot = await getDoc(locationRef);
+    const cachedLocation = locationSnapshot.exists() ? locationSnapshot.data() : null;
+    const expiresAt = cachedLocation?.expiresAt?.toDate?.() || cachedLocation?.expiresAt || null;
+    const latitude = Number(cachedLocation?.latitude);
+    const longitude = Number(cachedLocation?.longitude);
+    const cachedCoordinatesAreValid = Number.isFinite(latitude) && Number.isFinite(longitude)
+      && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180
+      && (latitude !== 0 || longitude !== 0);
+    if (expiresAt instanceof Date && expiresAt.getTime() > Date.now() && cachedCoordinatesAreValid) {
+      updatePlaceState(place.id, {
+        latitude,
+        longitude,
+        googleCoordinatesExpireAt: expiresAt.getTime(),
+        coordinateRefreshError: ""
+      });
+      return;
+    }
+
+    updatePlaceState(place.id, { latitude: null, longitude: null, googleCoordinatesExpireAt: 0 });
+    if (locationSnapshot.exists()) await deleteDoc(locationRef);
+    const result = await requestPlaceCoordinates({
+      user,
+      name: place.name,
+      address: place.address,
+      mapsUrl: place.mapsUrl,
+      placeId: place.placeId
+    });
+    if (!result.found || result.method !== "google_places" || !result.placeId) {
+      updatePlaceState(place.id, { coordinateRefreshError: result.failureReason || "not_verified" });
+      return;
+    }
+
+    const newExpiry = new Date(Date.now() + googlePlaceCoordinateLifetimeMs);
+    if (result.placeId !== place.placeId) {
+      await updateDoc(doc(database, "ledgers", appName, "places", place.id), { placeId: result.placeId });
+    }
+    await setDoc(locationRef, {
+      latitude: result.latitude,
+      longitude: result.longitude,
+      expiresAt: newExpiry
+    });
+    updatePlaceState(place.id, {
+      placeId: result.placeId,
+      latitude: result.latitude,
+      longitude: result.longitude,
+      googleCoordinatesExpireAt: newExpiry.getTime(),
+      coordinateRefreshError: ""
+    });
+  } catch (error) {
+    updatePlaceState(place.id, { coordinateRefreshError: error.failureReason || "location_service_unavailable" });
+  } finally {
+    refreshingGooglePlaces.delete(place.id);
+    scheduleGooglePlaceExpiry(user);
+  }
+}
+
+function scheduleGooglePlaceExpiry(user = currentUser) {
+  clearTimeout(placeExpiryTimer);
+  const expiries = state.places
+    .filter(place => place.coordinateMethod === "google_places" && Number(place.googleCoordinatesExpireAt) > 0)
+    .map(place => Number(place.googleCoordinatesExpireAt));
+  if (!user || !expiries.length) return;
+  const nextExpiry = Math.min(...expiries);
+  const delay = nextExpiry - Date.now();
+  if (delay > 2_147_000_000) {
+    placeExpiryTimer = setTimeout(() => scheduleGooglePlaceExpiry(user), 2_147_000_000);
+    return;
+  }
+  placeExpiryTimer = setTimeout(() => {
+    const expiredPlaces = state.places.filter(place => place.coordinateMethod === "google_places"
+      && Number(place.googleCoordinatesExpireAt) > 0
+      && Number(place.googleCoordinatesExpireAt) <= Date.now());
+    expiredPlaces.forEach(place => updatePlaceState(place.id, {
+      latitude: null,
+      longitude: null,
+      googleCoordinatesExpireAt: 0
+    }));
+    void Promise.all(expiredPlaces.map(place => refreshGooglePlaceCoordinates(place, user)));
+    scheduleGooglePlaceExpiry(user);
+  }, Math.max(0, delay));
+}
+
+async function refreshExpiredGooglePlaces(user = currentUser) {
+  if (!user) return;
+  const placesToRefresh = state.places.filter(place => place.coordinateMethod === "google_places");
+  await Promise.all(placesToRefresh.map(place => refreshGooglePlaceCoordinates(place, user)));
+  scheduleGooglePlaceExpiry(user);
 }
 
 function coordinatesFromText(text = "") {
@@ -350,6 +631,49 @@ function coordinateSourcesMarkup(sources = []) {
       return "";
     }
   }).filter(Boolean).join("");
+}
+
+function placeIntroductionMarkup(introduction) {
+  if (!introduction || typeof introduction !== "object" || introduction.language !== "zh-Hant") return "";
+  const typeLabels = {
+    restaurant: "餐廳",
+    attraction: "景點",
+    park: "公園",
+    museum: "博物館",
+    shop: "店家",
+    hotel: "住宿",
+    other: "地點"
+  };
+  const details = [];
+  if (introduction.placeType === "restaurant") {
+    if (introduction.cuisineType) details.push(["料理類型", introduction.cuisineType]);
+    if (introduction.signatureDishes?.length) details.push(["招牌菜色", introduction.signatureDishes.join("、")]);
+  }
+  if (introduction.keyFeatures?.length) details.push(["主要特色", introduction.keyFeatures.join("、")]);
+  if (introduction.visitReason) details.push(["值得造訪", introduction.visitReason]);
+  const recommendationStars = Number.isInteger(introduction.recommendationStars)
+    && introduction.recommendationStars >= 1 && introduction.recommendationStars <= 5
+    ? introduction.recommendationStars
+    : 0;
+  if (!details.length && !recommendationStars) return "";
+  const recommendation = recommendationStars
+    ? `<div class="mb-1.5 flex items-center gap-2"><span class="text-xs font-medium text-slate-700">AI 推薦度</span><span class="inline-flex items-center gap-0.5" role="img" aria-label="${recommendationStars} 顆星">${Array.from({ length: 5 }, (_, index) => `<i data-lucide="star" class="h-3.5 w-3.5 ${index < recommendationStars ? "fill-amber-400 text-amber-500" : "text-slate-300"}"></i>`).join("")}</span><span class="text-xs tabular-nums text-slate-500">${recommendationStars}/5</span></div>${introduction.recommendationReason ? `<p class="mb-1.5 text-xs leading-5 text-slate-600">${escapeHtml(introduction.recommendationReason)}</p>` : ""}`
+    : "";
+  const rows = details.map(([label, value]) => `<p class="text-xs leading-5 text-slate-600"><span class="font-medium text-slate-800">${escapeHtml(label)}：</span>${escapeHtml(value)}</p>`).join("");
+  const sources = coordinateSourcesMarkup(introduction.sources || []);
+  return `<section class="mt-3 border-t border-slate-100 pt-3"><h3 class="mb-1 text-xs font-semibold text-slate-700">AI 景點介紹 · ${escapeHtml(typeLabels[introduction.placeType] || "地點")}</h3>${recommendation}<div class="space-y-0.5">${rows}</div>${sources ? `<div class="mt-2 flex flex-wrap gap-x-3 gap-y-1">${sources}</div>` : ""}</section>`;
+}
+
+function hasPlaceIntroduction(introduction) {
+  if (!introduction || typeof introduction !== "object" || introduction.language !== "zh-Hant") return false;
+  if (!Number.isInteger(introduction.recommendationStars)
+    || introduction.recommendationStars < 0 || introduction.recommendationStars > 5) return false;
+  return Boolean(
+    (introduction.placeType === "restaurant" && (introduction.cuisineType?.trim() || introduction.signatureDishes?.length))
+    || introduction.keyFeatures?.length
+    || introduction.visitReason?.trim()
+    || (introduction.recommendationStars >= 1 && introduction.recommendationStars <= 5 && introduction.recommendationReason?.trim())
+  );
 }
 
 function emptyState(icon, title, detail) {
@@ -488,9 +812,12 @@ window.openPlaceDialog = isEdit => {
   dialog.dataset.id = isEdit ? dialog.dataset.id : "";
   dialog.dataset.coordinatesEdited = "false";
   dialog.querySelector("#place-name-display").classList.toggle("hidden", !isEdit);
+  dialog.querySelector("#place-ai-introduction-panel").classList.toggle("hidden", !isEdit);
   dialog.querySelector("#place-coordinates-field").classList.toggle("hidden", !isEdit);
   if (!isEdit) {
     dialog.querySelector("#place-name-value").textContent = "";
+    dialog.querySelector("#place-ai-introduction-content").innerHTML = "";
+    dialog.querySelector("#place-ai-introduction-empty").classList.add("hidden");
     dialog.querySelector("#place-maps-link").value = "";
     dialog.querySelector("#place-coordinates").value = "";
     dialog.querySelector("#place-coordinate-sources").innerHTML = "";
@@ -510,6 +837,13 @@ window.editPlace = id => {
   const dialog = document.getElementById("place-dialog");
   dialog.dataset.id = id;
   dialog.querySelector("#place-name-value").textContent = place.name || "";
+  const introductionMarkup = placeIntroductionMarkup(place.aiIntroduction);
+  dialog.querySelector("#place-ai-introduction-content").innerHTML = introductionMarkup;
+  const introductionEmpty = dialog.querySelector("#place-ai-introduction-empty");
+  introductionEmpty.textContent = place.aiIntroduction && !hasPlaceIntroduction(place.aiIntroduction)
+    ? "既有介紹不是繁體中文；儲存時會重新查詢並更新。"
+    : "尚未生成繁體中文介紹；儲存時會查詢有來源支持的資料，若找不到可靠來源就不會補猜。";
+  introductionEmpty.classList.toggle("hidden", Boolean(introductionMarkup));
   const hasCoordinates = place.latitude != null && place.longitude != null;
   const mapsUrl = place.mapsUrl || (hasCoordinates
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.latitude},${place.longitude}`)}`
@@ -581,7 +915,7 @@ async function savePlace() {
   const mapsUrl = dialog.querySelector("#place-maps-link").value.trim();
   if (!mapsUrl) return alert("請貼上 Google Maps 分享連結。");
   let name = existing?.name || "";
-  const address = existing?.address || "";
+  let address = existing?.address || "";
   const coordinatesWereEdited = dialog.dataset.id && dialog.dataset.coordinatesEdited === "true";
   const coordinatesText = coordinatesWereEdited
     ? dialog.querySelector("#place-coordinates").value.trim()
@@ -592,6 +926,9 @@ async function savePlace() {
   let coordinateScope = null;
   let coordinateMethod = null;
   let coordinateLabel = "";
+  let placeId = existing?.placeId || "";
+  let googleCoordinatesExpireAt = Number(existing?.googleCoordinatesExpireAt) || 0;
+  let aiIntroduction = existing?.aiIntroduction || null;
   if (coordinates && existing && coordinates.latitude === Number(existing.latitude) && coordinates.longitude === Number(existing.longitude)) {
     coordinateSources = existing.coordinateSources || [];
     coordinateScope = existing.coordinateScope || null;
@@ -612,27 +949,53 @@ async function savePlace() {
   const saveButton = dialog.querySelector(".btn-primary");
   saveButton.disabled = true;
   let lookupError = null;
-  if (!coordinates) {
+  let introductionUnavailable = false;
+  if (!coordinates || !hasPlaceIntroduction(aiIntroduction)) {
     saveButton.textContent = "解析地圖連結／辨識地點中…";
     try {
-      const result = await requestPlaceCoordinates({ user: currentUser, name, address, mapsUrl });
+      const result = await requestPlaceCoordinates({
+        user: currentUser,
+        name,
+        address,
+        mapsUrl,
+        placeId: existing?.coordinateMethod === "google_places" ? placeId : ""
+      });
       name = result.identifiedPlaceName || result.suggestedName || name;
+      const failureMessages = {
+        ai_unavailable: "AI 服務暫時無法使用，已儲存地點名稱與連結，座標留空；可稍後編輯重試。",
+        daily_limit: "今日地點查詢額度已用完，已儲存地點名稱與連結，座標留空；明天可再試。",
+        location_service_unavailable: "地點查詢服務暫時無法使用，已儲存地點名稱與連結，座標留空；可稍後重試。",
+        maps_link_unavailable: "無法展開 Google Maps 分享連結；名稱與連結仍會儲存，請確認連結可開啟。",
+        not_verified: "Google Places 找不到可確認的地點，已儲存地點名稱與連結，座標留空。",
+        outside_hokkaido: "此地點不在北海道範圍內，已儲存地點名稱與連結，座標留空。"
+      };
+      if (result.failureReason) lookupError = new Error(failureMessages[result.failureReason] || "地點查詢失敗，名稱與連結仍會儲存。");
+      aiIntroduction = hasPlaceIntroduction(result.introduction) ? result.introduction : null;
+      if (!aiIntroduction) introductionUnavailable = true;
+      if (result.sources?.length) coordinateSources = result.sources;
       if (result.found) {
-        coordinates = { latitude: result.latitude, longitude: result.longitude };
-        coordinateSources = result.sources;
+        if (!coordinatesText) coordinates = { latitude: result.latitude, longitude: result.longitude };
         coordinateScope = result.scope;
-        coordinateMethod = result.method || "nominatim";
+        if (!coordinatesText) coordinateMethod = result.method || "google_places";
+        if (result.method === "google_places") {
+          placeId = result.placeId || placeId;
+          googleCoordinatesExpireAt = Date.now() + googlePlaceCoordinateLifetimeMs;
+        }
         coordinateLabel = result.identifiedPlaceName || result.resolvedName || "";
       }
     } catch (error) {
       lookupError = error;
+      name = error.suggestedName || name;
+      introductionUnavailable = true;
       console.warn(`Unable to identify and geocode place: ${name}`, error);
     }
   }
   if (!name) {
     saveButton.disabled = false;
     saveButton.textContent = "儲存";
-    return alert("無法從分享連結取得地點名稱，請補上地點名稱後再儲存。");
+    return alert(lookupError
+      ? `Google Maps 查詢失敗：${lookupError.message}。請確認分享連結可開啟後再試。`
+      : "分享連結沒有可辨識的地點名稱；請確認連結指向 Google Maps 地點頁，再儲存。");
   }
   const entry = {
     name,
@@ -640,29 +1003,58 @@ async function savePlace() {
     address,
     mapsUrl,
     note: dialog.querySelector("#place-note").value.trim(),
-    latitude: coordinates?.latitude ?? null,
-    longitude: coordinates?.longitude ?? null,
     coordinateSources,
     coordinateScope,
     coordinateMethod,
     coordinateLabel,
+    aiIntroduction,
     createdAt: existing?.createdAt || Date.now(),
     updatedAt: Date.now()
   };
+  if (placeId) entry.placeId = placeId;
+  else if (existing) entry.placeId = deleteField();
+  if (coordinateMethod === "google_places") {
+    if (existing) {
+      entry.latitude = deleteField();
+      entry.longitude = deleteField();
+    }
+  } else {
+    entry.latitude = coordinates?.latitude ?? null;
+    entry.longitude = coordinates?.longitude ?? null;
+  }
   saveButton.textContent = "儲存中…";
   try {
-    await saveEntry("places", dialog.dataset.id, entry);
+    const placeEntries = collection(database, "ledgers", appName, "places");
+    const placeRef = existing ? doc(placeEntries, existing.id) : doc(placeEntries);
+    const locationRef = placeGoogleLocationRef(placeRef.id);
+    const batch = writeBatch(database);
+    if (coordinateMethod === "google_places" && coordinates && placeId) {
+      batch.set(locationRef, {
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+        expiresAt: new Date(googleCoordinatesExpireAt || Date.now() + googlePlaceCoordinateLifetimeMs)
+      });
+    } else if (existing?.coordinateMethod === "google_places") {
+      batch.delete(locationRef);
+    }
+    if (existing) batch.update(placeRef, entry);
+    else batch.set(placeRef, entry);
+    await batch.commit();
     closeDialog("place-dialog");
-    alert(coordinatesText
+    alert(introductionUnavailable && coordinates
+      ? "地點與座標已儲存，但沒有取得足夠來源支持的 AI 介紹；可稍後編輯再試。"
+      : coordinatesText
       ? "已儲存，使用人工輸入的經緯度。"
       : coordinateMethod === "google_maps_link"
         ? `已使用 Google Maps 分享連結定位（${coordinates.latitude.toFixed(5)}, ${coordinates.longitude.toFixed(5)}）。`
-      : coordinateMethod === "nominatim"
-        ? `已儲存，AI 辨識為「${coordinateLabel || name}」，由 OpenStreetMap 定位（${coordinates.latitude.toFixed(5)}, ${coordinates.longitude.toFixed(5)}）。`
+      : coordinateMethod === "google_places"
+        ? `已使用 Google Places 定位（${coordinates.latitude.toFixed(5)}, ${coordinates.longitude.toFixed(5)}）。`
         : coordinates
           ? `已儲存座標（${coordinates.latitude.toFixed(5)}, ${coordinates.longitude.toFixed(5)}）。`
+          : aiIntroduction
+            ? "地點介紹已儲存，但目前無法定位座標；可稍後編輯重試。"
         : lookupError
-          ? "地點辨識或定位服務暫時無法使用，已儲存但座標留空；可稍後編輯地點再試。"
+          ? lookupError.message
           : "找不到可確認的北海道地點，已儲存但座標留空；可補充地址後再試。");
   } catch (error) {
     showDataError(error);
@@ -674,13 +1066,18 @@ async function savePlace() {
 
 async function saveEntry(type, id, entry) {
   const entries = collection(database, "ledgers", appName, type);
-  if (id) await updateDoc(doc(entries, id), entry);
-  else await addDoc(entries, entry);
+  if (id) {
+    await updateDoc(doc(entries, id), entry);
+    return id;
+  }
+  const result = await addDoc(entries, entry);
+  return result.id;
 }
 
 async function removeEntry(type, id) {
   if (!id || !confirm("確定要刪除這筆紀錄嗎？")) return;
   try {
+    if (type === "places") await deleteDoc(placeGoogleLocationRef(id));
     await deleteDoc(doc(database, "ledgers", appName, type, id));
     closeDialog({ expenses: "expense-dialog", payments: "payment-dialog", places: "place-dialog" }[type]);
   } catch (error) {
@@ -697,6 +1094,8 @@ if (!isConfigured) {
   setupDialogs();
   document.getElementById("logout-btn").addEventListener("click", () => signOut(auth));
   onAuthStateChanged(auth, user => {
+    clearTimeout(placeExpiryTimer);
+    refreshingGooglePlaces.clear();
     currentUser = null;
     if (!user || !isAllowed(user.email)) {
       if (user) signOut(auth);
@@ -713,8 +1112,15 @@ if (!isConfigured) {
       render();
     }, showDataError);
     onSnapshot(collection(database, "ledgers", appName, "places"), snapshot => {
-      state.places = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }));
+      state.places = snapshot.docs.map(entry => {
+        const place = { id: entry.id, ...entry.data() };
+        return place.coordinateMethod === "google_places"
+          ? { ...place, latitude: null, longitude: null }
+          : place;
+      });
+      placeMapNeedsFit = true;
       renderPlaces();
+      void refreshExpiredGooglePlaces(user);
     }, showDataError);
   });
 }

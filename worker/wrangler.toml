@@ -6,9 +6,9 @@ workers_dev = true
 [vars]
 FIREBASE_PROJECT_ID = "sharepay-f60d3"
 ALLOWED_EMAILS = "zzdanny781024@gmail.com,ben155373@gmail.com"
-ALLOWED_ORIGINS = "https://sharepay-f60d3.web.app,https://sharepay-f60d3.firebaseapp.com,http://localhost:5000"
+ALLOWED_ORIGINS = "https://sharepay-f60d3.web.app,https://sharepay-f60d3.firebaseapp.com,http://localhost:5000,http://localhost:8000"
 OPENAI_MODEL = "gpt-4.1-mini"
-DAILY_REQUEST_LIMIT = "30"
+DAILY_REQUEST_LIMIT = "200"
 
 [[durable_objects.bindings]]
 name = "USER_DAILY_LIMITER"

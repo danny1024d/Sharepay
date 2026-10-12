@@ -11,5 +11,9 @@ service cloud.firestore {
     match /ledgers/travel-split-app/{entryType}/{entryId} {
       allow read, write: if isAllowedUser();
     }
+
+    match /ledgers/travel-split-app/places/{placeId}/googleLocations/{locationId} {
+      allow read, write: if isAllowedUser();
+    }
   }
 }

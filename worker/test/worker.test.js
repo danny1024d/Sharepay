@@ -1,14 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  geocodeIdentifiedPlace,
+  buildPlaceIdentificationPrompt,
   extractGoogleMapsPlaceName,
+  findGooglePlace,
   handleRequest,
   normalizeGoogleMapsUrl,
-  nominatimSearchUrl,
   parseGoogleMapsCoordinates,
-  parseNominatimResults,
   parsePlaceIdentificationResult,
+  placeIdentificationResponseFormat,
+  placeIntroductionTranslationResponseFormat,
+  placeLookupFailure,
+  placesTextSearchBody,
+  translatePlaceIntroduction,
   resolveGoogleMapsShareUrl,
   UserDailyRateLimiter
 } from "../src/index.js";
@@ -68,9 +72,41 @@ test("daily quota is enforced per limiter instance", async () => {
   assert.equal((await check()).status, 429);
 });
 
+test("identification failures retain a suggested Google Maps place name", () => {
+  const result = placeLookupFailure("山頭火 旭川本店", "ai_unavailable", [
+    { title: "Google Maps", url: "https://www.google.com/maps/place/test" }
+  ]);
+  assert.equal(result.found, false);
+  assert.equal(result.suggestedName, "山頭火 旭川本店");
+  assert.equal(result.failureReason, "ai_unavailable");
+  assert.equal(result.sources.length, 1);
+});
+
+test("daily quota failures retain the resolved Maps title", () => {
+  const result = placeLookupFailure("山頭火 旭川本店", "daily_limit");
+  assert.equal(result.suggestedName, "山頭火 旭川本店");
+  assert.equal(result.failureReason, "daily_limit");
+});
+
 test("AI identification returns a cited place name and address, not coordinates", () => {
   const result = parsePlaceIdentificationResult(
-    JSON.stringify({ found: true, placeName: "旭川市科学館サイパル", alternateNames: ["旭川市科学館"], address: "北海道旭川市", latitude: 43.7681, longitude: 142.3655, scope: "asahikawa" }),
+    JSON.stringify({
+      found: true,
+      placeName: "旭川市科学館サイパル",
+      alternateNames: ["旭川市科学館"],
+      address: "北海道旭川市",
+      latitude: 43.7681,
+      longitude: 142.3655,
+      scope: "asahikawa",
+      introduction: {
+        language: "zh-Hant",
+        placeType: "museum",
+        cuisineType: "should be discarded",
+        signatureDishes: ["should be discarded"],
+        keyFeatures: ["互動式展示"],
+        visitReason: "適合親子與科學愛好者。"
+      }
+    }),
     [{ title: "Official place page", url: "https://example.jp/place" }]
   );
   assert.equal(result.found, true);
@@ -79,6 +115,156 @@ test("AI identification returns a cited place name and address, not coordinates"
   assert.equal(result.scope, "asahikawa");
   assert.equal(result.sources.length, 1);
   assert.equal("latitude" in result, false);
+  assert.deepEqual(result.introduction, {
+    language: "zh-Hant",
+    placeType: "museum",
+    cuisineType: "",
+    signatureDishes: [],
+    keyFeatures: ["互動式展示"],
+    visitReason: "適合親子與科學愛好者。",
+    recommendationStars: 0,
+    recommendationReason: "",
+    sources: result.sources
+  });
+});
+
+test("AI introduction response schema preserves the detected source language", () => {
+  const format = placeIdentificationResponseFormat;
+  assert.equal(format.type, "json_schema");
+  assert.equal(format.strict, true);
+  assert.equal(format.schema.properties.introduction.properties.language.type, "string");
+  assert.equal("enum" in format.schema.properties.introduction.properties.language, false);
+  assert.equal(format.schema.additionalProperties, false);
+  assert.equal(format.schema.properties.introduction.additionalProperties, false);
+});
+
+test("translation response schema requires Traditional Chinese", () => {
+  const format = placeIntroductionTranslationResponseFormat;
+  assert.equal(format.type, "json_schema");
+  assert.equal(format.strict, true);
+  assert.deepEqual(format.schema.properties.language.enum, ["zh-Hant"]);
+  assert.equal(format.schema.additionalProperties, false);
+});
+
+test("translates sourced fields while preserving the rating and citations", async () => {
+  const introduction = {
+    language: "ja",
+    placeType: "restaurant",
+    cuisineType: "ジンギスカン",
+    signatureDishes: ["ラム肉"],
+    keyFeatures: ["炭火焼き"],
+    visitReason: "北海道の郷土料理を味わえる。",
+    recommendationStars: 4,
+    recommendationReason: "公式サイトで専門店と確認できる。",
+    sources: [{ title: "Official site", url: "https://example.jp/" }]
+  };
+  const translated = await translatePlaceIntroduction(introduction, { OPENAI_API_KEY: "test-key" }, async (url, options) => {
+    assert.equal(url, "https://api.openai.com/v1/responses");
+    const requestBody = JSON.parse(options.body);
+    assert.equal(requestBody.text.format.name, "traditional_chinese_place_introduction");
+    return Response.json({ output: [{ content: [{ type: "output_text", text: JSON.stringify({
+      language: "zh-Hant",
+      placeType: "restaurant",
+      cuisineType: "成吉思汗烤肉",
+      signatureDishes: ["羊肉"],
+      keyFeatures: ["炭火燒烤"],
+      visitReason: "可品嚐北海道鄉土料理。",
+      recommendationStars: 4,
+      recommendationReason: "官方網站確認是專門店。"
+    }) }] }] });
+  });
+
+  assert.equal(translated.language, "zh-Hant");
+  assert.equal(translated.cuisineType, "成吉思汗烤肉");
+  assert.equal(translated.recommendationStars, 4);
+  assert.deepEqual(translated.sources, introduction.sources);
+});
+
+test("restaurant introduction preserves cuisine, signature dishes, features, and cited sources", () => {
+  const sources = [{ title: "Restaurant official site", url: "https://example.jp/menu" }];
+  const result = parsePlaceIdentificationResult(JSON.stringify({
+    found: true,
+    placeName: "旭川拉麵店",
+    address: "北海道旭川市",
+    scope: "asahikawa",
+    introduction: {
+      language: "zh-Hant",
+      placeType: "restaurant",
+      cuisineType: "旭川醬油拉麵",
+      signatureDishes: ["醬油拉麵", "鹽味拉麵"],
+      keyFeatures: ["以豬骨與魚介熬製湯頭"],
+      visitReason: "品嚐當地代表性的旭川拉麵。",
+      recommendationStars: 5,
+      recommendationReason: "來源明確記載其為旭川代表性拉麵。"
+    }
+  }), sources);
+
+  assert.equal(result.introduction.placeType, "restaurant");
+  assert.equal(result.introduction.cuisineType, "旭川醬油拉麵");
+  assert.deepEqual(result.introduction.signatureDishes, ["醬油拉麵", "鹽味拉麵"]);
+  assert.equal(result.introduction.recommendationStars, 5);
+  assert.equal(result.introduction.recommendationReason, "來源明確記載其為旭川代表性拉麵。");
+  assert.deepEqual(result.introduction.sources, sources);
+});
+
+test("empty AI descriptions are not marked as generated introductions", () => {
+  const result = parsePlaceIdentificationResult(JSON.stringify({
+    found: true,
+    placeName: "未找到介紹的店家",
+    address: "北海道旭川市",
+    scope: "asahikawa",
+    introduction: {
+      placeType: "restaurant",
+      cuisineType: "",
+      signatureDishes: [],
+      keyFeatures: [],
+      visitReason: ""
+    }
+  }), [{ title: "Map page", url: "https://example.jp/place" }]);
+
+  assert.equal(result.found, true);
+  assert.equal(result.introduction, null);
+});
+
+test("preserves cited non-Traditional-Chinese introduction fields for translation", () => {
+  const result = parsePlaceIdentificationResult(JSON.stringify({
+    found: true,
+    placeName: "旭川拉麵店",
+    address: "北海道旭川市",
+    scope: "asahikawa",
+    introduction: {
+      language: "zh-Hans",
+      placeType: "restaurant",
+      cuisineType: "旭川酱油拉面",
+      signatureDishes: ["酱油拉面"],
+      keyFeatures: ["本地风味"],
+      visitReason: "品尝当地特色拉面。"
+    }
+  }), [{ title: "Source", url: "https://example.jp/place" }]);
+
+  assert.equal(result.found, true);
+  assert.equal(result.introduction.language, "zh-hans");
+  assert.equal(result.introduction.cuisineType, "旭川酱油拉面");
+  assert.equal(result.introduction.sources.length, 1);
+});
+
+test("zh-Hant-TW locale aliases are normalized to zh-Hant", () => {
+  const result = parsePlaceIdentificationResult(JSON.stringify({
+    found: true,
+    placeName: "旭川拉麵店",
+    address: "北海道旭川市",
+    scope: "asahikawa",
+    introduction: {
+      language: "zh-Hant-TW",
+      placeType: "restaurant",
+      cuisineType: "旭川醬油拉麵",
+      signatureDishes: [],
+      keyFeatures: [],
+      visitReason: "品嚐當地特色。"
+    }
+  }), [{ title: "Source", url: "https://example.jp/place" }]);
+
+  assert.equal(result.introduction.language, "zh-Hant");
 });
 
 test("requires a cited exact place identification", () => {
@@ -89,78 +275,54 @@ test("requires a cited exact place identification", () => {
   assert.deepEqual(result, { found: false, sources: [] });
 });
 
-test("Nominatim results must be inside Japan and the requested area", () => {
-  const result = parseNominatimResults([
-    { lat: "35.6812", lon: "139.7671", address: { country_code: "jp" } },
-    { lat: "43.7563416", lon: "142.3704140", display_name: "旭川市科学館", address: { country_code: "jp" } }
-  ], { minLatitude: 43.4, maxLatitude: 43.95, minLongitude: 142.1, maxLongitude: 142.8 });
-  assert.equal(result.latitude, 43.7563416);
-  assert.equal(result.longitude, 142.370414);
+test("Text Search biases toward Hokkaido and only requests place IDs", () => {
+  const body = placesTextSearchBody({ placeName: "旭川市科学館サイパル", address: "北海道旭川市宮前" });
+  assert.equal(body.textQuery, "旭川市科学館サイパル, 北海道旭川市宮前, 北海道 日本");
+  assert.equal(body.pageSize, 1);
+  assert.equal(body.regionCode, "JP");
+  assert.deepEqual(body.locationBias.rectangle, {
+    low: { latitude: 41.2, longitude: 139.2 },
+    high: { latitude: 45.7, longitude: 148.9 }
+  });
 });
 
-test("Nominatim search hard-filters Japan and the supplied viewbox", () => {
-  const url = new URL(nominatimSearchUrl(
-    { placeName: "旭川市科学館サイパル", address: "北海道旭川市宮前" },
-    { minLatitude: 43.4, maxLatitude: 43.95, minLongitude: 142.1, maxLongitude: 142.8 },
-    "旭川市科学館"
-  ));
-  assert.equal(url.searchParams.get("countrycodes"), "jp");
-  assert.equal(url.searchParams.get("bounded"), "1");
-  assert.equal(url.searchParams.get("viewbox"), "142.1,43.95,142.8,43.4");
-  assert.match(url.searchParams.get("q"), /旭川市科学館/);
-});
+test("Text Search gets a place ID before Essentials Details returns its location", async () => {
+  const calls = [];
+  const result = await findGooglePlace({ placeName: "旭川市科学館サイパル", address: "北海道旭川市" }, "test-key", async (url, options = {}) => {
+    calls.push({ url, options });
+    return calls.length === 1
+      ? Response.json({ places: [{ id: "place-id-123" }] })
+      : Response.json({ formattedAddress: "北海道旭川市宮前", location: { latitude: 43.7563, longitude: 142.3704 } });
+  });
 
-test("tries AI-provided map aliases before widening the search area", async () => {
-  const urls = [];
-  const result = await geocodeIdentifiedPlace({
-    placeName: "旭川市科学館サイパル",
-    alternateNames: ["旭川市科学館"],
-    address: "北海道旭川市",
-    scope: "asahikawa",
-    sources: [{ title: "Official page", url: "https://example.jp/place" }]
-  }, {}, async url => {
-    urls.push(new URL(url));
-    return Response.json(urls.length === 1 ? [] : [{
-      lat: "43.7563416",
-      lon: "142.3704140",
-      display_name: "旭川市科学館",
-      address: { country_code: "jp" },
-      osm_type: "way",
-      osm_id: 123
-    }]);
-  }, async () => {});
-
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].url, "https://places.googleapis.com/v1/places:searchText");
+  assert.equal(calls[0].options.headers["X-Goog-FieldMask"], "places.id");
+  assert.equal(calls[1].url, "https://places.googleapis.com/v1/places/place-id-123");
+  assert.equal(calls[1].options.headers["X-Goog-FieldMask"], "location");
   assert.equal(result.found, true);
-  assert.equal(result.scope, "asahikawa");
-  assert.equal(urls.length, 2);
-  assert.match(urls[1].searchParams.get("q"), /旭川市科学館/);
+  assert.equal(result.placeId, "place-id-123");
+  assert.equal(result.latitude, 43.7563);
+  assert.equal(result.longitude, 142.3704);
+  assert.equal(result.method, "google_places");
 });
 
-test("falls back from Asahikawa to Hokkaido geocoding when the first area has no match", async () => {
-  const urls = [];
-  let paceCalls = 0;
-  const result = await geocodeIdentifiedPlace({
-    placeName: "北海道の施設",
-    address: "",
-    scope: "asahikawa",
-    sources: [{ title: "Source", url: "https://example.jp/place" }]
-  }, {}, async url => {
-    urls.push(new URL(url));
-    return Response.json(urls.length === 1 ? [] : [{
-      lat: "43.7563416",
-      lon: "142.3704140",
-      display_name: "旭川市科学館",
-      address: { country_code: "jp" },
-      osm_type: "way",
-      osm_id: 123
-    }]);
-  }, async () => { paceCalls += 1; });
+test("Text Search returns no match without calling Place Details", async () => {
+  let calls = 0;
+  const result = await findGooglePlace({ placeName: "不存在的地點" }, "test-key", async () => {
+    calls += 1;
+    return Response.json({ places: [] });
+  });
+  assert.equal(result, null);
+  assert.equal(calls, 1);
+});
 
-  assert.equal(result.found, true);
-  assert.equal(result.scope, "hokkaido");
-  assert.equal(urls.length, 2);
-  assert.equal(paceCalls, 2);
-  assert.equal(result.sources[0].title.startsWith("OpenStreetMap"), true);
+test("Place Details coordinates outside Hokkaido are rejected", async () => {
+  const result = await findGooglePlace({ placeName: "東京車站" }, "test-key", async (url) =>
+    url.endsWith("searchText")
+      ? Response.json({ places: [{ id: "tokyo-station" }] })
+      : Response.json({ formattedAddress: "東京都", location: { latitude: 35.6812, longitude: 139.7671 } }));
+  assert.deepEqual(result, { found: false, outsideHokkaido: true });
 });
 
 test("prefers Google's place pin coordinates over the map viewport center", () => {
@@ -193,4 +355,29 @@ test("rejects a Google Maps short link that redirects outside Google Maps", asyn
     })),
     /redirect is not allowed/
   );
+});
+
+test("AI prompt separates venue names from appended Google Maps address text", () => {
+  const prompt = buildPlaceIdentificationPrompt({
+    name: "山頭火 旭川本店 MANNY BLD 1F 8 Chome-348-6 1 Jodori, Asahikawa, Hokkaido",
+    address: "",
+    coordinates: { latitude: 43.77, longitude: 142.36 }
+  });
+  assert.match(prompt, /Google Maps title may concatenate the venue name, building, floor, street, city, and postal code/);
+  assert.match(prompt, /separate the core venue name from address context/);
+  assert.match(prompt, /Place name:.*山頭火 旭川本店/);
+  assert.match(prompt, /Google Maps pin coordinates: 43\.77, 142\.36/);
+  assert.doesNotMatch(prompt, /reverse-geocoded OpenStreetMap/);
+});
+
+test("refreshes an expired location directly from its stored Place ID", async () => {
+  const calls = [];
+  const result = await findGooglePlace({ placeId: "place-id-saved", placeName: "旭川市科学館" }, "test-key", async url => {
+    calls.push(url);
+    return Response.json({ location: { latitude: 43.7563, longitude: 142.3704 } });
+  });
+
+  assert.deepEqual(calls, ["https://places.googleapis.com/v1/places/place-id-saved"]);
+  assert.equal(result.placeId, "place-id-saved");
+  assert.equal(result.method, "google_places");
 });
