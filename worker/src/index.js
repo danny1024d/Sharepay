@@ -4,6 +4,10 @@ const firebaseJwks = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
 );
 const maxRequestBytes = 16_384;
+const maxReceiptImageBytes = 1_500_000;
+const maxReceiptRequestBytes = 2_050_000;
+const maxReceiptScansPerDay = 20;
+const jpyTwdCacheLifetimeMs = 6 * 60 * 60 * 1000;
 const maxNameLength = 100;
 const maxAddressLength = 200;
 const maxMapsUrlLength = 2000;
@@ -36,6 +40,7 @@ const googleMapsHosts = new Set([
   "maps.google.com"
 ]);
 const cachedSkiMapData = new Map();
+let cachedJpyTwdRate = null;
 
 export const placeIdentificationResponseFormat = {
   type: "json_schema",
@@ -91,6 +96,162 @@ export const placeIntroductionTranslationResponseFormat = {
   }
 };
 
+export const receiptDraftResponseFormat = {
+  type: "json_schema",
+  name: "receipt_expense_draft",
+  strict: true,
+  schema: {
+    type: "object",
+    properties: {
+      merchant: { type: "string" },
+      date: { type: "string" },
+      total: { type: "number", minimum: 0 },
+      currency: { type: "string", enum: ["TWD", "JPY", "USD", "CNY", "HKD", "KRW", "OTHER", "UNKNOWN"] },
+      category: { type: "string", enum: ["住宿", "餐費", "交通", "滑雪", "雜支"] },
+      note: { type: "string" },
+      confidence: { type: "string", enum: ["high", "medium", "low"] }
+    },
+    required: ["merchant", "date", "total", "currency", "category", "note", "confidence"],
+    additionalProperties: false
+  }
+};
+
+function receiptImageByteLength(imageDataUrl) {
+  const match = typeof imageDataUrl === "string"
+    ? imageDataUrl.match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+={0,2})$/i)
+    : null;
+  if (!match || match[2].length > Math.ceil(maxReceiptImageBytes * 4 / 3) + 4) {
+    throw new Error("receipt_image_invalid");
+  }
+  const padding = match[2].endsWith("==") ? 2 : match[2].endsWith("=") ? 1 : 0;
+  const imageBytes = Math.floor(match[2].length * 3 / 4) - padding;
+  if (imageBytes < 64 || imageBytes > maxReceiptImageBytes) throw new Error("receipt_image_invalid");
+  return imageBytes;
+}
+
+function taipeiDateFromUnix(timestamp) {
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date(timestamp * 1000));
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+async function getLatestJpyTwdRate(fetchImpl = fetch) {
+  const now = Date.now();
+  if (fetchImpl === fetch && cachedJpyTwdRate && cachedJpyTwdRate.expiresAt > now) {
+    return cachedJpyTwdRate.value;
+  }
+  const response = await fetchImpl("https://open.er-api.com/v6/latest/JPY", {
+    headers: { Accept: "application/json", "User-Agent": "SharePayReceiptDraft/1.0" },
+    signal: AbortSignal.timeout(10_000)
+  });
+  if (!response.ok) throw new Error("jpy_twd_rate_unavailable");
+  const data = await response.json();
+  const rate = Number(data.rates?.TWD);
+  const updatedAt = Number(data.time_last_update_unix);
+  if (data.result !== "success" || data.base_code !== "JPY" || !Number.isFinite(rate) || rate <= 0
+    || !Number.isFinite(updatedAt)) throw new Error("jpy_twd_rate_invalid");
+  const value = {
+    rate,
+    date: taipeiDateFromUnix(updatedAt),
+    source: "ExchangeRate-API"
+  };
+  if (fetchImpl === fetch) cachedJpyTwdRate = { value, expiresAt: now + jpyTwdCacheLifetimeMs };
+  return value;
+}
+
+export async function parseReceiptDraft(imageDataUrl, env, fetchImpl = fetch, exchangeRateFetch = fetch) {
+  receiptImageByteLength(imageDataUrl);
+  if (!env.OPENAI_API_KEY) throw new Error("receipt_service_unavailable");
+
+  const response = await fetchImpl("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: env.OPENAI_MODEL || "gpt-4.1-mini",
+      input: [{
+        role: "user",
+        content: [{
+            type: "input_text",
+            text: [
+              "Read this receipt and return only the requested expense draft fields.",
+              "Extract the printed grand total and currency exactly; never convert currencies or infer a payer or split ratio.",
+              "Use an ISO date (YYYY-MM-DD) only when the receipt clearly shows the full date; otherwise return an empty date string.",
+              "Choose the closest category among 住宿, 餐費, 交通, 滑雪, 雜支. Use 雜支 when the category is unclear.",
+              "If the merchant, total, or currency is unreadable, use an empty merchant, total 0, or UNKNOWN as appropriate and set confidence low.",
+              "Keep note short and factual. Do not add information that is not visible on the receipt."
+            ].join(" ")
+          },
+          { type: "input_image", image_url: imageDataUrl, detail: "high" }
+        ]
+      }],
+      text: { format: receiptDraftResponseFormat },
+      max_output_tokens: 300
+    }),
+    signal: AbortSignal.timeout(30_000)
+  });
+  if (!response.ok) {
+    console.error("OpenAI receipt parsing failed", { status: response.status });
+    throw new Error("receipt_service_unavailable");
+  }
+
+  const result = await response.json();
+  const outputText = (result.output || [])
+    .flatMap(item => item.content || [])
+    .filter(part => part.type === "output_text" && typeof part.text === "string")
+    .map(part => part.text)
+    .join("");
+  let draft;
+  try {
+    draft = JSON.parse(outputText);
+  } catch {
+    throw new Error("receipt_response_invalid");
+  }
+
+  const currencies = new Set(["TWD", "JPY", "USD", "CNY", "HKD", "KRW", "OTHER", "UNKNOWN"]);
+  const categories = new Set(["住宿", "餐費", "交通", "滑雪", "雜支"]);
+  const confidenceLevels = new Set(["high", "medium", "low"]);
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(draft.date) && !Number.isNaN(Date.parse(`${draft.date}T00:00:00Z`))
+    ? draft.date
+    : "";
+  const total = Number.isFinite(draft.total) && draft.total >= 0 && draft.total <= 100_000_000
+    ? Math.round(draft.total)
+    : 0;
+  const normalized = {
+    merchant: typeof draft.merchant === "string" ? draft.merchant.trim().slice(0, 120) : "",
+    date,
+    total,
+    currency: currencies.has(draft.currency) ? draft.currency : "UNKNOWN",
+    category: categories.has(draft.category) ? draft.category : "雜支",
+    note: typeof draft.note === "string" ? draft.note.trim().slice(0, 200) : "",
+    confidence: confidenceLevels.has(draft.confidence) ? draft.confidence : "low",
+    twdTotal: null,
+    exchangeRate: null,
+    exchangeRateDate: "",
+    exchangeRateSource: ""
+  };
+  if (normalized.currency === "TWD") normalized.twdTotal = normalized.total;
+  if (normalized.currency === "JPY" && normalized.total > 0) {
+    try {
+      const exchange = await getLatestJpyTwdRate(exchangeRateFetch);
+      normalized.twdTotal = Math.round(normalized.total * exchange.rate);
+      normalized.exchangeRate = exchange.rate;
+      normalized.exchangeRateDate = exchange.date;
+      normalized.exchangeRateSource = exchange.source;
+    } catch (error) {
+      console.error("JPY to TWD exchange rate unavailable", { message: error.message });
+    }
+  }
+  return normalized;
+}
+
 function allowedOrigins(env) {
   return new Set((env.ALLOWED_ORIGINS || "").split(",").map(value => value.trim()).filter(Boolean));
 }
@@ -129,14 +290,16 @@ async function verifyFirebaseToken(token, projectId) {
   return payload;
 }
 
-async function takeDailyQuota(env) {
+async function takeDailyQuota(env, key = "places", limitOverride = null) {
   const id = env.USER_DAILY_LIMITER.idFromName("global-daily-quota");
   const stub = env.USER_DAILY_LIMITER.get(id);
-  const limit = Math.max(1, Math.min(200, Number.parseInt(env.DAILY_REQUEST_LIMIT, 10) || 200));
+  const limit = limitOverride == null
+    ? Math.max(1, Math.min(200, Number.parseInt(env.DAILY_REQUEST_LIMIT, 10) || 200))
+    : Math.max(1, Math.min(1000, limitOverride));
   return stub.fetch("https://rate-limit.internal/check", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ limit })
+    body: JSON.stringify({ key, limit })
   });
 }
 
@@ -636,7 +799,7 @@ export async function handleRequest(request, env, ctx) {
     return jsonResponse({ error: "Content-Type must be application/json." }, 415, origin);
   }
   const contentLength = Number(request.headers.get("Content-Length") || 0);
-  if (contentLength > maxRequestBytes) {
+  if (contentLength > maxReceiptRequestBytes) {
     return jsonResponse({ error: "Request is too large." }, 413, origin);
   }
 
@@ -659,10 +822,36 @@ export async function handleRequest(request, env, ctx) {
   }
 
   let body;
+  let requestBytes;
   try {
-    body = await request.json();
+    const bodyText = await request.text();
+    requestBytes = new TextEncoder().encode(bodyText).byteLength;
+    if (requestBytes > maxReceiptRequestBytes) return jsonResponse({ error: "Request is too large." }, 413, origin);
+    body = JSON.parse(bodyText);
   } catch {
     return jsonResponse({ error: "Invalid JSON body." }, 400, origin);
+  }
+  if (body?.action !== "parse_receipt" && requestBytes > maxRequestBytes) {
+    return jsonResponse({ error: "Request is too large." }, 413, origin);
+  }
+  if (body?.action === "parse_receipt") {
+    try {
+      receiptImageByteLength(body.imageDataUrl);
+    } catch {
+      return jsonResponse({ error: "請上傳小於 1.5MB 的 JPEG、PNG 或 WebP 收據圖片。" }, 400, origin);
+    }
+    const quotaResponse = await takeDailyQuota(env, `receipt:${identity.email.toLowerCase()}`, maxReceiptScansPerDay);
+    if (quotaResponse.status === 429) {
+      return jsonResponse({ error: "今日收據辨識次數已達上限，請明天再試。" }, 429, origin);
+    }
+    try {
+      return jsonResponse(await parseReceiptDraft(body.imageDataUrl, env), 200, origin);
+    } catch (error) {
+      const unavailable = error.message === "receipt_service_unavailable";
+      return jsonResponse({
+        error: unavailable ? "AI 收據辨識服務暫時無法使用，請稍後重試。" : "無法辨識這張收據，請確認照片清晰後重試。"
+      }, unavailable ? 502 : 422, origin);
+    }
   }
   if (body?.action === "kamui_map_data") {
     const resortId = body.resortId || "kamui";
@@ -794,21 +983,24 @@ export class UserDailyRateLimiter {
     }
 
     let limit;
+    let key = "places";
     try {
-      ({ limit } = await request.json());
+      ({ limit, key = "places" } = await request.json());
     } catch {
       return new Response("Invalid request", { status: 400 });
     }
-    if (!Number.isInteger(limit) || limit < 1 || limit > 1000) {
+    if (!Number.isInteger(limit) || limit < 1 || limit > 1000
+      || typeof key !== "string" || !/^[a-z0-9:_@.+-]{1,180}$/i.test(key)) {
       return new Response("Invalid limit", { status: 400 });
     }
 
+    const storageKey = key === "places" ? "daily-count" : `daily-count:${key}`;
     const today = new Date().toISOString().slice(0, 10);
     const allowed = await this.ctx.storage.transaction(async transaction => {
-      const record = await transaction.get("daily-count");
+      const record = await transaction.get(storageKey);
       const count = record?.date === today ? record.count : 0;
       if (count >= limit) return false;
-      await transaction.put("daily-count", { date: today, count: count + 1 });
+      await transaction.put(storageKey, { date: today, count: count + 1 });
       return true;
     });
 

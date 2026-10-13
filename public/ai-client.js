@@ -52,3 +52,25 @@ export async function requestKamuiMapData({ user, resortId = "kamui" }) {
   }
   return result;
 }
+
+export async function requestReceiptDraft({ user, imageDataUrl }) {
+  if (!user || typeof user.getIdToken !== "function") throw new Error("Sign-in required.");
+  const token = await user.getIdToken();
+  const response = await fetch(workerUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ action: "parse_receipt", imageDataUrl })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "收據辨識暫時無法使用。");
+  if (typeof result.merchant !== "string" || typeof result.date !== "string"
+    || !Number.isFinite(result.total) || !["TWD", "JPY", "USD", "CNY", "HKD", "KRW", "OTHER", "UNKNOWN"].includes(result.currency)
+    || !["住宿", "餐費", "交通", "滑雪", "雜支"].includes(result.category)
+    || !["high", "medium", "low"].includes(result.confidence)) {
+    throw new Error("收據辨識結果格式錯誤，請重試。");
+  }
+  return result;
+}

@@ -16,7 +16,7 @@ import {
   updateDoc
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { allowedEmails, appName, firebaseConfig, googleMapsApiKey } from "./firebase-config.js";
-import { requestPlaceCoordinates } from "./ai-client.js";
+import { requestPlaceCoordinates, requestReceiptDraft } from "./ai-client.js?v=receipt-draft-v2";
 
 const people = ["高", "n"];
 const categories = ["住宿", "餐費", "交通", "滑雪", "雜支"];
@@ -75,6 +75,13 @@ function formattedDate(date) {
 
 function expenseTotal(expense) {
   return categories.reduce((total, category) => total + amount(expense.items?.[category]), 0);
+}
+
+function updateExpenseTotalPreview() {
+  const dialog = document.getElementById("expense-dialog");
+  const itemInputs = [...dialog.querySelectorAll('input[type="number"]')].slice(0, categories.length);
+  const total = itemInputs.reduce((sum, input) => sum + amount(input.value), 0);
+  document.getElementById("expense-total-preview").textContent = formatted(total);
 }
 
 function expenseShares(expense) {
@@ -699,6 +706,15 @@ function selectButton(buttons, selected, value) {
 function setupDialogs() {
   const expenseDialog = document.getElementById("expense-dialog");
   const paymentDialog = document.getElementById("payment-dialog");
+  const receiptInput = document.getElementById("expense-receipt-image");
+  document.getElementById("expense-receipt-scan").addEventListener("click", () => receiptInput.click());
+  receiptInput.addEventListener("change", async () => {
+    const file = receiptInput.files?.[0];
+    if (file) await scanExpenseReceipt(file);
+    receiptInput.value = "";
+  });
+  [...expenseDialog.querySelectorAll('input[type="number"]')].slice(0, categories.length)
+    .forEach(input => input.addEventListener("input", updateExpenseTotalPreview));
   const expensePayerButtons = [...expenseDialog.querySelectorAll(".grid.grid-cols-2 button")];
   expensePayerButtons.forEach((button, index) => {
     button.dataset.value = people[index];
@@ -777,6 +793,10 @@ function renderPlaceDialogTags() {
 
 window.openExpenseDialog = isEdit => {
   const dialog = document.getElementById("expense-dialog");
+  const receiptStatus = document.getElementById("expense-receipt-status");
+  receiptStatus.classList.add("hidden");
+  receiptStatus.textContent = "";
+  document.getElementById("expense-receipt-image").value = "";
   dialog.dataset.id = isEdit ? dialog.dataset.id : "";
   if (!isEdit) {
     dialog.querySelectorAll('input[type="number"]').forEach(input => { input.value = input.closest(".space-y-1") ? "" : "1"; });
@@ -785,11 +805,103 @@ window.openExpenseDialog = isEdit => {
     dialog.querySelector("#expense-date").value = new Date().toISOString().slice(0, 10);
     state.expensePayer = "高";
   }
+  updateExpenseTotalPreview();
   document.getElementById("expense-dialog-title").textContent = isEdit ? "編輯支出" : "新增支出";
   document.getElementById("expense-delete-btn").classList.toggle("hidden", !isEdit);
   selectButton([...dialog.querySelectorAll(".grid.grid-cols-2 button")], state.expensePayer);
   dialog.classList.add("open");
 };
+
+async function imageFileToDataUrl(file) {
+  if (!/^image\/(jpeg|png|webp)$/i.test(file.type) || file.size > 15_000_000) {
+    throw new Error("請選擇 JPEG、PNG 或 WebP 圖片，原始檔需小於 15MB。");
+  }
+
+  const bitmap = await createImageBitmap(file);
+  try {
+    const encode = async (maxDimension, quality) => {
+      const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const context = canvas.getContext("2d", { alpha: false });
+      if (!context) throw new Error("無法處理這張圖片，請換一張再試。");
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      return new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", quality));
+    };
+
+    let blob = await encode(1600, 0.82);
+    if (!blob || blob.size > 1_300_000) blob = await encode(1100, 0.72);
+    if (!blob || blob.size > 1_500_000) throw new Error("圖片仍太大，請裁切收據後再試。");
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("無法讀取收據圖片，請再試一次。"));
+      reader.readAsDataURL(blob);
+    });
+  } finally {
+    bitmap.close();
+  }
+}
+
+async function scanExpenseReceipt(file) {
+  const button = document.getElementById("expense-receipt-scan");
+  const status = document.getElementById("expense-receipt-status");
+  const expenseDialog = document.getElementById("expense-dialog");
+  const showStatus = (message, tone = "text-slate-600") => {
+    status.textContent = message;
+    status.className = `text-sm leading-5 ${tone}`;
+  };
+
+  button.disabled = true;
+  status.classList.remove("hidden");
+  showStatus("正在整理收據圖片…");
+  try {
+    const imageDataUrl = await imageFileToDataUrl(file);
+    showStatus("AI 正在辨識，完成後會填入草稿…");
+    const draft = await requestReceiptDraft({ user: currentUser, imageDataUrl });
+    if (!expenseDialog.classList.contains("open")) return;
+
+    const dateInput = expenseDialog.querySelector("#expense-date");
+    if (draft.date) dateInput.value = draft.date;
+    const categoryIndex = categories.indexOf(draft.category);
+    const itemInputs = [...expenseDialog.querySelectorAll('input[type="number"]')].slice(0, categories.length);
+    const twdTotal = draft.currency === "TWD"
+      ? draft.total
+      : draft.currency === "JPY" && Number.isFinite(draft.twdTotal) ? draft.twdTotal : null;
+    if (categoryIndex >= 0 && Number.isFinite(twdTotal) && twdTotal > 0) itemInputs[categoryIndex].value = String(twdTotal);
+    updateExpenseTotalPreview();
+
+    const noteInput = expenseDialog.querySelector("textarea");
+    const existingNotes = noteInput.value.split(/\r?\n/).map(line => line.trim())
+      .filter(line => line && !line.startsWith("[收據辨識]"));
+    const receiptDetails = [draft.merchant, draft.note].filter(Boolean);
+    if (draft.currency === "JPY" && Number.isFinite(draft.twdTotal) && Number.isFinite(draft.exchangeRate)) {
+      receiptDetails.push(`原幣 JPY ${currency.format(draft.total)} × ${draft.exchangeRate} (${draft.exchangeRateDate}, ${draft.exchangeRateSource}) = TWD ${currency.format(draft.twdTotal)}`);
+    } else if (draft.total > 0 && draft.currency !== "TWD") {
+      receiptDetails.push(`原幣 ${draft.currency} ${currency.format(draft.total)}，請換算為新台幣後手動輸入金額`);
+    }
+    if (receiptDetails.length) existingNotes.push(`[收據辨識] ${receiptDetails.join("；")}`);
+    noteInput.value = existingNotes.join("\n");
+
+    if (draft.currency === "JPY" && Number.isFinite(draft.twdTotal) && draft.exchangeRateDate) {
+      showStatus(`已按 ${draft.exchangeRateDate} 日匯率換算填入 TWD ${currency.format(draft.twdTotal)}；原幣與匯率已附在備註，請確認後儲存。`, "text-emerald-700");
+    } else if (draft.currency === "JPY" && draft.total > 0) {
+      showStatus(`已辨識 JPY ${currency.format(draft.total)}，但目前無法取得匯率；未填入台幣金額，請手動換算。`, "text-amber-700");
+    } else if (draft.currency !== "TWD" && draft.total > 0) {
+      showStatus(`已辨識原幣 ${draft.currency} ${currency.format(draft.total)}，未自動換匯；請換算成新台幣並確認分類。`, "text-amber-700");
+    } else if (draft.total > 0) {
+      const confidenceNote = draft.confidence === "low" ? "辨識信心較低，請仔細核對。" : "請核對後再儲存。";
+      showStatus(`草稿已填入${draft.merchant ? `「${draft.merchant}」` : "收據資料"}，金額歸入「${draft.category}」。${confidenceNote}`, draft.confidence === "low" ? "text-amber-700" : "text-emerald-700");
+    } else {
+      showStatus("已填入可辨識欄位，金額不清楚；請檢查收據後手動輸入。", "text-amber-700");
+    }
+  } catch (error) {
+    if (expenseDialog.classList.contains("open")) showStatus(error.message || "收據辨識失敗，請重試。", "text-rose-700");
+  } finally {
+    button.disabled = false;
+  }
+}
 
 window.openPaymentDialog = isEdit => {
   const dialog = document.getElementById("payment-dialog");
@@ -866,6 +978,7 @@ window.editExpense = id => {
   categories.forEach((category, index) => { numberInputs[index].value = amount(expense.items?.[category]) || ""; });
   numberInputs[5].value = expense.ratios.high;
   numberInputs[6].value = expense.ratios.n;
+  updateExpenseTotalPreview();
   dialog.querySelector("textarea").value = expense.note || "";
   state.expensePayer = expense.payer;
   window.openExpenseDialog(true);

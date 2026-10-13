@@ -1,6 +1,6 @@
 // Replace these values with the Web app configuration from Firebase Console.
 export const firebaseConfig = {
-  apiKey: "AIzaSyAyWJfXKCfEqqSC7WsJOfPNoQ10htZPuCg",
+  apiKey: "AIzaSyACFQKE8jZgL8GoRF_9_axrJ4JCQJkI-PU",
     authDomain: "sharepay-f60d3.firebaseapp.com",
     projectId: "sharepay-f60d3",
     storageBucket: "sharepay-f60d3.firebasestorage.app",
@@ -9,7 +9,7 @@ export const firebaseConfig = {
 };
 
 // Browser key restricted to the site's HTTP referrers and Maps JavaScript API.
-export const googleMapsApiKey = "AIzaSyDHr1bj572qLaXiZGPUeydXOvPru7xRRq4";
+export const googleMapsApiKey = "AIzaSyCtXpsFexZWecj3irByRvSC5-l-PAoepCA";
 export const googleMapsMapId = "d8514670f0cf1782b37dad26";
 
 // Only Google accounts listed here can access the shared ledger.

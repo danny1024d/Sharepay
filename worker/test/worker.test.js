@@ -13,6 +13,7 @@ import {
   placeIdentificationResponseFormat,
   placeIntroductionTranslationResponseFormat,
   placeLookupFailure,
+  parseReceiptDraft,
   placesTextSearchBody,
   serveKamuiMapData,
   translatePlaceIntroduction,
@@ -73,6 +74,99 @@ test("daily quota is enforced per limiter instance", async () => {
 
   assert.equal((await check()).status, 200);
   assert.equal((await check()).status, 429);
+});
+
+test("daily receipt quota is isolated by account and from Places quota", async () => {
+  const records = new Map();
+  const storage = {
+    async transaction(callback) {
+      return callback({
+        get: async key => records.get(key),
+        put: async (key, value) => records.set(key, value)
+      });
+    }
+  };
+  const limiter = new UserDailyRateLimiter({ storage });
+  const check = (key, limit = 1) => limiter.fetch(new Request("https://rate-limit.internal/check", {
+    method: "POST",
+    body: JSON.stringify({ key, limit })
+  }));
+
+  assert.equal((await check("places")).status, 200);
+  assert.equal((await check("places")).status, 429);
+  assert.equal((await check("receipt:first@example.com")).status, 200);
+  assert.equal((await check("receipt:first@example.com")).status, 429);
+  assert.equal((await check("receipt:second@example.com")).status, 200);
+});
+
+test("receipt parser rejects invalid and oversized images before calling OpenAI", async () => {
+  let requested = false;
+  const fetchImpl = async () => {
+    requested = true;
+    return Response.json({});
+  };
+
+  await assert.rejects(parseReceiptDraft("not-an-image", { OPENAI_API_KEY: "test" }, fetchImpl), /receipt_image_invalid/);
+  const oversized = `data:image/jpeg;base64,${"A".repeat(Math.ceil(1_500_001 * 4 / 3))}`;
+  await assert.rejects(parseReceiptDraft(oversized, { OPENAI_API_KEY: "test" }, fetchImpl), /receipt_image_invalid/);
+  assert.equal(requested, false);
+});
+
+test("receipt parser returns the printed currency without converting the amount", async () => {
+  let openAiRequest;
+  const draft = {
+    merchant: "旭川ラーメン",
+    date: "2026-12-24",
+    total: 1680,
+    currency: "JPY",
+    category: "餐費",
+    note: "味噌拉麵",
+    confidence: "high"
+  };
+  const image = `data:image/jpeg;base64,${"A".repeat(128)}`;
+  const result = await parseReceiptDraft(
+    image,
+    { OPENAI_API_KEY: "test", OPENAI_MODEL: "gpt-4.1-mini" },
+    async (url, options) => {
+      openAiRequest = JSON.parse(options.body);
+      return Response.json({ output: [{ content: [{ type: "output_text", text: JSON.stringify(draft) }] }] });
+    },
+    async url => {
+      assert.equal(url, "https://open.er-api.com/v6/latest/JPY");
+      return Response.json({
+        result: "success",
+        base_code: "JPY",
+        time_last_update_unix: 1_791_849_451,
+        rates: { TWD: 0.201496 }
+      });
+    }
+  );
+
+  assert.equal(result.total, 1680);
+  assert.equal(result.currency, "JPY");
+  assert.equal(result.twdTotal, 339);
+  assert.equal(result.exchangeRate, 0.201496);
+  assert.equal(result.exchangeRateDate, "2026-10-13");
+  assert.equal(result.exchangeRateSource, "ExchangeRate-API");
+  assert.equal(result.category, "餐費");
+  assert.equal(result.confidence, "high");
+  assert.equal(openAiRequest.input[0].content[1].type, "input_image");
+  assert.equal(openAiRequest.text.format.name, "receipt_expense_draft");
+});
+
+test("receipt parser leaves JPY total unconverted when the FX endpoint is unavailable", async () => {
+  const draft = { merchant: "店家", date: "", total: 1200, currency: "JPY", category: "餐費", note: "", confidence: "medium" };
+  const result = await parseReceiptDraft(
+    `data:image/jpeg;base64,${"A".repeat(128)}`,
+    { OPENAI_API_KEY: "test" },
+    async () => Response.json({ output: [{ content: [{ type: "output_text", text: JSON.stringify(draft) }] }] }),
+    async () => new Response("Unavailable", { status: 503 })
+  );
+
+  assert.equal(result.total, 1200);
+  assert.equal(result.currency, "JPY");
+  assert.equal(result.twdTotal, null);
+  assert.equal(result.exchangeRate, null);
 });
 
 test("identification failures retain a suggested Google Maps place name", () => {

@@ -444,6 +444,15 @@
         <h2 class="dialog-title" id="expense-dialog-title">新增支出</h2>
       </div>
       <div class="space-y-4">
+        <section class="space-y-2 border-b border-slate-100 pb-4" aria-labelledby="expense-receipt-heading">
+          <h3 id="expense-receipt-heading" class="text-sm font-semibold text-slate-800">用收據建立草稿</h3>
+          <input id="expense-receipt-image" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" class="sr-only" aria-label="選擇或拍攝收據" />
+          <button id="expense-receipt-scan" type="button" class="btn-outline btn-flex">
+            <i data-lucide="scan-line" class="mr-1 h-4 w-4"></i>拍攝／選擇收據
+          </button>
+          <p class="text-xs leading-5 text-slate-500">照片會傳送給 AI 辨識，不會存入帳本；確認草稿後仍需按「儲存」。</p>
+          <p id="expense-receipt-status" class="hidden text-sm leading-5" aria-live="polite"></p>
+        </section>
         <div class="space-y-1.5">
           <label class="label">日期</label>
           <input type="date" class="input-field" id="expense-date" />
@@ -475,7 +484,7 @@
           </div>
           <div class="flex justify-end pt-1">
             <span class="text-sm text-slate-400">
-              合計 <b class="text-slate-900 text-base">0</b> 元
+              合計 <b id="expense-total-preview" class="text-slate-900 text-base">0</b> 元
             </span>
           </div>
         </div>
@@ -777,6 +786,6 @@
       document.getElementById(id).classList.remove('open');
     }
   </script>
-  <script type="module" src="home.js"></script>
+  <script type="module" src="home.js?v=receipt-draft-v3"></script>
 </body>
 </html>
