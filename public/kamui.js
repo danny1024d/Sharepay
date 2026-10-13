@@ -166,12 +166,7 @@ function addLine(feature, Polyline) {
     strokeColor: style.color,
     strokeOpacity: 0.92,
     strokeWeight: isLift ? 3 : 5,
-    zIndex: isLift ? 2 : 1,
-    icons: isLift ? [{
-      icon: { path: "M 0,-1 0,1", strokeOpacity: 0.85, scale: 3 },
-      offset: "0",
-      repeat: "14px"
-    }] : undefined
+    zIndex: isLift ? 2 : 1
   });
   line.addListener("click", event => {
     const content = document.createElement("div");
