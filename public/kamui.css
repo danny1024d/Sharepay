@@ -651,6 +651,10 @@
   }
 }
 
+.embedded-kamui .kamui-back {
+  display: none;
+}
+
 .kamui-fullscreen-page {
   width: 100%;
   height: 100%;

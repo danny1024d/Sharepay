@@ -46,6 +46,41 @@
       gap: 0.5rem;
       margin-top: 1.5rem;
     }
+    #journey-app {
+      background: #eaf7ed;
+    }
+    #journey-app > header {
+      background-image: linear-gradient(112deg, #075b70 0%, #087d6b 62%, #216c46 100%) !important;
+      box-shadow: 0 8px 24px rgb(7 91 82 / 0.22);
+      color: #f7fff9;
+    }
+    #journey-app > header h1,
+    #journey-app > header button {
+      color: #ffffff !important;
+    }
+    #journey-app > header p {
+      color: #effff6 !important;
+    }
+    #journey-app.journey-map-active > header {
+      display: none;
+    }
+    #journey-app > nav {
+      border-color: #b8ddc5 !important;
+      background-color: rgb(247 255 248 / 0.98) !important;
+    }
+    #journey-app .journey-nav-btn {
+      min-height: 56px;
+      border-radius: 6px;
+      color: #475b51 !important;
+      transition: background-color 160ms ease, color 160ms ease;
+    }
+    #journey-app .journey-nav-btn[aria-current="page"] {
+      background: #d8f0c7;
+      color: #195b37 !important;
+    }
+    #journey-app .journey-nav-btn[aria-current="page"] svg {
+      stroke: #258246;
+    }
     @media (min-width: 640px) {
       .dialog-footer {
         flex-direction: row;
@@ -56,7 +91,7 @@
 </head>
 <body class="bg-slate-50 min-h-screen">
 
-  <div class="flex flex-col max-w-lg mx-auto relative min-h-screen">
+  <div id="ledger-app" class="flex flex-col max-w-lg mx-auto relative min-h-screen">
     <!-- Header -->
     <header class="sticky top-0 z-20 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white px-5 pt-7 pb-5 rounded-b-3xl shadow-lg shrink-0">
       <div class="flex items-center justify-between">
@@ -202,9 +237,6 @@
           <i data-lucide="plus" class="w-6 h-6"></i>
         </button>
       </div>
-
-      <!-- ================= Places Tab ================= -->
-      <div id="tab-places" class="tab-content hidden"></div>
 
       <!-- ================= Settlement Tab ================= -->
       <div id="tab-settlement" class="tab-content hidden"></div>
@@ -354,26 +386,54 @@
             <i data-lucide="repeat" class="w-5 h-5 stroke-2"></i>
             <span class="text-xs font-medium">代付</span>
           </button>
-          <button data-tab="places" class="nav-btn flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors text-slate-400">
-            <i data-lucide="map-pin" class="w-5 h-5 stroke-2"></i>
-            <span class="text-xs font-medium">地點</span>
-          </button>
           <button data-tab="settlement" class="nav-btn flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors text-slate-400">
             <i data-lucide="calculator" class="w-5 h-5 stroke-2"></i>
             <span class="text-xs font-medium">結算</span>
           </button>
-          <a href="itinerary.html" class="nav-btn flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors text-slate-400" aria-label="北海道行程">
-            <i data-lucide="calendar-days" class="w-5 h-5 stroke-2"></i>
-            <span class="text-xs font-medium">行程</span>
-          </a>
-          <a href="kamui.html" class="nav-btn flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors text-slate-400" aria-label="神居滑雪場">
+          <button data-tab="journey" class="nav-btn flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors text-slate-400">
             <i data-lucide="mountain-snow" class="w-5 h-5 stroke-2"></i>
-            <span class="text-xs font-medium">地圖</span>
-          </a>
+            <span class="text-xs font-medium">旅程</span>
+          </button>
         </div>
       </div>
     </nav>
   </div>
+
+  <section id="journey-app" class="fixed inset-0 z-40 mx-auto hidden w-full max-w-lg flex-col bg-slate-50" aria-label="旅程 App">
+    <header class="z-20 shrink-0 rounded-b-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 px-5 pb-4 pt-5 text-white shadow-lg">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <h1 id="journey-shell-title" class="text-xl font-bold">景點收藏</h1>
+          <p id="journey-shell-subtitle" class="mt-0.5 text-xs text-slate-300">旅途中想去的店家與地點</p>
+        </div>
+        <button id="journey-home-switch" type="button" class="flex h-10 items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 text-sm font-medium text-white hover:bg-white/20" aria-label="切回分帳首頁">
+          <i data-lucide="arrow-left-right" class="h-4 w-4"></i><span>帳本</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="min-h-0 flex-1 overflow-hidden">
+      <section id="journey-panel-places" class="journey-panel h-full overflow-y-auto pb-24" data-journey-panel="places">
+        <div id="tab-places"></div>
+      </section>
+      <iframe id="journey-itinerary-frame" class="journey-panel hidden h-full w-full border-0" data-journey-panel="itinerary" data-src="itinerary.html?embedded=1" title="北海道行程" loading="lazy"></iframe>
+      <iframe id="journey-map-frame" class="journey-panel hidden h-full w-full border-0" data-journey-panel="map" data-src="kamui.html?embedded=1" title="滑雪場地圖" loading="lazy" allow="geolocation"></iframe>
+    </main>
+
+    <nav class="z-30 shrink-0 border-t border-slate-200 bg-white/95 backdrop-blur" aria-label="旅程導覽">
+      <div class="flex" style="padding-bottom: env(safe-area-inset-bottom)">
+        <button data-journey-tab="places" class="journey-nav-btn flex flex-1 flex-col items-center gap-1 py-2.5 text-indigo-600" aria-current="page">
+          <i data-lucide="map-pin" class="h-5 w-5 stroke-[2.5]"></i><span class="text-xs font-medium">景點</span>
+        </button>
+        <button data-journey-tab="itinerary" class="journey-nav-btn flex flex-1 flex-col items-center gap-1 py-2.5 text-slate-400">
+          <i data-lucide="calendar-days" class="h-5 w-5 stroke-2"></i><span class="text-xs font-medium">行程</span>
+        </button>
+        <button data-journey-tab="map" class="journey-nav-btn flex flex-1 flex-col items-center gap-1 py-2.5 text-slate-400">
+          <i data-lucide="mountain-snow" class="h-5 w-5 stroke-2"></i><span class="text-xs font-medium">地圖</span>
+        </button>
+      </div>
+    </nav>
+  </section>
 
   <!-- ================= Shared Dialogs ================= -->
 
@@ -575,12 +635,18 @@
     lucide.createIcons();
 
     // Tab switching logic
-    const navBtns = document.querySelectorAll('.nav-btn');
+    const ledgerApp = document.getElementById('ledger-app');
+    const journeyApp = document.getElementById('journey-app');
+    const navBtns = document.querySelectorAll('.nav-btn[data-tab]');
+    const journeyNavBtns = document.querySelectorAll('.journey-nav-btn');
     const tabContents = document.querySelectorAll('.tab-content');
+    const journeyPanels = document.querySelectorAll('[data-journey-panel]');
     const headerSettlementSummary = document.getElementById('header-settlement-summary');
+    let currentLedgerTab = 'expenses';
+    let currentJourneyTab = 'places';
     const updateHeaderSettlementSummary = () => {
       const activeTab = document.querySelector('.nav-btn.text-indigo-600')?.dataset.tab;
-      const shouldHide = ['places', 'settlement'].includes(activeTab) || window.scrollY > 8;
+      const shouldHide = ['settlement', 'journey'].includes(activeTab) || window.scrollY > 8;
       if (headerSettlementSummary.classList.contains('hidden') !== shouldHide) {
         headerSettlementSummary.classList.toggle('hidden', shouldHide);
       }
@@ -595,39 +661,83 @@
       });
     }, { passive: true });
 
+    const setActiveButton = (buttons, activeValue, dataAttribute) => {
+      buttons.forEach(btn => {
+        const active = btn.dataset[dataAttribute] === activeValue;
+        btn.classList.toggle('text-indigo-600', active);
+        btn.classList.toggle('text-slate-400', !active);
+        const icon = btn.querySelector('svg');
+        icon.classList.toggle('stroke-[2.5]', active);
+        icon.classList.toggle('stroke-2', !active);
+        if (active) btn.setAttribute('aria-current', 'page');
+        else btn.removeAttribute('aria-current');
+      });
+    };
+
+    const showLedgerTab = targetTab => {
+      const targetContent = document.getElementById(`tab-${targetTab}`);
+      if (!targetContent) return;
+      currentLedgerTab = targetTab;
+      setActiveButton(navBtns, targetTab, 'tab');
+      tabContents.forEach(content => {
+        const active = content === targetContent;
+        content.classList.toggle('block', active);
+        content.classList.toggle('hidden', !active);
+      });
+      updateHeaderSettlementSummary();
+    };
+
+    const showJourneyTab = targetTab => {
+      const targetPanel = [...journeyPanels].find(panel => panel.dataset.journeyPanel === targetTab);
+      if (!targetPanel) return;
+      currentJourneyTab = targetTab;
+      journeyApp.classList.toggle('journey-map-active', targetTab === 'map');
+      const heading = {
+        places: ["景點收藏", "旅途中想去的店家與地點"],
+        itinerary: ["北海道行程", "交通、轉乘與訂票提醒"],
+        map: ["滑雪場地圖", "神居・聖誕禮物公園・Pippu"]
+      }[targetTab];
+      document.getElementById('journey-shell-title').textContent = heading[0];
+      document.getElementById('journey-shell-subtitle').textContent = heading[1];
+      setActiveButton(journeyNavBtns, targetTab, 'journeyTab');
+      journeyPanels.forEach(panel => panel.classList.toggle('hidden', panel !== targetPanel));
+      if (targetTab !== 'places' && !targetPanel.hasAttribute('src')) {
+        targetPanel.setAttribute('src', targetPanel.dataset.src);
+      }
+    };
+
+    const showJourneyApp = () => {
+      setActiveButton(navBtns, 'journey', 'tab');
+      ledgerApp.classList.add('hidden');
+      journeyApp.classList.remove('hidden');
+      journeyApp.classList.add('flex');
+      showJourneyTab(currentJourneyTab);
+    };
+
+    const showLedgerApp = () => {
+      journeyApp.classList.add('hidden');
+      journeyApp.classList.remove('flex');
+      ledgerApp.classList.remove('hidden');
+      showLedgerTab(currentLedgerTab);
+    };
+
     navBtns.forEach(btn => {
       btn.addEventListener('click', () => {
-        const targetTab = btn.getAttribute('data-tab');
-        // Reset all buttons
-        navBtns.forEach(b => {
-          b.classList.remove('text-indigo-600');
-          b.classList.add('text-slate-400');
-          const icon = b.querySelector('svg');
-          icon.classList.remove('stroke-[2.5]');
-          icon.classList.add('stroke-2');
-        });
-
-        // Set active button
-        btn.classList.remove('text-slate-400');
-        btn.classList.add('text-indigo-600');
-        const activeIcon = btn.querySelector('svg');
-        activeIcon.classList.remove('stroke-2');
-        activeIcon.classList.add('stroke-[2.5]');
-
-        // Show/hide content
-        tabContents.forEach(content => {
-          if (content.id === `tab-${targetTab}`) {
-            content.classList.remove('hidden');
-            content.classList.add('block');
-          } else {
-            content.classList.remove('block');
-            content.classList.add('hidden');
-          }
-        });
-        updateHeaderSettlementSummary();
+        if (btn.dataset.tab === 'journey') showJourneyApp();
+        else {
+          journeyApp.classList.add('hidden');
+          journeyApp.classList.remove('flex');
+          ledgerApp.classList.remove('hidden');
+          showLedgerTab(btn.dataset.tab);
+        }
       });
     });
-    updateHeaderSettlementSummary();
+    journeyNavBtns.forEach(btn => btn.addEventListener('click', () => showJourneyTab(btn.dataset.journeyTab)));
+    document.getElementById('journey-home-switch').addEventListener('click', showLedgerApp);
+
+    const initialView = new URLSearchParams(window.location.search);
+    if (initialView.get('app') === 'journey' || initialView.get('tab') === 'tools') showJourneyApp();
+    else showLedgerTab('expenses');
 
     // Dialog logic
     function openExpenseDialog(isEdit) {
