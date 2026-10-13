@@ -8,6 +8,7 @@ import {
   doc,
   getDoc,
   getFirestore,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -16,11 +17,11 @@ import {
   updateDoc
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { allowedEmails, appName, firebaseConfig, googleMapsApiKey } from "./firebase-config.js";
-import { requestPlaceCoordinates, requestReceiptDraft } from "./ai-client.js?v=receipt-draft-v2";
+import { requestPlaceCoordinates, requestReceiptDraft, requestTravelImageAnalysis } from "./ai-client.js?v=travel-image-v1";
 
 const people = ["高", "n"];
 const categories = ["住宿", "餐費", "交通", "滑雪", "雜支"];
-const state = { expenses: [], payments: [], places: [], expensePayer: "高", paymentPayer: "高", placeTagFilter: null, placeView: "list" };
+const state = { expenses: [], payments: [], places: [], imageAnalyses: [], imageAnalysisMode: "menu", imageAnalysisStatus: "", imageAnalysisStatusTone: "text-slate-600", expensePayer: "高", paymentPayer: "高", placeTagFilter: null, placeView: "list" };
 const googlePlaceCoordinateLifetimeMs = 30 * 24 * 60 * 60 * 1000;
 const currency = new Intl.NumberFormat("zh-TW");
 const isConfigured = !Object.values(firebaseConfig).some(value => value.includes("YOUR_"));
@@ -34,6 +35,11 @@ let placeExpiryTimer;
 let placeDialogTags = [];
 let database;
 let currentUser = null;
+let pendingTravelImageFile = null;
+let pendingTravelImagePreviewUrl = "";
+let imageAnalysisBusy = false;
+let imageAnalysisStatus = "";
+let imageAnalysisStatusTone = "text-slate-600";
 const refreshingGooglePlaces = new Set();
 
 function isAllowed(email) {
@@ -181,6 +187,231 @@ function tagChipStyle(tag) {
 
 function tagColor(tag) {
   return tag ? `hsl(${tagHue(tag)} 65% 45%)` : "#64748b";
+}
+
+function renderImageAnalysisPanel() {
+  const modeButton = (mode, label) => `<button type="button" data-image-analysis-mode="${mode}" aria-pressed="${state.imageAnalysisMode === mode}" class="rounded-md px-3 py-1.5 text-sm font-medium ${state.imageAnalysisMode === mode ? "bg-slate-900 text-white" : "text-slate-500"}">${label}</button>`;
+  const records = state.imageAnalyses.map(analysis => {
+    const title = analysis.type === "menu"
+      ? analysis.title || "菜單辨識"
+      : analysis.productName || analysis.title || "商品辨識";
+    const detailId = `image-analysis-detail-${escapeHtml(analysis.id)}`;
+    const date = Number.isFinite(analysis.createdAt) ? formattedDate(new Date(analysis.createdAt).toISOString().slice(0, 10)) : "";
+    return `<article class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"><div class="flex items-start gap-2"><button type="button" data-open-image-analysis="${escapeHtml(analysis.id)}" aria-expanded="false" aria-controls="${detailId}" class="min-w-0 flex-1 text-left"><span class="flex items-center gap-2"><i data-lucide="${analysis.type === "menu" ? "book-open" : "package"}" class="h-4 w-4 shrink-0 text-indigo-600"></i><span class="truncate text-sm font-semibold text-slate-900">${escapeHtml(title)}</span></span><span class="mt-1 block text-xs text-slate-500">${analysis.type === "menu" ? `菜單 · ${analysis.menuItems?.length || 0} 項` : `商品 · ${escapeHtml(analysis.brand || "品牌未辨識")}`} ${date ? `· ${date}` : ""}</span></button><button type="button" data-delete-image-analysis="${escapeHtml(analysis.id)}" class="shrink-0 rounded-md p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="刪除${escapeHtml(title)}"><i data-lucide="trash-2" class="h-4 w-4"></i></button></div><div id="${detailId}" class="hidden mt-3 border-t border-slate-100 pt-3" data-image-analysis-detail></div></article>`;
+  }).join("");
+
+  return `<section class="space-y-3 px-4 pt-4" aria-labelledby="image-analysis-heading"><div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div class="flex items-start justify-between gap-3"><div><h2 id="image-analysis-heading" class="text-sm font-semibold text-slate-900">圖片辨識</h2><p class="mt-1 text-xs leading-5 text-slate-500">菜單日中對照與原圖翻譯覆蓋；商品名稱、介紹、特色與可見價格。</p></div><div class="flex shrink-0 rounded-lg bg-slate-100 p-1" role="group" aria-label="辨識類型">${modeButton("menu", "菜單")}${modeButton("product", "商品")}</div></div><input id="travel-image-input" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" class="sr-only" aria-label="選擇或拍攝菜單或商品圖片"><div class="mt-3 flex flex-wrap items-center gap-2"><button id="travel-image-choose" type="button" class="btn-outline btn-flex"><i data-lucide="camera" class="mr-1 h-4 w-4"></i>拍攝／選擇圖片</button><span id="travel-image-name" class="min-w-0 flex-1 truncate text-xs text-slate-500">${escapeHtml(pendingTravelImageFile?.name || "尚未選擇圖片")}</span></div><button id="travel-image-analyze" type="button" class="btn-primary btn-flex mt-3 w-full justify-center" ${!pendingTravelImageFile || imageAnalysisBusy ? "disabled" : ""}>${imageAnalysisBusy ? "辨識並儲存中…" : "辨識並儲存"}</button><p class="mt-2 text-xs leading-5 text-slate-500">圖片會壓縮後送交 AI，辨識結果與壓縮圖儲存在 Firebase；可展開查看或刪除。辨識結果請自行核對。</p><p id="travel-image-status" class="${imageAnalysisStatus ? "" : "hidden"} mt-2 text-sm leading-5 ${imageAnalysisStatusTone}" aria-live="polite">${escapeHtml(imageAnalysisStatus)}</p></div><div class="space-y-2.5">${records || `<div class="rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">尚無辨識紀錄</div>`}</div></section>`;
+}
+
+async function compressTravelImage(file) {
+  if (!/^image\/(jpeg|png|webp)$/i.test(file.type) || file.size > 15_000_000) {
+    throw new Error("請選擇 JPEG、PNG 或 WebP 圖片，原始檔需小於 15MB。");
+  }
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = await new Promise((resolve, reject) => {
+      const element = new Image();
+      element.onload = () => resolve(element);
+      element.onerror = () => reject(new Error("無法讀取圖片，請換一張再試。"));
+      element.src = objectUrl;
+    });
+    for (const [maxDimension, quality] of [[1400, 0.78], [1050, 0.68], [850, 0.58]]) {
+      const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext("2d", { alpha: false });
+      if (!context) throw new Error("無法處理圖片，請換一張再試。");
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", quality));
+      if (!blob || blob.size > 500_000) continue;
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({ dataUrl: reader.result, size: blob.size });
+        reader.onerror = () => reject(new Error("讀取圖片失敗，請再試一次。"));
+        reader.readAsDataURL(blob);
+      });
+    }
+    throw new Error("圖片太大，請裁切後再試。");
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+function renderImageAnalysisDetail(analysis, dataUrl) {
+  const features = analysis.features?.length
+    ? `<ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">${analysis.features.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+    : "";
+  const price = analysis.priceText
+    ? `<p class="mt-2 text-sm font-semibold text-emerald-800">${escapeHtml(analysis.priceText)}${analysis.currency && analysis.currency !== "UNKNOWN" ? ` ${escapeHtml(analysis.currency)}` : ""}</p>`
+    : "";
+  const menuRows = (analysis.menuItems || []).map(item => {
+    const printedPrice = item.priceText || (item.priceAmount > 0 ? `${currency.format(item.priceAmount)} ${item.currency}` : "");
+    const twdPrice = Number.isFinite(item.twdPrice)
+      ? `<span class="block text-xs font-semibold text-emerald-700">NT$ ${currency.format(item.twdPrice)}</span>`
+      : item.currency === "JPY" && item.priceAmount > 0 ? `<span class="block text-[11px] text-amber-700">匯率暫不可用</span>` : "";
+    return `<tr class="border-t border-slate-100 align-top"><td class="py-2 pr-3 text-sm text-slate-500">${escapeHtml(item.originalText)}</td><td class="py-2 pr-3 text-sm font-medium text-slate-900">${escapeHtml(item.translatedText)}</td><td class="py-2 text-right text-sm text-slate-600"><span>${escapeHtml(printedPrice)}</span>${twdPrice}</td></tr>`;
+  }).join("");
+  const menuRateNote = analysis.exchangeRateDate
+    ? `<p class="mt-2 text-xs text-slate-500">日圓換算採 ${escapeHtml(analysis.exchangeRateDate)} 最新匯率（${escapeHtml(analysis.exchangeRateSource || "匯率服務")}），僅供參考。</p>`
+    : (analysis.menuItems || []).some(item => item.currency === "JPY" && item.priceAmount > 0 && !Number.isFinite(item.twdPrice))
+      ? `<p class="mt-2 text-xs text-amber-700">目前無法取得日圓匯率，原價仍保留。</p>`
+      : "";
+  const overlays = (analysis.menuItems || []).filter(item => item.translatedText).map(item => `<span class="absolute overflow-hidden rounded bg-white/95 px-1 py-0.5 text-[10px] font-semibold leading-tight text-slate-900 shadow" style="left:${item.x * 100}%;top:${item.y * 100}%;width:${Math.max(8, item.width * 100)}%;min-height:${Math.max(3, item.height * 100)}%">${escapeHtml(item.translatedText)}</span>`).join("");
+  const image = `<div class="relative overflow-hidden rounded-lg border border-slate-200 bg-slate-50"><img src="${escapeHtml(dataUrl)}" alt="${escapeHtml(analysis.title || analysis.productName || "辨識圖片")}" class="block h-auto w-full" loading="lazy">${analysis.type === "menu" ? `<div class="absolute inset-0 hidden" data-menu-translation-overlay>${overlays}</div>` : ""}</div>`;
+  const overlayToggle = analysis.type === "menu"
+    ? `<div class="mb-2 flex items-center justify-between"><span class="text-xs font-medium text-slate-600">原圖中文覆蓋</span><button type="button" data-toggle-menu-overlay aria-pressed="false" class="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700">疊加中文</button></div>`
+    : "";
+  const menu = analysis.type === "menu"
+    ? `<div class="mt-3 overflow-x-auto"><table class="w-full text-left"><thead><tr class="text-xs text-slate-400"><th class="pb-2 pr-3 font-medium">日文</th><th class="pb-2 pr-3 font-medium">繁體中文</th><th class="pb-2 text-right font-medium">原價／TWD</th></tr></thead><tbody>${menuRows}</tbody></table>${menuRateNote}</div>`
+    : `<p class="mt-2 text-sm leading-6 text-slate-700">${escapeHtml(analysis.description || "未辨識到商品介紹")}</p>${features}${price}`;
+  return `<div>${overlayToggle}${image}${menu}</div>`;
+}
+
+async function openImageAnalysisDetail(analysisId, button) {
+  const detail = button.closest("article")?.querySelector("[data-image-analysis-detail]");
+  if (!detail) return;
+  if (!detail.classList.contains("hidden")) {
+    detail.classList.add("hidden");
+    button.setAttribute("aria-expanded", "false");
+    return;
+  }
+  detail.classList.remove("hidden");
+  button.setAttribute("aria-expanded", "true");
+  if (detail.dataset.loaded === "true") return;
+  detail.textContent = "載入圖片…";
+  try {
+    const analysis = state.imageAnalyses.find(item => item.id === analysisId);
+    const asset = await getDoc(doc(database, "ledgers", appName, "imageAnalyses", analysisId, "assets", "original"));
+    if (!asset.exists()) throw new Error("找不到辨識圖片。");
+    detail.innerHTML = renderImageAnalysisDetail(analysis, asset.data().dataUrl);
+    detail.dataset.loaded = "true";
+    const overlay = detail.querySelector("[data-menu-translation-overlay]");
+    detail.querySelector("[data-toggle-menu-overlay]")?.addEventListener("click", event => {
+      const visible = event.currentTarget.getAttribute("aria-pressed") !== "true";
+      event.currentTarget.setAttribute("aria-pressed", String(visible));
+      event.currentTarget.textContent = visible ? "顯示原圖" : "疊加中文";
+      overlay?.classList.toggle("hidden", !visible);
+    });
+  } catch (error) {
+    detail.textContent = error.message || "載入辨識圖片失敗。";
+  }
+}
+
+async function deleteImageAnalysis(analysisId) {
+  const analysis = state.imageAnalyses.find(item => item.id === analysisId);
+  const title = analysis?.title || analysis?.productName || "這筆辨識紀錄";
+  if (!confirm(`確定刪除「${title}」與圖片嗎？`)) return;
+  try {
+    const batch = writeBatch(database);
+    batch.delete(doc(database, "ledgers", appName, "imageAnalyses", analysisId, "assets", "original"));
+    batch.delete(doc(database, "ledgers", appName, "imageAnalyses", analysisId));
+    await batch.commit();
+  } catch (error) {
+    showDataError(error);
+  }
+}
+
+function setImageAnalysisStatus(message, tone = "text-slate-600") {
+  state.imageAnalysisStatus = message;
+  state.imageAnalysisStatusTone = tone;
+  const status = document.getElementById("travel-image-status");
+  if (!status) return;
+  status.textContent = message;
+  status.className = `${message ? "" : "hidden"} mt-2 text-sm leading-5 ${tone}`;
+}
+
+async function analyzeAndSaveImage() {
+  if (!pendingTravelImageFile || imageAnalysisBusy || !currentUser) return;
+  const file = pendingTravelImageFile;
+  imageAnalysisBusy = true;
+  state.imageAnalysisStatus = "正在壓縮並辨識圖片…";
+  renderImageAnalysisPage();
+  try {
+    const image = await compressTravelImage(file);
+    const analysis = await requestTravelImageAnalysis({
+      user: currentUser,
+      imageDataUrl: image.dataUrl,
+      analysisType: state.imageAnalysisMode
+    });
+    const analysisRef = doc(collection(database, "ledgers", appName, "imageAnalyses"));
+    const createdAt = Date.now();
+    const record = {
+      ...analysis,
+      title: analysis.type === "menu" ? analysis.title || file.name : analysis.productName || analysis.title || file.name,
+      originalFileName: file.name.slice(0, 180),
+      imageType: "image/jpeg",
+      imageBytes: image.size,
+      createdAt
+    };
+    const batch = writeBatch(database);
+    batch.set(analysisRef, record);
+    batch.set(doc(analysisRef, "assets", "original"), {
+      dataUrl: image.dataUrl,
+      imageType: "image/jpeg",
+      createdAt
+    });
+    await batch.commit();
+    pendingTravelImageFile = null;
+    state.imageAnalysisStatus = "辨識結果與壓縮圖片已儲存，可展開查看或刪除。";
+    state.imageAnalysisStatusTone = "text-emerald-700";
+  } catch (error) {
+    state.imageAnalysisStatus = error.message || "辨識或儲存失敗，請重試。";
+    state.imageAnalysisStatusTone = "text-rose-700";
+  } finally {
+    imageAnalysisBusy = false;
+    if (!pendingTravelImageFile) {
+      URL.revokeObjectURL(pendingTravelImagePreviewUrl);
+      pendingTravelImagePreviewUrl = "";
+    }
+    renderImageAnalysisPage();
+  }
+}
+
+function renderImageAnalysisPage() {
+  const root = document.getElementById("tab-image-analysis");
+  if (!root) return;
+  root.innerHTML = renderImageAnalysisPanel();
+  lucide.createIcons();
+  setupImageAnalysisPanel();
+}
+
+function setupImageAnalysisPanel() {
+  const imageName = document.getElementById("travel-image-name");
+  const chooseButton = document.getElementById("travel-image-choose");
+  imageName.textContent = pendingTravelImageFile ? "圖片已選擇" : "尚未選擇圖片";
+  chooseButton.title = pendingTravelImageFile ? "更換圖片" : "選擇圖片";
+  chooseButton.setAttribute("aria-label", chooseButton.title);
+  chooseButton.innerHTML = `<i data-lucide="${pendingTravelImageFile ? "refresh-cw" : "camera"}" class="mr-1 h-4 w-4"></i>${chooseButton.title}`;
+  if (pendingTravelImagePreviewUrl) {
+    const thumbnail = document.createElement("img");
+    thumbnail.src = pendingTravelImagePreviewUrl;
+    thumbnail.alt = "已選圖片預覽";
+    thumbnail.className = "h-14 w-14 shrink-0 rounded-md border border-slate-200 object-cover";
+    imageName.before(thumbnail);
+  }
+  document.querySelectorAll("[data-image-analysis-mode]").forEach(button => button.addEventListener("click", () => {
+    state.imageAnalysisMode = button.dataset.imageAnalysisMode;
+    renderImageAnalysisPage();
+  }));
+  const input = document.getElementById("travel-image-input");
+  document.getElementById("travel-image-choose").addEventListener("click", () => input.click());
+  input.addEventListener("change", () => {
+    URL.revokeObjectURL(pendingTravelImagePreviewUrl);
+    pendingTravelImageFile = input.files?.[0] || null;
+    pendingTravelImagePreviewUrl = pendingTravelImageFile ? URL.createObjectURL(pendingTravelImageFile) : "";
+    state.imageAnalysisStatus = pendingTravelImageFile ? "圖片已選取，辨識前會先壓縮。" : "";
+    state.imageAnalysisStatusTone = "text-slate-600";
+    renderImageAnalysisPage();
+  });
+  document.getElementById("travel-image-analyze").addEventListener("click", () => void analyzeAndSaveImage());
+  document.querySelectorAll("[data-open-image-analysis]").forEach(button => button.addEventListener("click", () => {
+    void openImageAnalysisDetail(button.dataset.openImageAnalysis, button);
+  }));
+  document.querySelectorAll("[data-delete-image-analysis]").forEach(button => button.addEventListener("click", () => {
+    void deleteImageAnalysis(button.dataset.deleteImageAnalysis);
+  }));
+  lucide.createIcons();
 }
 
 function renderPlaces() {
@@ -1234,6 +1465,10 @@ if (!isConfigured) {
       placeMapNeedsFit = true;
       renderPlaces();
       void refreshExpiredGooglePlaces(user);
+    }, showDataError);
+    onSnapshot(query(collection(database, "ledgers", appName, "imageAnalyses"), orderBy("createdAt", "desc"), limit(30)), snapshot => {
+      state.imageAnalyses = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }));
+      renderImageAnalysisPage();
     }, showDataError);
   });
 }

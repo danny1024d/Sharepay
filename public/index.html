@@ -416,6 +416,9 @@
       <section id="journey-panel-places" class="journey-panel h-full overflow-y-auto pb-24" data-journey-panel="places">
         <div id="tab-places"></div>
       </section>
+      <section id="journey-panel-image-analysis" class="journey-panel hidden h-full overflow-y-auto pb-24" data-journey-panel="image-analysis">
+        <div id="tab-image-analysis"></div>
+      </section>
       <iframe id="journey-itinerary-frame" class="journey-panel hidden h-full w-full border-0" data-journey-panel="itinerary" data-src="itinerary.html?embedded=1" title="北海道行程" loading="lazy"></iframe>
       <iframe id="journey-map-frame" class="journey-panel hidden h-full w-full border-0" data-journey-panel="map" data-src="kamui.html?embedded=1" title="滑雪場地圖" loading="lazy" allow="geolocation"></iframe>
     </main>
@@ -424,6 +427,9 @@
       <div class="flex" style="padding-bottom: env(safe-area-inset-bottom)">
         <button data-journey-tab="places" class="journey-nav-btn flex flex-1 flex-col items-center gap-1 py-2.5 text-indigo-600" aria-current="page">
           <i data-lucide="map-pin" class="h-5 w-5 stroke-[2.5]"></i><span class="text-xs font-medium">景點</span>
+        </button>
+        <button data-journey-tab="image-analysis" class="journey-nav-btn flex flex-1 flex-col items-center gap-1 py-2.5 text-slate-400">
+          <i data-lucide="scan-line" class="h-5 w-5 stroke-2"></i><span class="text-xs font-medium">辨識</span>
         </button>
         <button data-journey-tab="itinerary" class="journey-nav-btn flex flex-1 flex-col items-center gap-1 py-2.5 text-slate-400">
           <i data-lucide="calendar-days" class="h-5 w-5 stroke-2"></i><span class="text-xs font-medium">行程</span>
@@ -703,6 +709,7 @@
       journeyApp.classList.toggle('journey-map-active', targetTab === 'map');
       const heading = {
         places: ["景點收藏", "旅途中想去的店家與地點"],
+        "image-analysis": ["圖片辨識", "菜單翻譯・商品資訊"],
         itinerary: ["北海道行程", "交通、轉乘與訂票提醒"],
         map: ["滑雪場地圖", "神居・聖誕禮物公園・Pippu"]
       }[targetTab];
@@ -710,7 +717,7 @@
       document.getElementById('journey-shell-subtitle').textContent = heading[1];
       setActiveButton(journeyNavBtns, targetTab, 'journeyTab');
       journeyPanels.forEach(panel => panel.classList.toggle('hidden', panel !== targetPanel));
-      if (targetTab !== 'places' && !targetPanel.hasAttribute('src')) {
+      if (targetPanel.tagName === 'IFRAME' && !targetPanel.hasAttribute('src')) {
         targetPanel.setAttribute('src', targetPanel.dataset.src);
       }
     };
@@ -786,6 +793,6 @@
       document.getElementById(id).classList.remove('open');
     }
   </script>
-  <script type="module" src="home.js?v=receipt-draft-v3"></script>
+  <script type="module" src="home.js?v=travel-image-tabs-v3"></script>
 </body>
 </html>

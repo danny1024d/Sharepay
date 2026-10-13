@@ -7,6 +7,8 @@ const maxRequestBytes = 16_384;
 const maxReceiptImageBytes = 1_500_000;
 const maxReceiptRequestBytes = 2_050_000;
 const maxReceiptScansPerDay = 20;
+const maxTravelImageBytes = 500_000;
+const maxTravelImageAnalysesPerDay = 10;
 const jpyTwdCacheLifetimeMs = 6 * 60 * 60 * 1000;
 const maxNameLength = 100;
 const maxAddressLength = 200;
@@ -116,17 +118,163 @@ export const receiptDraftResponseFormat = {
   }
 };
 
-function receiptImageByteLength(imageDataUrl) {
+export const travelImageAnalysisResponseFormat = {
+  type: "json_schema",
+  name: "travel_image_analysis",
+  strict: true,
+  schema: {
+    type: "object",
+    properties: {
+      title: { type: "string" },
+      productName: { type: "string" },
+      brand: { type: "string" },
+      description: { type: "string" },
+      features: { type: "array", items: { type: "string" } },
+      priceText: { type: "string" },
+      currency: { type: "string", enum: ["JPY", "TWD", "USD", "CNY", "HKD", "KRW", "OTHER", "UNKNOWN"] },
+      menuItems: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            originalText: { type: "string" },
+            translatedText: { type: "string" },
+            description: { type: "string" },
+            priceText: { type: "string" },
+            priceAmount: { type: "number", minimum: 0 },
+            currency: { type: "string", enum: ["JPY", "TWD", "USD", "CNY", "HKD", "KRW", "OTHER", "UNKNOWN"] },
+            x: { type: "number", minimum: 0, maximum: 1 },
+            y: { type: "number", minimum: 0, maximum: 1 },
+            width: { type: "number", minimum: 0, maximum: 1 },
+            height: { type: "number", minimum: 0, maximum: 1 }
+          },
+          required: ["originalText", "translatedText", "description", "priceText", "priceAmount", "currency", "x", "y", "width", "height"],
+          additionalProperties: false
+        }
+      },
+      confidence: { type: "string", enum: ["high", "medium", "low"] }
+    },
+    required: ["title", "productName", "brand", "description", "features", "priceText", "currency", "menuItems", "confidence"],
+    additionalProperties: false
+  }
+};
+
+function imageDataUrlByteLength(imageDataUrl, maxBytes) {
   const match = typeof imageDataUrl === "string"
     ? imageDataUrl.match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+={0,2})$/i)
     : null;
-  if (!match || match[2].length > Math.ceil(maxReceiptImageBytes * 4 / 3) + 4) {
-    throw new Error("receipt_image_invalid");
+  if (!match || match[2].length > Math.ceil(maxBytes * 4 / 3) + 4) {
+    throw new Error("image_invalid");
   }
   const padding = match[2].endsWith("==") ? 2 : match[2].endsWith("=") ? 1 : 0;
   const imageBytes = Math.floor(match[2].length * 3 / 4) - padding;
-  if (imageBytes < 64 || imageBytes > maxReceiptImageBytes) throw new Error("receipt_image_invalid");
+  if (imageBytes < 64 || imageBytes > maxBytes) throw new Error("image_invalid");
   return imageBytes;
+}
+
+function receiptImageByteLength(imageDataUrl) {
+  try {
+    return imageDataUrlByteLength(imageDataUrl, maxReceiptImageBytes);
+  } catch {
+    throw new Error("receipt_image_invalid");
+  }
+}
+
+export async function analyzeTravelImage(imageDataUrl, analysisType, env, fetchImpl = fetch, exchangeRateFetch = fetch) {
+  if (!Object.hasOwn({ menu: true, product: true }, analysisType)) throw new Error("analysis_type_invalid");
+  imageDataUrlByteLength(imageDataUrl, maxTravelImageBytes);
+  if (!env.OPENAI_API_KEY) throw new Error("image_analysis_unavailable");
+
+  const instruction = analysisType === "menu"
+    ? "Analyze this Japanese menu. Transcribe each readable item in Japanese exactly, translate it into Traditional Chinese used in Taiwan, preserve the printed price text, extract its numeric amount and currency separately (use amount 0 and UNKNOWN if unreadable), and estimate each text block's normalized x/y/width/height bounding box from the top-left of the image (0 to 1). Do not invent ingredients, prices, or translations if unreadable."
+    : "Analyze this product image. Identify only the visible product name and brand, describe the product in Traditional Chinese, list visible features, and report a price/currency only if a readable price is actually shown. Do not guess missing specifications or prices.";
+  const response = await fetchImpl("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: env.OPENAI_MODEL || "gpt-4.1-mini",
+      input: [{
+        role: "user",
+        content: [
+          { type: "input_text", text: instruction },
+          { type: "input_image", image_url: imageDataUrl, detail: "high" }
+        ]
+      }],
+      text: { format: travelImageAnalysisResponseFormat },
+      max_output_tokens: 5000
+    }),
+    signal: AbortSignal.timeout(30_000)
+  });
+  if (!response.ok) {
+    console.error("OpenAI travel image analysis failed", { status: response.status });
+    throw new Error("image_analysis_unavailable");
+  }
+  const result = await response.json();
+  const outputText = (result.output || [])
+    .flatMap(item => item.content || [])
+    .filter(part => part.type === "output_text" && typeof part.text === "string")
+    .map(part => part.text)
+    .join("");
+  let analysis;
+  try {
+    analysis = JSON.parse(outputText);
+  } catch {
+    throw new Error("image_analysis_invalid");
+  }
+
+  const bounded = value => Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
+  const menuCurrencies = ["JPY", "TWD", "USD", "CNY", "HKD", "KRW", "OTHER", "UNKNOWN"];
+  let menuExchange = null;
+  const hasJpyMenuPrices = analysisType === "menu" && (Array.isArray(analysis.menuItems)
+    && analysis.menuItems.some(item => item.currency === "JPY" && Number.isFinite(item.priceAmount) && item.priceAmount > 0));
+  if (hasJpyMenuPrices) {
+    try {
+      menuExchange = await getLatestJpyTwdRate(exchangeRateFetch);
+    } catch (error) {
+      console.error("Menu JPY to TWD exchange rate unavailable", { message: error.message });
+    }
+  }
+  const menuItems = (Array.isArray(analysis.menuItems) ? analysis.menuItems : []).slice(0, 60).map(item => {
+    const currency = menuCurrencies.includes(item.currency) ? item.currency : "UNKNOWN";
+    const priceAmount = Number.isFinite(item.priceAmount) && item.priceAmount >= 0 ? Math.round(item.priceAmount) : 0;
+    const twdPrice = currency === "TWD" && priceAmount > 0
+      ? priceAmount
+      : currency === "JPY" && menuExchange && priceAmount > 0
+        ? Math.round(priceAmount * menuExchange.rate)
+        : null;
+    return {
+      originalText: typeof item.originalText === "string" ? item.originalText.trim().slice(0, 240) : "",
+      translatedText: typeof item.translatedText === "string" ? item.translatedText.trim().slice(0, 360) : "",
+      description: typeof item.description === "string" ? item.description.trim().slice(0, 240) : "",
+      priceText: typeof item.priceText === "string" ? item.priceText.trim().slice(0, 80) : "",
+      priceAmount,
+      currency,
+      twdPrice,
+      exchangeRate: currency === "JPY" && menuExchange ? menuExchange.rate : null,
+      exchangeRateDate: currency === "JPY" && menuExchange ? menuExchange.date : "",
+      x: bounded(item.x),
+      y: bounded(item.y),
+      width: bounded(item.width),
+      height: bounded(item.height)
+    };
+  });
+  return {
+    type: analysisType,
+    title: typeof analysis.title === "string" ? analysis.title.trim().slice(0, 120) : "",
+    productName: typeof analysis.productName === "string" ? analysis.productName.trim().slice(0, 160) : "",
+    brand: typeof analysis.brand === "string" ? analysis.brand.trim().slice(0, 120) : "",
+    description: typeof analysis.description === "string" ? analysis.description.trim().slice(0, 1200) : "",
+    features: (Array.isArray(analysis.features) ? analysis.features : []).filter(item => typeof item === "string").slice(0, 12).map(item => item.trim().slice(0, 240)),
+    priceText: typeof analysis.priceText === "string" ? analysis.priceText.trim().slice(0, 80) : "",
+    currency: ["JPY", "TWD", "USD", "CNY", "HKD", "KRW", "OTHER", "UNKNOWN"].includes(analysis.currency) ? analysis.currency : "UNKNOWN",
+    menuItems,
+    exchangeRateDate: menuExchange?.date || "",
+    exchangeRateSource: menuExchange?.source || "",
+    confidence: ["high", "medium", "low"].includes(analysis.confidence) ? analysis.confidence : "low"
+  };
 }
 
 function taipeiDateFromUnix(timestamp) {
@@ -831,7 +979,7 @@ export async function handleRequest(request, env, ctx) {
   } catch {
     return jsonResponse({ error: "Invalid JSON body." }, 400, origin);
   }
-  if (body?.action !== "parse_receipt" && requestBytes > maxRequestBytes) {
+  if (!['parse_receipt', 'analyze_travel_image'].includes(body?.action) && requestBytes > maxRequestBytes) {
     return jsonResponse({ error: "Request is too large." }, 413, origin);
   }
   if (body?.action === "parse_receipt") {
@@ -850,6 +998,28 @@ export async function handleRequest(request, env, ctx) {
       const unavailable = error.message === "receipt_service_unavailable";
       return jsonResponse({
         error: unavailable ? "AI 收據辨識服務暫時無法使用，請稍後重試。" : "無法辨識這張收據，請確認照片清晰後重試。"
+      }, unavailable ? 502 : 422, origin);
+    }
+  }
+  if (body?.action === "analyze_travel_image") {
+    if (!Object.hasOwn({ menu: true, product: true }, body.analysisType)) {
+      return jsonResponse({ error: "請選擇菜單或商品辨識。" }, 400, origin);
+    }
+    try {
+      imageDataUrlByteLength(body.imageDataUrl, maxTravelImageBytes);
+    } catch {
+      return jsonResponse({ error: "請上傳 500KB 以下的 JPEG、PNG 或 WebP 圖片。" }, 400, origin);
+    }
+    const quotaResponse = await takeDailyQuota(env, `image-analysis:${identity.email.toLowerCase()}`, maxTravelImageAnalysesPerDay);
+    if (quotaResponse.status === 429) {
+      return jsonResponse({ error: "今日圖片辨識次數已達上限（10 次），請明天再試。" }, 429, origin);
+    }
+    try {
+      return jsonResponse(await analyzeTravelImage(body.imageDataUrl, body.analysisType, env), 200, origin);
+    } catch (error) {
+      const unavailable = error.message === "image_analysis_unavailable";
+      return jsonResponse({
+        error: unavailable ? "圖片辨識服務暫時無法使用，請稍後重試。" : "無法辨識這張圖片，請確認畫面清晰後重試。"
       }, unavailable ? 502 : 422, origin);
     }
   }

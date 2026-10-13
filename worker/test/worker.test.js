@@ -4,6 +4,7 @@ import {
   buildPlaceIdentificationPrompt,
   extractGoogleMapsPlaceName,
   getKamuiMapData,
+  analyzeTravelImage,
   findGooglePlace,
   handleRequest,
   normalizeGoogleMapsUrl,
@@ -97,6 +98,8 @@ test("daily receipt quota is isolated by account and from Places quota", async (
   assert.equal((await check("receipt:first@example.com")).status, 200);
   assert.equal((await check("receipt:first@example.com")).status, 429);
   assert.equal((await check("receipt:second@example.com")).status, 200);
+  assert.equal((await check("image-analysis:first@example.com")).status, 200);
+  assert.equal((await check("image-analysis:second@example.com")).status, 200);
 });
 
 test("receipt parser rejects invalid and oversized images before calling OpenAI", async () => {
@@ -167,6 +170,73 @@ test("receipt parser leaves JPY total unconverted when the FX endpoint is unavai
   assert.equal(result.currency, "JPY");
   assert.equal(result.twdTotal, null);
   assert.equal(result.exchangeRate, null);
+});
+
+test("menu image analysis returns Japanese/Traditional Chinese lines and bounded overlay boxes", async () => {
+  const imageDataUrl = `data:image/jpeg;base64,${"A".repeat(128)}`;
+  const analysis = {
+    title: "本日のおすすめ",
+    productName: "",
+    brand: "",
+    description: "",
+    features: [],
+    priceText: "",
+    currency: "JPY",
+    menuItems: [{ originalText: "味噌ラーメン", translatedText: "味噌拉麵", description: "味噌湯底", priceText: "1,200円", priceAmount: 1200, currency: "JPY", x: 1.2, y: 0.1, width: 0.4, height: 0.08 }],
+    confidence: "high"
+  };
+  let requestBody;
+  const result = await analyzeTravelImage(
+    imageDataUrl,
+    "menu",
+    { OPENAI_API_KEY: "test" },
+    async (_url, options) => {
+      requestBody = JSON.parse(options.body);
+      return Response.json({ output: [{ content: [{ type: "output_text", text: JSON.stringify(analysis) }] }] });
+    },
+    async () => Response.json({ result: "success", base_code: "JPY", time_last_update_unix: 1_791_849_451, rates: { TWD: 0.201496 } })
+  );
+
+  assert.equal(requestBody.text.format.name, "travel_image_analysis");
+  assert.match(requestBody.input[0].content[0].text, /Traditional Chinese/);
+  assert.equal(result.type, "menu");
+  assert.equal(result.menuItems[0].originalText, "味噌ラーメン");
+  assert.equal(result.menuItems[0].translatedText, "味噌拉麵");
+  assert.equal(result.menuItems[0].x, 1);
+  assert.equal(result.menuItems[0].twdPrice, 242);
+  assert.equal(result.menuItems[0].exchangeRateDate, "2026-10-13");
+});
+
+test("product image analysis returns visible product details without inventing price", async () => {
+  const analysis = {
+    title: "無線耳機",
+    productName: "Noise Cancelling Headphones",
+    brand: "Example Audio",
+    description: "頭戴式無線耳機。",
+    features: ["主動降噪", "藍牙連線"],
+    priceText: "",
+    currency: "UNKNOWN",
+    menuItems: [],
+    confidence: "medium"
+  };
+  const result = await analyzeTravelImage(`data:image/jpeg;base64,${"A".repeat(128)}`, "product", { OPENAI_API_KEY: "test" }, async () => Response.json({
+    output: [{ content: [{ type: "output_text", text: JSON.stringify(analysis) }] }]
+  }));
+
+  assert.equal(result.type, "product");
+  assert.equal(result.productName, "Noise Cancelling Headphones");
+  assert.equal(result.priceText, "");
+  assert.equal(result.currency, "UNKNOWN");
+  assert.deepEqual(result.features, ["主動降噪", "藍牙連線"]);
+});
+
+test("travel image analysis rejects invalid image types before calling OpenAI", async () => {
+  let requested = false;
+  await assert.rejects(analyzeTravelImage("not-an-image", "menu", { OPENAI_API_KEY: "test" }, async () => {
+    requested = true;
+    return Response.json({});
+  }), /image_invalid/);
+  assert.equal(requested, false);
 });
 
 test("identification failures retain a suggested Google Maps place name", () => {

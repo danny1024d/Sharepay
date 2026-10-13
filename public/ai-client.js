@@ -74,3 +74,26 @@ export async function requestReceiptDraft({ user, imageDataUrl }) {
   }
   return result;
 }
+
+export async function requestTravelImageAnalysis({ user, imageDataUrl, analysisType }) {
+  if (!user || typeof user.getIdToken !== "function") throw new Error("Sign-in required.");
+  if (!["menu", "product"].includes(analysisType)) throw new Error("請選擇菜單或商品辨識。");
+  const token = await user.getIdToken();
+  const response = await fetch(workerUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ action: "analyze_travel_image", imageDataUrl, analysisType })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "圖片辨識暫時無法使用。");
+  if (result.type !== analysisType || typeof result.title !== "string"
+    || typeof result.productName !== "string" || typeof result.description !== "string"
+    || !Array.isArray(result.features) || !Array.isArray(result.menuItems)
+    || !["high", "medium", "low"].includes(result.confidence)) {
+    throw new Error("圖片辨識結果格式錯誤，請重試。");
+  }
+  return result;
+}
