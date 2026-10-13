@@ -10,6 +10,13 @@ ALLOWED_ORIGINS = "https://sharepay-f60d3.web.app,https://sharepay-f60d3.firebas
 OPENAI_MODEL = "gpt-4.1-mini"
 DAILY_REQUEST_LIMIT = "200"
 
+[[kv_namespaces]]
+binding = "KAMUI_MAP_CACHE"
+id = "31ae30a853b046098f4f52aa764575ff"
+
+[triggers]
+crons = ["0 */6 * * *"]
+
 [[durable_objects.bindings]]
 name = "USER_DAILY_LIMITER"
 class_name = "UserDailyRateLimiter"

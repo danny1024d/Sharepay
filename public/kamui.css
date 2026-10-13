@@ -1,0 +1,971 @@
+.kamui-masthead-content {
+  align-items: center;
+}
+
+.kamui-season-status,
+.kamui-unknown-pill {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  border: 1px solid rgb(254 243 199 / 0.65);
+  border-radius: 999px;
+  background: rgb(120 53 15 / 0.28);
+  padding: 7px 11px;
+  color: #fef3c7;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.kamui-main {
+  padding-bottom: 28px;
+}
+
+.kamui-map-panel,
+.kamui-operations {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.kamui-map-panel {
+  overflow: hidden;
+}
+
+.kamui-map-heading,
+.kamui-operations-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+}
+
+.kamui-map-heading h2,
+.kamui-operations-heading h2 {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.kamui-map-heading p,
+.kamui-operations-heading p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.kamui-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: #e8eef2;
+}
+
+.kamui-map-footer {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding: 13px 20px 15px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.kamui-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 18px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.kamui-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.legend-line {
+  display: inline-block;
+  width: 24px;
+  height: 4px;
+  border-radius: 0;
+  background: currentColor;
+}
+
+.legend-line.easy {
+  color: #15803d;
+}
+
+.legend-line.intermediate {
+  color: #dc2626;
+}
+
+.legend-line.advanced {
+  color: #111827;
+}
+
+.legend-line.lift {
+  color: #ea580c;
+  background: repeating-linear-gradient(90deg, currentColor 0 6px, transparent 6px 10px);
+}
+
+.kamui-map-footer > p {
+  line-height: 1.5;
+}
+
+.kamui-map-footer > a,
+.kamui-official-link,
+.kamui-map-link {
+  width: fit-content;
+  color: var(--indigo-dark);
+  font-size: 12px;
+  font-weight: 650;
+  text-underline-offset: 3px;
+}
+
+.kamui-map-footer > a {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.kamui-operations {
+  margin-top: 16px;
+  padding: 0 20px 18px;
+}
+
+.kamui-operations-heading {
+  margin: 0 -20px;
+}
+
+.kamui-unknown-pill {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.kamui-operations-note {
+  max-width: 70ch;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.kamui-official-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.kamui-official-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+.kamui-map-link {
+  display: block;
+  margin-top: 8px;
+}
+
+.kamui-lift-list-wrap {
+  margin-top: 18px;
+}
+
+.kamui-lift-list-wrap h3 {
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.kamui-lift-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kamui-lift-list li {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid #e8edf4;
+  padding: 9px 0;
+  font-size: 12px;
+}
+
+.kamui-lift-name {
+  overflow: hidden;
+  color: var(--ink);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kamui-lift-state {
+  flex: none;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.kamui-empty {
+  grid-column: 1 / -1;
+  color: var(--muted);
+}
+
+.kamui-retry {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  padding: 6px 10px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.kamui-retry:hover {
+  background: #f8fafc;
+}
+
+.kamui-retry:focus-visible {
+  outline: 3px solid #818cf8;
+  outline-offset: 2px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.kamui-footer {
+  padding-bottom: 26px;
+}
+
+@media (max-width: 760px) {
+  .kamui-masthead-content {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .kamui-map {
+    height: 58vh;
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 520px) {
+  .kamui-map-heading,
+  .kamui-operations-heading {
+    padding-inline: 14px;
+  }
+
+  .kamui-map-footer {
+    padding-inline: 14px;
+  }
+
+  .kamui-operations {
+    padding-inline: 14px;
+  }
+
+  .kamui-operations-heading {
+    margin-inline: -14px;
+  }
+
+  .kamui-lift-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kamui-fullscreen-page {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #e8eef2;
+}
+
+.kamui-screen {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #e8eef2;
+}
+
+.kamui-fullscreen-page .kamui-map {
+  inset: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+.kamui-topbar {
+  position: absolute;
+  z-index: 5;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.kamui-topbar-title,
+.kamui-map-controls {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgb(203 213 225 / 0.9);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.97);
+  box-shadow: 0 2px 10px rgb(15 23 42 / 0.2);
+  padding: 6px 8px;
+  pointer-events: auto;
+}
+
+.kamui-topbar-title > div {
+  min-width: 0;
+}
+
+.kamui-topbar-title h1 {
+  color: #111827;
+  font-size: 20px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.kamui-topbar-title p {
+  margin-top: 2px;
+  color: #586579;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.kamui-back,
+.map-control-button {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dbe2ec;
+  border-radius: 6px;
+  background: #fff;
+  color: #1f2937;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.kamui-back svg,
+.map-control-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.kamui-back:hover,
+.map-control-button:hover {
+  background: #f8fafc;
+}
+
+.kamui-back:focus-visible,
+.map-control-button:focus-visible,
+.kamui-info-drawer summary:focus-visible {
+  outline: 3px solid #818cf8;
+  outline-offset: 2px;
+}
+
+.kamui-season-status {
+  max-width: 130px;
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 10px;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.kamui-map-controls {
+  gap: 6px;
+}
+
+.map-control-button {
+  width: auto;
+  min-width: 40px;
+  gap: 6px;
+  padding-inline: 9px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.map-control-button span {
+  white-space: nowrap;
+}
+
+.kamui-map-status {
+  position: absolute;
+  z-index: 4;
+  top: calc(max(10px, env(safe-area-inset-top)) + 62px);
+  left: max(10px, env(safe-area-inset-left));
+  display: flex;
+  max-width: min(430px, calc(100% - 20px));
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgb(203 213 225 / 0.9);
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.94);
+  box-shadow: 0 1px 4px rgb(15 23 42 / 0.16);
+  padding: 7px 10px;
+  color: #334155;
+  font-size: 11px;
+  line-height: 1.35;
+  pointer-events: auto;
+}
+
+.kamui-map-status p {
+  min-width: 0;
+}
+
+.kamui-legend {
+  position: absolute;
+  z-index: 4;
+  bottom: calc(34px + env(safe-area-inset-bottom));
+  left: max(10px, env(safe-area-inset-left));
+  display: flex;
+  max-width: calc(100% - 20px);
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  border: 1px solid rgb(203 213 225 / 0.92);
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.95);
+  box-shadow: 0 1px 4px rgb(15 23 42 / 0.16);
+  padding: 8px 10px;
+  pointer-events: none;
+}
+
+.kamui-map-attribution {
+  position: absolute;
+  z-index: 4;
+  right: max(10px, env(safe-area-inset-right));
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  max-width: 48%;
+  color: #334155;
+  font-size: 10px;
+  line-height: 1.3;
+  text-align: right;
+  text-shadow: 0 1px 2px #fff;
+  text-underline-offset: 2px;
+}
+
+.kamui-info-drawer {
+  position: absolute;
+  z-index: 6;
+  right: max(10px, env(safe-area-inset-right));
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  width: min(380px, calc(100% - 20px));
+  max-height: min(42dvh, 360px);
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.98);
+  box-shadow: 0 2px 12px rgb(15 23 42 / 0.2);
+}
+
+.kamui-info-drawer[open] {
+  overflow-y: auto;
+}
+
+.kamui-info-drawer summary {
+  position: sticky;
+  top: 0;
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  padding: 8px 12px;
+  color: #1f2937;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  list-style: none;
+}
+
+.kamui-info-drawer summary::-webkit-details-marker {
+  display: none;
+}
+
+.kamui-info-drawer summary svg {
+  width: 16px;
+  height: 16px;
+  color: #475569;
+}
+
+.kamui-drawer-status {
+  margin-left: auto;
+  color: #9a3412;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.kamui-info-content {
+  border-top: 1px solid #e2e8f0;
+  padding: 12px;
+}
+
+.kamui-info-content .kamui-operations-heading {
+  margin: 0;
+  padding: 0;
+}
+
+.kamui-info-content .kamui-operations-heading h2,
+.kamui-info-content .kamui-lift-list-wrap h2 {
+  font-size: 14px;
+}
+
+.kamui-info-content .kamui-unknown-pill {
+  padding: 4px 7px;
+  font-size: 10px;
+}
+
+.kamui-info-content .kamui-operations-note {
+  margin-top: 8px;
+  font-size: 11px;
+}
+
+.kamui-info-links {
+  display: grid;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.kamui-info-content .kamui-official-link,
+.kamui-info-content .kamui-map-link {
+  margin-top: 0;
+  font-size: 11px;
+}
+
+.kamui-info-content .kamui-lift-list-wrap {
+  margin-top: 12px;
+}
+
+.kamui-info-content .kamui-lift-list {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.kamui-disclaimer {
+  margin-top: 10px;
+  color: #64748b;
+  font-size: 10px;
+}
+
+@media (max-width: 600px) {
+  .kamui-topbar {
+    align-items: flex-start;
+  }
+
+  .kamui-topbar-title {
+    min-height: 48px;
+    gap: 6px;
+    padding: 5px;
+  }
+
+  .kamui-topbar-title h1 {
+    font-size: 16px;
+  }
+
+  .kamui-topbar-title p {
+    font-size: 10px;
+  }
+
+  .kamui-season-status {
+    display: none;
+  }
+
+  .kamui-map-controls {
+    min-height: 48px;
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .map-control-button {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    padding: 0;
+  }
+
+  .map-control-button span {
+    display: none;
+  }
+
+  .kamui-map-status {
+    top: calc(max(10px, env(safe-area-inset-top)) + 58px);
+    font-size: 10px;
+  }
+
+  .kamui-legend {
+    bottom: calc(54px + env(safe-area-inset-bottom));
+    right: max(10px, env(safe-area-inset-right));
+    gap: 6px 10px;
+    padding: 7px 9px;
+  }
+
+  .kamui-info-drawer {
+    right: max(10px, env(safe-area-inset-right));
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    width: min(360px, calc(100% - 20px));
+    max-height: min(45dvh, 340px);
+  }
+}
+
+.kamui-fullscreen-page {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #e8eef2;
+}
+
+.kamui-screen {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #e8eef2;
+}
+
+.kamui-topbar {
+  position: absolute;
+  z-index: 5;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.kamui-topbar-title,
+.kamui-map-controls {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgb(203 213 225 / 0.9);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.97);
+  box-shadow: 0 2px 10px rgb(15 23 42 / 0.2);
+  padding: 6px 8px;
+  pointer-events: auto;
+}
+
+.kamui-topbar-title > div {
+  min-width: 0;
+}
+
+.kamui-topbar-title h1 {
+  color: #111827;
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.kamui-topbar-title p {
+  margin-top: 2px;
+  color: #586579;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.kamui-back,
+.map-control-button {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dbe2ec;
+  border-radius: 6px;
+  background: #fff;
+  color: #1f2937;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.kamui-back svg,
+.map-control-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.kamui-back:hover,
+.map-control-button:hover {
+  background: #f8fafc;
+}
+
+.kamui-back:focus-visible,
+.map-control-button:focus-visible,
+.kamui-info-drawer summary:focus-visible {
+  outline: 3px solid #818cf8;
+  outline-offset: 2px;
+}
+
+.kamui-season-status {
+  max-width: 130px;
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 10px;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.kamui-map-controls {
+  gap: 6px;
+}
+
+.map-control-button {
+  width: auto;
+  min-width: 40px;
+  gap: 6px;
+  padding-inline: 9px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.map-control-button span {
+  white-space: nowrap;
+}
+
+.kamui-map-status {
+  position: absolute;
+  z-index: 4;
+  top: calc(max(10px, env(safe-area-inset-top)) + 62px);
+  left: max(10px, env(safe-area-inset-left));
+  display: flex;
+  max-width: min(430px, calc(100% - 20px));
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgb(203 213 225 / 0.9);
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.94);
+  box-shadow: 0 1px 4px rgb(15 23 42 / 0.16);
+  padding: 7px 10px;
+  color: #334155;
+  font-size: 11px;
+  line-height: 1.35;
+  pointer-events: auto;
+}
+
+.kamui-map-status p {
+  min-width: 0;
+}
+
+.kamui-legend {
+  position: absolute;
+  z-index: 4;
+  bottom: calc(34px + env(safe-area-inset-bottom));
+  left: max(10px, env(safe-area-inset-left));
+  display: flex;
+  max-width: calc(100% - 20px);
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  border: 1px solid rgb(203 213 225 / 0.92);
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.95);
+  box-shadow: 0 1px 4px rgb(15 23 42 / 0.16);
+  padding: 8px 10px;
+  pointer-events: none;
+}
+
+.kamui-map-attribution {
+  position: absolute;
+  z-index: 4;
+  right: max(10px, env(safe-area-inset-right));
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  max-width: 48%;
+  color: #334155;
+  font-size: 10px;
+  line-height: 1.3;
+  text-align: right;
+  text-shadow: 0 1px 2px #fff;
+  text-underline-offset: 2px;
+}
+
+.kamui-info-drawer {
+  position: absolute;
+  z-index: 6;
+  right: max(10px, env(safe-area-inset-right));
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  width: min(380px, calc(100% - 20px));
+  max-height: min(42dvh, 360px);
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.98);
+  box-shadow: 0 2px 12px rgb(15 23 42 / 0.2);
+}
+
+.kamui-info-drawer[open] {
+  overflow-y: auto;
+}
+
+.kamui-info-drawer summary {
+  position: sticky;
+  top: 0;
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  padding: 8px 12px;
+  color: #1f2937;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  list-style: none;
+}
+
+.kamui-info-drawer summary::-webkit-details-marker {
+  display: none;
+}
+
+.kamui-info-drawer summary svg {
+  width: 16px;
+  height: 16px;
+  color: #475569;
+}
+
+.kamui-drawer-status {
+  margin-left: auto;
+  color: #9a3412;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.kamui-info-content {
+  border-top: 1px solid #e2e8f0;
+  padding: 12px;
+}
+
+.kamui-info-content .kamui-operations-heading {
+  margin: 0;
+  padding: 0;
+}
+
+.kamui-info-content .kamui-operations-heading h2,
+.kamui-info-content .kamui-lift-list-wrap h2 {
+  font-size: 14px;
+}
+
+.kamui-info-content .kamui-unknown-pill {
+  padding: 4px 7px;
+  font-size: 10px;
+}
+
+.kamui-info-content .kamui-operations-note {
+  margin-top: 8px;
+  font-size: 11px;
+}
+
+.kamui-info-links {
+  display: grid;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.kamui-info-content .kamui-official-link,
+.kamui-info-content .kamui-map-link {
+  margin-top: 0;
+  font-size: 11px;
+}
+
+.kamui-info-content .kamui-lift-list-wrap {
+  margin-top: 12px;
+}
+
+.kamui-info-content .kamui-lift-list {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.kamui-disclaimer {
+  margin-top: 10px;
+  color: #64748b;
+  font-size: 10px;
+}
+
+@media (max-width: 600px) {
+  .kamui-topbar {
+    align-items: flex-start;
+  }
+
+  .kamui-topbar-title {
+    min-height: 48px;
+    gap: 6px;
+    padding: 5px;
+  }
+
+  .kamui-topbar-title h1 {
+    font-size: 14px;
+  }
+
+  .kamui-topbar-title p {
+    font-size: 10px;
+  }
+
+  .kamui-season-status {
+    display: none;
+  }
+
+  .kamui-map-controls {
+    min-height: 48px;
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .map-control-button {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    padding: 0;
+  }
+
+  .map-control-button span {
+    display: none;
+  }
+
+  .kamui-map-status {
+    top: calc(max(10px, env(safe-area-inset-top)) + 58px);
+    font-size: 10px;
+  }
+
+  .kamui-legend {
+    bottom: calc(54px + env(safe-area-inset-bottom));
+    right: max(10px, env(safe-area-inset-right));
+    gap: 6px 10px;
+    padding: 7px 9px;
+  }
+
+  .kamui-info-drawer {
+    right: max(10px, env(safe-area-inset-right));
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    width: min(360px, calc(100% - 20px));
+    max-height: min(45dvh, 340px);
+  }
+}

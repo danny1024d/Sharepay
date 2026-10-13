@@ -10,6 +10,7 @@ export const firebaseConfig = {
 
 // Browser key restricted to the site's HTTP referrers and Maps JavaScript API.
 export const googleMapsApiKey = "AIzaSyDHr1bj572qLaXiZGPUeydXOvPru7xRRq4";
+export const googleMapsMapId = "d8514670f0cf1782b37dad26";
 
 // Only Google accounts listed here can access the shared ledger.
 export const allowedEmails = [

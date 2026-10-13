@@ -3,15 +3,18 @@ import assert from "node:assert/strict";
 import {
   buildPlaceIdentificationPrompt,
   extractGoogleMapsPlaceName,
+  getKamuiMapData,
   findGooglePlace,
   handleRequest,
   normalizeGoogleMapsUrl,
+  normalizeKamuiMapElements,
   parseGoogleMapsCoordinates,
   parsePlaceIdentificationResult,
   placeIdentificationResponseFormat,
   placeIntroductionTranslationResponseFormat,
   placeLookupFailure,
   placesTextSearchBody,
+  serveKamuiMapData,
   translatePlaceIntroduction,
   resolveGoogleMapsShareUrl,
   UserDailyRateLimiter
@@ -380,4 +383,96 @@ test("refreshes an expired location directly from its stored Place ID", async ()
   assert.deepEqual(calls, ["https://places.googleapis.com/v1/places/place-id-saved"]);
   assert.equal(result.placeId, "place-id-saved");
   assert.equal(result.method, "google_places");
+});
+
+test("normalizes Kamui piste difficulties and aerialways from OSM geometry", () => {
+  const result = normalizeKamuiMapElements([
+    { type: "way", id: 1, tags: { name: "ダイナミック", "piste:type": "downhill", "piste:difficulty": "advanced" }, geometry: [{ lat: 43.7, lon: 142.2 }, { lat: 43.71, lon: 142.21 }] },
+    { type: "way", id: 2, tags: { name: "カムイゴンドラ", aerialway: "gondola" }, geometry: [{ lat: 43.7, lon: 142.2 }, { lat: 43.72, lon: 142.22 }] },
+    { type: "way", id: 3, tags: { name: "bad geometry", "piste:type": "downhill" }, geometry: [{ lat: "bad", lon: 142.2 }] }
+  ], "2026-10-12T00:00:00.000Z");
+
+  assert.equal(result.source, "OpenStreetMap");
+  assert.equal(result.features.length, 2);
+  assert.equal(result.features[0].difficulty, "advanced");
+  assert.deepEqual(result.features[0].geometry[0], { lat: 43.7, lng: 142.2 });
+  assert.equal(result.features[1].kind, "lift");
+  assert.equal(result.features[1].aerialway, "gondola");
+});
+
+test("Kamui OSM data fetch uses the fixed map query and a descriptive user agent", async () => {
+  let requestedUrl;
+  let requestedUserAgent;
+  const result = await getKamuiMapData(async (url, options) => {
+    requestedUrl = new URL(url);
+    requestedUserAgent = options.headers["User-Agent"];
+    return Response.json({ elements: [
+      { type: "way", id: 1, tags: { "piste:type": "downhill", "piste:difficulty": "intermediate" }, geometry: [{ lat: 43.7, lon: 142.2 }, { lat: 43.71, lon: 142.21 }] }
+    ] });
+  });
+
+  assert.equal(requestedUrl.hostname, "overpass.openstreetmap.fr");
+  const query = requestedUrl.searchParams.get("data");
+  assert.match(query, /aerialway/);
+  assert.match(query, /43\.685,142\.185,43\.72,142\.225/);
+  assert.match(requestedUserAgent, /SharePayKamuiMap/);
+  assert.equal(result.features.length, 1);
+});
+
+test("Kamui OSM data fetch falls back when the primary Overpass endpoint fails", async () => {
+  const requestedHosts = [];
+  const result = await getKamuiMapData(async url => {
+    const host = new URL(url).hostname;
+    requestedHosts.push(host);
+    if (host === "overpass.openstreetmap.fr") return new Response("Unavailable", { status: 504 });
+    return Response.json({ elements: [
+      { type: "way", id: 2, tags: { name: "lift", aerialway: "gondola" }, geometry: [{ lat: 43.7, lon: 142.2 }, { lat: 43.71, lon: 142.21 }] }
+    ] });
+  });
+
+  assert.deepEqual(requestedHosts, ["overpass.openstreetmap.fr", "overpass-api.de"]);
+  assert.equal(result.features.length, 1);
+  assert.equal(result.features[0].kind, "lift");
+});
+
+test("serves a fresh Kamui KV snapshot without querying Overpass", async () => {
+  const snapshot = { source: "OpenStreetMap", fetchedAt: new Date().toISOString(), features: [{ id: "way-1" }] };
+  const calls = [];
+  const cache = { get: async () => ({ savedAt: Date.now(), data: snapshot }) };
+  const result = await serveKamuiMapData({ KAMUI_MAP_CACHE: cache }, undefined, async () => {
+    calls.push("overpass");
+    throw new Error("Overpass should not be called for a fresh snapshot");
+  });
+
+  assert.deepEqual(result, snapshot);
+  assert.deepEqual(calls, []);
+});
+
+test("serves stale Kamui KV data immediately and refreshes in the background", async () => {
+  const snapshot = { source: "OpenStreetMap", fetchedAt: "2026-01-01T00:00:00.000Z", features: [{ id: "way-1" }] };
+  let savedRecord = { savedAt: Date.now() - 7 * 60 * 60 * 1000, data: snapshot };
+  const tasks = [];
+  const cache = {
+    get: async () => savedRecord,
+    put: async (_key, value) => { savedRecord = JSON.parse(value); }
+  };
+  const ctx = { waitUntil: task => tasks.push(task) };
+  const result = await serveKamuiMapData({ KAMUI_MAP_CACHE: cache }, ctx, async () => Response.json({ elements: [
+    { type: "way", id: 2, tags: { name: "Piste", "piste:type": "downhill" }, geometry: [{ lat: 43.7, lon: 142.2 }, { lat: 43.71, lon: 142.21 }] }
+  ] }));
+
+  assert.equal(result.stale, true);
+  assert.deepEqual(result.features, snapshot.features);
+  assert.equal(tasks.length, 1);
+  await Promise.all(tasks);
+  assert.equal(savedRecord.data.features[0].id, "way-2");
+});
+
+test("keeps serving stale Kamui KV data when Overpass refresh fails", async () => {
+  const snapshot = { source: "OpenStreetMap", fetchedAt: "2026-01-01T00:00:00.000Z", features: [{ id: "way-1" }] };
+  const cache = { get: async () => ({ savedAt: Date.now() - 7 * 60 * 60 * 1000, data: snapshot }) };
+  const result = await serveKamuiMapData({ KAMUI_MAP_CACHE: cache }, undefined, async () => new Response("Unavailable", { status: 503 }));
+
+  assert.equal(result.stale, true);
+  assert.deepEqual(result.features, snapshot.features);
 });

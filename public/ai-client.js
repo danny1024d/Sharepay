@@ -33,3 +33,22 @@ export async function requestPlaceCoordinates({ user, name, address, mapsUrl, pl
   }
   return result;
 }
+
+export async function requestKamuiMapData({ user }) {
+  if (!user || typeof user.getIdToken !== "function") throw new Error("Sign-in required.");
+  const token = await user.getIdToken();
+  const response = await fetch(workerUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ action: "kamui_map_data" })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "Kamui map data is temporarily unavailable.");
+  if (result.source !== "OpenStreetMap" || !Array.isArray(result.features)) {
+    throw new Error("Kamui map data response was invalid.");
+  }
+  return result;
+}

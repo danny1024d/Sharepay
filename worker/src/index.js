@@ -9,6 +9,13 @@ const maxAddressLength = 200;
 const maxMapsUrlLength = 2000;
 const hokkaidoBounds = { minLatitude: 41.2, maxLatitude: 45.7, minLongitude: 139.2, maxLongitude: 148.9 };
 const asahikawaBounds = { minLatitude: 43.4, maxLatitude: 43.95, minLongitude: 142.1, maxLongitude: 142.8 };
+const kamuiMapBounds = { south: 43.685, west: 142.185, north: 43.72, east: 142.225 };
+const kamuiMapCacheLifetimeMs = 6 * 60 * 60 * 1000;
+const kamuiMapCacheKey = "kamui-map-data-v2";
+const kamuiOverpassEndpoints = [
+  "https://overpass.openstreetmap.fr/api/interpreter",
+  "https://overpass-api.de/api/interpreter"
+];
 const googleMapsHosts = new Set([
   "maps.app.goo.gl",
   "goo.gl",
@@ -16,6 +23,8 @@ const googleMapsHosts = new Set([
   "google.com",
   "maps.google.com"
 ]);
+let cachedKamuiMapData = null;
+let cachedKamuiMapDataExpiresAt = 0;
 
 export const placeIdentificationResponseFormat = {
   type: "json_schema",
@@ -382,6 +391,111 @@ export function placesTextSearchBody(place) {
   };
 }
 
+export function normalizeKamuiMapElements(elements, fetchedAt = new Date().toISOString()) {
+  const features = (Array.isArray(elements) ? elements : []).flatMap(element => {
+    const tags = element?.tags || {};
+    const isLift = typeof tags.aerialway === "string";
+    const isPiste = tags["piste:type"] === "downhill";
+    const geometry = Array.isArray(element.geometry)
+      ? element.geometry.filter(point => Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lon)))
+        .map(point => ({ lat: Number(point.lat), lng: Number(point.lon) }))
+      : [];
+    if ((!isLift && !isPiste) || geometry.length < 2 || !Number.isFinite(Number(element.id))) return [];
+    return [{
+      id: `${element.type || "way"}-${element.id}`,
+      kind: isLift ? "lift" : "piste",
+      name: typeof tags.name === "string" && tags.name.trim()
+        ? tags.name.trim()
+        : `${isLift ? "纜車" : "雪道"} ${element.id}`,
+      difficulty: isPiste ? (tags["piste:difficulty"] || "unknown") : "",
+      aerialway: isLift ? tags.aerialway : "",
+      geometry
+    }];
+  }).slice(0, 500);
+  return {
+    source: "OpenStreetMap",
+    attributionUrl: "https://www.openstreetmap.org/copyright",
+    fetchedAt,
+    features
+  };
+}
+
+export async function getKamuiMapData(fetchImpl = fetch, forceRefresh = false) {
+  const now = Date.now();
+  if (!forceRefresh && fetchImpl === fetch && cachedKamuiMapData && now < cachedKamuiMapDataExpiresAt) return cachedKamuiMapData;
+
+  const query = `[out:json][timeout:25];(way["piste:type"="downhill"](${kamuiMapBounds.south},${kamuiMapBounds.west},${kamuiMapBounds.north},${kamuiMapBounds.east});relation["piste:type"="downhill"](${kamuiMapBounds.south},${kamuiMapBounds.west},${kamuiMapBounds.north},${kamuiMapBounds.east});way["aerialway"](${kamuiMapBounds.south},${kamuiMapBounds.west},${kamuiMapBounds.north},${kamuiMapBounds.east}););out geom;`;
+  let result;
+  for (const endpoint of kamuiOverpassEndpoints) {
+    try {
+      const url = `${endpoint}?data=${encodeURIComponent(query)}`;
+      const response = await fetchImpl(url, {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "SharePayKamuiMap/1.0 (https://sharepay-f60d3.web.app)"
+        },
+        signal: AbortSignal.timeout(30_000)
+      });
+      if (!response.ok) {
+        console.error("Kamui OSM map query failed", { endpoint, status: response.status });
+        continue;
+      }
+      const candidate = normalizeKamuiMapElements((await response.json()).elements, new Date(now).toISOString());
+      if (candidate.features.length) {
+        result = candidate;
+        break;
+      }
+      console.error("Kamui OSM map query returned no features", { endpoint });
+    } catch (error) {
+      console.error("Kamui OSM map query failed", { endpoint, message: error.message });
+    }
+  }
+  if (!result) throw new Error("Kamui map data unavailable");
+  if (fetchImpl === fetch) {
+    cachedKamuiMapData = result;
+    cachedKamuiMapDataExpiresAt = now + kamuiMapCacheLifetimeMs;
+  }
+  return result;
+}
+
+async function refreshKamuiMapCache(env, fetchImpl = fetch) {
+  const data = await getKamuiMapData(fetchImpl, true);
+  await env.KAMUI_MAP_CACHE.put(kamuiMapCacheKey, JSON.stringify({ savedAt: Date.now(), data }));
+  return data;
+}
+
+export async function serveKamuiMapData(env, ctx, fetchImpl = fetch) {
+  const cache = env.KAMUI_MAP_CACHE;
+  if (!cache) return getKamuiMapData(fetchImpl);
+
+  let cachedRecord;
+  try {
+    cachedRecord = await cache.get(kamuiMapCacheKey, "json");
+  } catch (error) {
+    console.error("Kamui OSM cache read failed", { message: error.message });
+  }
+
+  if (cachedRecord?.data) {
+    const isFresh = Date.now() - cachedRecord.savedAt < kamuiMapCacheLifetimeMs;
+    if (isFresh) return cachedRecord.data;
+    const refresh = refreshKamuiMapCache(env, fetchImpl).catch(error => {
+      console.error("Kamui OSM cache refresh failed", { message: error.message });
+    });
+    if (ctx?.waitUntil) {
+      ctx.waitUntil(refresh);
+      return { ...cachedRecord.data, stale: true };
+    }
+    try {
+      return await refreshKamuiMapCache(env, fetchImpl);
+    } catch (error) {
+      console.error("Kamui OSM cache refresh failed", { message: error.message });
+      return { ...cachedRecord.data, stale: true };
+    }
+  }
+
+  return refreshKamuiMapCache(env, fetchImpl);
+}
+
 export async function findGooglePlace(place, apiKey, fetchImpl = fetch) {
   if (!apiKey) throw new Error("Google Places API key is not configured");
   let placeId = place.placeId;
@@ -488,7 +602,7 @@ async function identifyPlace({ name, address, coordinates }, env, fetchImpl = fe
   };
 }
 
-export async function handleRequest(request, env) {
+export async function handleRequest(request, env, ctx) {
   const origin = request.headers.get("Origin");
   if (!origin || !allowedOrigins(env).has(origin)) {
     return jsonResponse({ error: "Origin not allowed." }, 403, "null");
@@ -531,6 +645,13 @@ export async function handleRequest(request, env) {
     body = await request.json();
   } catch {
     return jsonResponse({ error: "Invalid JSON body." }, 400, origin);
+  }
+  if (body?.action === "kamui_map_data") {
+    try {
+      return jsonResponse(await serveKamuiMapData(env, ctx), 200, origin);
+    } catch {
+      return jsonResponse({ error: "Kamui ski map data is temporarily unavailable." }, 503, origin);
+    }
   }
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const address = typeof body?.address === "string" ? body.address.trim() : "";
@@ -674,5 +795,10 @@ export class UserDailyRateLimiter {
 }
 
 export default {
-  fetch: handleRequest
+  fetch: handleRequest,
+  scheduled(_controller, env, ctx) {
+    ctx.waitUntil(refreshKamuiMapCache(env).catch(error => {
+      console.error("Scheduled Kamui OSM refresh failed", { message: error.message });
+    }));
+  }
 };
