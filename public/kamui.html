@@ -4,23 +4,29 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#111827" />
-  <meta name="description" content="神居滑雪場雪道難度、纜車路線與官方營運資訊。" />
-  <title>神居滑雪場 | 旅遊分帳</title>
+  <meta name="description" content="北海道滑雪場雪道難度與纜車路線地圖。" />
+  <title>滑雪場 | 旅遊分帳</title>
   <link rel="stylesheet" href="itinerary.css" />
-  <link rel="stylesheet" href="kamui.css?v=map-fullscreen-v2" />
+  <link rel="stylesheet" href="kamui.css?v=ski-resorts-v1" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <script type="module" src="kamui.js?v=kamui-vector-v9"></script>
+  <script type="module" src="kamui.js?v=ski-resorts-v2"></script>
 </head>
 <body class="kamui-fullscreen-page">
-  <main class="kamui-screen" aria-label="神居滑雪場地圖">
+  <main id="kamui-app" class="kamui-screen" aria-label="神居滑雪場地圖">
     <div id="kamui-map" class="kamui-map" role="region" aria-label="神居滑雪場 Google 地圖"></div>
 
     <header class="kamui-topbar">
       <div class="kamui-topbar-title">
         <a class="kamui-back" href="itinerary.html" aria-label="回到北海道行程" title="回到北海道行程"><i data-lucide="arrow-left" aria-hidden="true"></i></a>
         <div>
-          <h1>神居滑雪場</h1>
-          <p>Kamui Ski Links・旭川</p>
+          <h1>
+            <select id="kamui-resort-selector" class="kamui-resort-select" aria-label="選擇雪場">
+              <option value="kamui">神居滑雪場</option>
+              <option value="santa-present-park">聖誕禮物公園</option>
+              <option value="pippu">Pippu 滑雪場</option>
+            </select>
+          </h1>
+          <p id="kamui-resort-subtitle">Kamui Ski Links・旭川</p>
         </div>
         <span class="kamui-season-status">纜車待官方確認</span>
       </div>
@@ -49,15 +55,15 @@
       <div class="kamui-info-content">
         <div class="kamui-operations-heading">
           <div>
-            <h2>纜車營運</h2>
+            <h2 id="kamui-operations-title">雪場營運</h2>
             <p>此頁沒有雪場即時營運資料介面。</p>
           </div>
           <span class="kamui-unknown-pill">待官方確認</span>
         </div>
         <p class="kamui-operations-note">開放狀態與收班時間會依日期、天候及現場狀況變動；本頁不推測營運資訊。</p>
         <div class="kamui-info-links">
-          <a class="kamui-official-link" href="https://www.kamui-skilinks.com/today/" target="_blank" rel="noopener noreferrer">官方本日營業內容<i data-lucide="external-link" aria-hidden="true"></i></a>
-          <a class="kamui-map-link" href="https://www.kamui-skilinks.com/today/#coursemap" target="_blank" rel="noopener noreferrer">官方 Course Map</a>
+          <a class="kamui-official-link" id="kamui-official-link" href="https://www.kamui-skilinks.com/today/" target="_blank" rel="noopener noreferrer"><span id="kamui-official-label">官方本日營業內容</span><i data-lucide="external-link" aria-hidden="true"></i></a>
+          <a class="kamui-map-link" id="kamui-course-map-link" href="https://www.kamui-skilinks.com/today/#coursemap" target="_blank" rel="noopener noreferrer">官方雪道圖</a>
         </div>
         <div class="kamui-lift-list-wrap">
           <h2>圖資中的纜車路線</h2>
@@ -65,7 +71,7 @@
             <li class="kamui-empty">圖資載入後顯示纜車路線。</li>
           </ul>
         </div>
-        <p class="kamui-disclaimer">本頁為旅程輔助資訊，與神居滑雪場無隸屬關係；雪況與路線請以現場公告為準。</p>
+        <p class="kamui-disclaimer">本頁為旅程輔助資訊，與所選雪場無隸屬關係；雪況與路線請以現場公告為準。</p>
       </div>
     </details>
   </main>

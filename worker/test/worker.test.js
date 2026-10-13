@@ -419,6 +419,36 @@ test("Kamui OSM data fetch uses the fixed map query and a descriptive user agent
   assert.equal(result.features.length, 1);
 });
 
+test("Santa Present Park and Pippu use their own fixed OSM bounds", async () => {
+  const resorts = [
+    { id: "santa-present-park", bounds: "43.745,142.285,43.775,142.32" },
+    { id: "pippu", bounds: "43.915,142.48,43.955,142.53" }
+  ];
+
+  for (const resort of resorts) {
+    let requestedQuery;
+    const result = await getKamuiMapData(async url => {
+      requestedQuery = new URL(url).searchParams.get("data");
+      return Response.json({ elements: [
+        { type: "way", id: 3, tags: { "piste:type": "downhill" }, geometry: [{ lat: 43.7, lon: 142.2 }, { lat: 43.71, lon: 142.21 }] }
+      ] });
+    }, false, resort.id);
+
+    assert.ok(requestedQuery.includes(resort.bounds));
+    assert.equal(result.resortId, resort.id);
+    assert.equal(result.features.length, 1);
+  }
+});
+
+test("rejects ski resort IDs outside the allowlist before querying Overpass", async () => {
+  let requested = false;
+  await assert.rejects(getKamuiMapData(async () => {
+    requested = true;
+    return Response.json({ elements: [] });
+  }, false, "toString"), /Unknown ski resort/);
+  assert.equal(requested, false);
+});
+
 test("Kamui OSM data fetch falls back when the primary Overpass endpoint fails", async () => {
   const requestedHosts = [];
   const result = await getKamuiMapData(async url => {
@@ -446,6 +476,30 @@ test("serves a fresh Kamui KV snapshot without querying Overpass", async () => {
 
   assert.deepEqual(result, snapshot);
   assert.deepEqual(calls, []);
+});
+
+test("each ski resort reads its own KV snapshot", async () => {
+  const snapshots = new Map([
+    ["ski-map-data-v3:kamui", { resortId: "kamui" }],
+    ["ski-map-data-v1:santa-present-park", { resortId: "santa-present-park" }],
+    ["ski-map-data-v1:pippu", { resortId: "pippu" }]
+  ]);
+  const requestedKeys = [];
+  const cache = {
+    get: async key => {
+      requestedKeys.push(key);
+      return { savedAt: Date.now(), data: snapshots.get(key) };
+    }
+  };
+
+  for (const resortId of ["kamui", "santa-present-park", "pippu"]) {
+    const result = await serveKamuiMapData({ KAMUI_MAP_CACHE: cache }, undefined, async () => {
+      throw new Error("A fresh resort snapshot should not query Overpass");
+    }, resortId);
+    assert.equal(result.resortId, resortId);
+  }
+
+  assert.deepEqual(requestedKeys, [...snapshots.keys()]);
 });
 
 test("serves stale Kamui KV data immediately and refreshes in the background", async () => {
