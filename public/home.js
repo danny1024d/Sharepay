@@ -40,6 +40,13 @@ let pendingTravelImagePreviewUrl = "";
 let imageAnalysisBusy = false;
 let imageAnalysisStatus = "";
 let imageAnalysisStatusTone = "text-slate-600";
+let imageAnalysisRequested = false;
+let imageAnalysisSubscribed = false;
+let imageViewerScale = 1;
+let imageViewerOffsetX = 0;
+let imageViewerOffsetY = 0;
+const imageViewerPointers = new Map();
+let imageViewerGesture = null;
 const refreshingGooglePlaces = new Set();
 
 function isAllowed(email) {
@@ -190,7 +197,7 @@ function tagColor(tag) {
 }
 
 function renderImageAnalysisPanel() {
-  const modeButton = (mode, label) => `<button type="button" data-image-analysis-mode="${mode}" aria-pressed="${state.imageAnalysisMode === mode}" class="rounded-md px-3 py-1.5 text-sm font-medium ${state.imageAnalysisMode === mode ? "bg-slate-900 text-white" : "text-slate-500"}">${label}</button>`;
+  const modeButton = (mode, label) => `<button type="button" data-image-analysis-mode="${mode}" aria-pressed="${state.imageAnalysisMode === mode}" class="image-analysis-mode min-h-10 rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900">${label}</button>`;
   const records = state.imageAnalyses.map(analysis => {
     const title = analysis.type === "menu"
       ? analysis.title || "菜單辨識"
@@ -200,7 +207,10 @@ function renderImageAnalysisPanel() {
     return `<article class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"><div class="flex items-start gap-2"><button type="button" data-open-image-analysis="${escapeHtml(analysis.id)}" aria-expanded="false" aria-controls="${detailId}" class="min-w-0 flex-1 text-left"><span class="flex items-center gap-2"><i data-lucide="${analysis.type === "menu" ? "book-open" : "package"}" class="h-4 w-4 shrink-0 text-indigo-600"></i><span class="truncate text-sm font-semibold text-slate-900">${escapeHtml(title)}</span></span><span class="mt-1 block text-xs text-slate-500">${analysis.type === "menu" ? `菜單 · ${analysis.menuItems?.length || 0} 項` : `商品 · ${escapeHtml(analysis.brand || "品牌未辨識")}`} ${date ? `· ${date}` : ""}</span></button><button type="button" data-delete-image-analysis="${escapeHtml(analysis.id)}" class="shrink-0 rounded-md p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="刪除${escapeHtml(title)}"><i data-lucide="trash-2" class="h-4 w-4"></i></button></div><div id="${detailId}" class="hidden mt-3 border-t border-slate-100 pt-3" data-image-analysis-detail></div></article>`;
   }).join("");
 
-  return `<section class="space-y-3 px-4 pt-4" aria-labelledby="image-analysis-heading"><div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div class="flex items-start justify-between gap-3"><div><h2 id="image-analysis-heading" class="text-sm font-semibold text-slate-900">圖片辨識</h2><p class="mt-1 text-xs leading-5 text-slate-500">菜單日中對照與原圖翻譯覆蓋；商品名稱、介紹、特色與可見價格。</p></div><div class="flex shrink-0 rounded-lg bg-slate-100 p-1" role="group" aria-label="辨識類型">${modeButton("menu", "菜單")}${modeButton("product", "商品")}</div></div><input id="travel-image-input" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" class="sr-only" aria-label="選擇或拍攝菜單或商品圖片"><div class="mt-3 flex flex-wrap items-center gap-2"><button id="travel-image-choose" type="button" class="btn-outline btn-flex"><i data-lucide="camera" class="mr-1 h-4 w-4"></i>拍攝／選擇圖片</button><span id="travel-image-name" class="min-w-0 flex-1 truncate text-xs text-slate-500">${escapeHtml(pendingTravelImageFile?.name || "尚未選擇圖片")}</span></div><button id="travel-image-analyze" type="button" class="btn-primary btn-flex mt-3 w-full justify-center" ${!pendingTravelImageFile || imageAnalysisBusy ? "disabled" : ""}>${imageAnalysisBusy ? "辨識並儲存中…" : "辨識並儲存"}</button><p class="mt-2 text-xs leading-5 text-slate-500">圖片會壓縮後送交 AI，辨識結果與壓縮圖儲存在 Firebase；可展開查看或刪除。辨識結果請自行核對。</p><p id="travel-image-status" class="${imageAnalysisStatus ? "" : "hidden"} mt-2 text-sm leading-5 ${imageAnalysisStatusTone}" aria-live="polite">${escapeHtml(imageAnalysisStatus)}</p></div><div class="space-y-2.5">${records || `<div class="rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">尚無辨識紀錄</div>`}</div></section>`;
+  const selectedImage = pendingTravelImageFile
+    ? `<div class="mt-3 flex min-h-16 min-w-0 items-center gap-3 rounded-lg bg-slate-50 px-2"><img src="${escapeHtml(pendingTravelImagePreviewUrl)}" alt="已選圖片預覽" class="h-12 w-12 shrink-0 rounded-md border border-slate-200 object-cover"><span id="travel-image-name" class="min-w-0 flex-1 truncate text-left text-sm text-slate-700">${escapeHtml(pendingTravelImageFile.name)}</span></div>`
+    : `<p id="travel-image-name" class="mt-2 text-center text-xs text-slate-500">支援 JPEG、PNG、WebP</p>`;
+  return `<section class="space-y-3 px-4 pt-4" aria-labelledby="image-analysis-heading"><div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div><h2 id="image-analysis-heading" class="text-sm font-semibold text-slate-900">圖片辨識</h2><p class="mt-1 text-xs text-slate-500">翻譯菜單或辨識商品</p></div><div class="mt-4"><p class="text-xs font-medium text-slate-600">辨識內容</p><div class="mt-1.5 grid grid-cols-2 rounded-lg bg-slate-100 p-1" role="group" aria-label="辨識類型">${modeButton("menu", "菜單")}${modeButton("product", "商品")}</div></div><input id="travel-image-input" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" class="sr-only" aria-label="選擇或拍攝菜單或商品圖片"><div class="mt-4"><button id="travel-image-choose" type="button" class="${pendingTravelImageFile ? "btn-outline" : "image-analysis-primary"} btn-flex min-h-11 w-full justify-center rounded-md"><i data-lucide="camera" class="mr-1 h-4 w-4"></i>${pendingTravelImageFile ? "更換圖片" : "選擇圖片"}</button>${selectedImage}${pendingTravelImageFile ? `<button id="travel-image-analyze" type="button" class="image-analysis-primary btn-flex mt-3 min-h-11 w-full justify-center rounded-md" ${imageAnalysisBusy ? "disabled" : ""}>${imageAnalysisBusy ? "辨識並儲存中…" : "開始辨識"}</button>` : ""}</div><p class="mt-3 text-left text-xs leading-5 text-slate-500">圖片會先壓縮再送交 AI；結果與圖片會儲存在 Firebase，請核對辨識結果。</p><p id="travel-image-status" class="${imageAnalysisStatus ? "" : "hidden"} mt-2 text-sm leading-5 ${imageAnalysisStatusTone}" aria-live="polite">${escapeHtml(imageAnalysisStatus)}</p></div><div class="space-y-2.5">${records || `<div class="rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">尚無辨識紀錄</div>`}</div></section>`;
 }
 
 async function compressTravelImage(file) {
@@ -258,7 +268,8 @@ function renderImageAnalysisDetail(analysis, dataUrl) {
       ? `<p class="mt-2 text-xs text-amber-700">目前無法取得日圓匯率，原價仍保留。</p>`
       : "";
   const overlays = (analysis.menuItems || []).filter(item => item.translatedText).map(item => `<span class="absolute overflow-hidden rounded bg-white/95 px-1 py-0.5 text-[10px] font-semibold leading-tight text-slate-900 shadow" style="left:${item.x * 100}%;top:${item.y * 100}%;width:${Math.max(8, item.width * 100)}%;min-height:${Math.max(3, item.height * 100)}%">${escapeHtml(item.translatedText)}</span>`).join("");
-  const image = `<div class="relative overflow-hidden rounded-lg border border-slate-200 bg-slate-50"><img src="${escapeHtml(dataUrl)}" alt="${escapeHtml(analysis.title || analysis.productName || "辨識圖片")}" class="block h-auto w-full" loading="lazy">${analysis.type === "menu" ? `<div class="absolute inset-0 hidden" data-menu-translation-overlay>${overlays}</div>` : ""}</div>`;
+  const imageAlt = analysis.title || analysis.productName || "辨識圖片";
+  const image = `<div class="relative overflow-hidden rounded-lg border border-slate-200 bg-slate-50"><button type="button" data-expand-image aria-label="放大${escapeHtml(imageAlt)}" title="點擊放大圖片" class="relative block w-full cursor-zoom-in p-0 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 focus-visible:outline-offset-2"><img src="${escapeHtml(dataUrl)}" alt="${escapeHtml(imageAlt)}" class="block h-auto w-full" loading="lazy"><span class="absolute bottom-2 right-2 grid h-9 w-9 place-items-center rounded-full bg-white/95 text-slate-700 shadow" aria-hidden="true"><i data-lucide="maximize-2" class="h-4 w-4"></i></span></button>${analysis.type === "menu" ? `<div class="pointer-events-none absolute inset-0 hidden" data-menu-translation-overlay>${overlays}</div>` : ""}</div>`;
   const overlayToggle = analysis.type === "menu"
     ? `<div class="mb-2 flex items-center justify-between"><span class="text-xs font-medium text-slate-600">原圖中文覆蓋</span><button type="button" data-toggle-menu-overlay aria-pressed="false" class="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700">疊加中文</button></div>`
     : "";
@@ -286,6 +297,19 @@ async function openImageAnalysisDetail(analysisId, button) {
     if (!asset.exists()) throw new Error("找不到辨識圖片。");
     detail.innerHTML = renderImageAnalysisDetail(analysis, asset.data().dataUrl);
     detail.dataset.loaded = "true";
+    lucide.createIcons();
+    detail.querySelector("[data-expand-image]")?.addEventListener("click", () => {
+      const viewer = document.getElementById("image-viewer-dialog");
+      const sourceImage = detail.querySelector("[data-expand-image] img");
+      const viewerImage = document.createElement("img");
+      viewerImage.id = "image-viewer-image";
+      viewerImage.src = sourceImage.src;
+      viewerImage.alt = sourceImage.alt;
+      viewerImage.draggable = false;
+      document.getElementById("image-viewer-stage").replaceChildren(viewerImage);
+      resetImageViewer();
+      viewer.showModal();
+    });
     const overlay = detail.querySelector("[data-menu-translation-overlay]");
     detail.querySelector("[data-toggle-menu-overlay]")?.addEventListener("click", event => {
       const visible = event.currentTarget.getAttribute("aria-pressed") !== "true";
@@ -376,20 +400,23 @@ function renderImageAnalysisPage() {
   setupImageAnalysisPanel();
 }
 
+function loadImageAnalyses() {
+  imageAnalysisRequested = true;
+  if (!currentUser || imageAnalysisSubscribed) return;
+  imageAnalysisSubscribed = true;
+  onSnapshot(query(collection(database, "ledgers", appName, "imageAnalyses"), orderBy("createdAt", "desc"), limit(30)), snapshot => {
+    state.imageAnalyses = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }));
+    renderImageAnalysisPage();
+  }, showDataError);
+}
+
 function setupImageAnalysisPanel() {
   const imageName = document.getElementById("travel-image-name");
   const chooseButton = document.getElementById("travel-image-choose");
-  imageName.textContent = pendingTravelImageFile ? "圖片已選擇" : "尚未選擇圖片";
+  imageName.textContent = pendingTravelImageFile?.name || "支援 JPEG、PNG、WebP";
   chooseButton.title = pendingTravelImageFile ? "更換圖片" : "選擇圖片";
   chooseButton.setAttribute("aria-label", chooseButton.title);
   chooseButton.innerHTML = `<i data-lucide="${pendingTravelImageFile ? "refresh-cw" : "camera"}" class="mr-1 h-4 w-4"></i>${chooseButton.title}`;
-  if (pendingTravelImagePreviewUrl) {
-    const thumbnail = document.createElement("img");
-    thumbnail.src = pendingTravelImagePreviewUrl;
-    thumbnail.alt = "已選圖片預覽";
-    thumbnail.className = "h-14 w-14 shrink-0 rounded-md border border-slate-200 object-cover";
-    imageName.before(thumbnail);
-  }
   document.querySelectorAll("[data-image-analysis-mode]").forEach(button => button.addEventListener("click", () => {
     state.imageAnalysisMode = button.dataset.imageAnalysisMode;
     renderImageAnalysisPage();
@@ -404,7 +431,7 @@ function setupImageAnalysisPanel() {
     state.imageAnalysisStatusTone = "text-slate-600";
     renderImageAnalysisPage();
   });
-  document.getElementById("travel-image-analyze").addEventListener("click", () => void analyzeAndSaveImage());
+  document.getElementById("travel-image-analyze")?.addEventListener("click", () => void analyzeAndSaveImage());
   document.querySelectorAll("[data-open-image-analysis]").forEach(button => button.addEventListener("click", () => {
     void openImageAnalysisDetail(button.dataset.openImageAnalysis, button);
   }));
@@ -934,9 +961,128 @@ function selectButton(buttons, selected, value) {
   if (value) state[value] = selected;
 }
 
+function clampImageViewerOffset() {
+  const dialog = document.getElementById("image-viewer-dialog");
+  const image = document.getElementById("image-viewer-image");
+  if (!image) return;
+  const style = window.getComputedStyle(dialog);
+  const availableWidth = dialog.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  const availableHeight = dialog.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+  const maxOffsetX = Math.max(0, (image.offsetWidth * imageViewerScale - availableWidth) / 2);
+  const maxOffsetY = Math.max(0, (image.offsetHeight * imageViewerScale - availableHeight) / 2);
+  imageViewerOffsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, imageViewerOffsetX));
+  imageViewerOffsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, imageViewerOffsetY));
+}
+
+function renderImageViewerState() {
+  const image = document.getElementById("image-viewer-image");
+  if (image) {
+    image.style.transform = `translate(${imageViewerOffsetX}px, ${imageViewerOffsetY}px) scale(${imageViewerScale})`;
+    image.style.cursor = imageViewerScale > 1 ? "grab" : "default";
+  }
+  document.getElementById("image-viewer-zoom").textContent = `${Math.round(imageViewerScale * 100)}%`;
+  document.getElementById("image-viewer-zoom-out").disabled = imageViewerScale <= 1;
+  document.getElementById("image-viewer-zoom-in").disabled = imageViewerScale >= 4;
+  document.getElementById("image-viewer-zoom-reset").disabled = imageViewerScale === 1;
+}
+
+function setImageViewerScale(scale) {
+  imageViewerScale = Math.max(1, Math.min(4, Math.round(scale * 100) / 100));
+  if (imageViewerScale === 1) {
+    imageViewerOffsetX = 0;
+    imageViewerOffsetY = 0;
+  }
+  clampImageViewerOffset();
+  renderImageViewerState();
+}
+
+function resetImageViewer() {
+  imageViewerScale = 1;
+  imageViewerOffsetX = 0;
+  imageViewerOffsetY = 0;
+  imageViewerPointers.clear();
+  imageViewerGesture = null;
+  renderImageViewerState();
+}
+
+function pointerDistance(first, second) {
+  return Math.hypot(first.x - second.x, first.y - second.y);
+}
+
+function setupImageViewerControls(dialog) {
+  dialog.querySelector("[data-image-viewer-zoom-out]").addEventListener("click", () => setImageViewerScale(imageViewerScale - 0.5));
+  dialog.querySelector("[data-image-viewer-zoom-in]").addEventListener("click", () => setImageViewerScale(imageViewerScale + 0.5));
+  dialog.querySelector("[data-image-viewer-zoom-reset]").addEventListener("click", resetImageViewer);
+  dialog.addEventListener("wheel", event => {
+    if (!event.target.closest?.("#image-viewer-image")) return;
+    event.preventDefault();
+    setImageViewerScale(imageViewerScale + (event.deltaY < 0 ? 0.25 : -0.25));
+  }, { passive: false });
+  dialog.addEventListener("keydown", event => {
+    if (event.key === "+" || event.key === "=") setImageViewerScale(imageViewerScale + 0.5);
+    else if (event.key === "-") setImageViewerScale(imageViewerScale - 0.5);
+    else if (event.key === "0") resetImageViewer();
+  });
+  dialog.addEventListener("pointerdown", event => {
+    const image = event.target.closest?.("#image-viewer-image");
+    if (!image) return;
+    if (event.pointerType !== "touch" && imageViewerScale <= 1) return;
+    event.preventDefault();
+    image.setPointerCapture(event.pointerId);
+    imageViewerPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (imageViewerPointers.size === 1) {
+      imageViewerGesture = imageViewerScale > 1
+        ? { type: "pan", startX: event.clientX, startY: event.clientY, offsetX: imageViewerOffsetX, offsetY: imageViewerOffsetY }
+        : null;
+    } else if (imageViewerPointers.size === 2) {
+      const [first, second] = [...imageViewerPointers.values()];
+      imageViewerGesture = { type: "pinch", distance: pointerDistance(first, second), scale: imageViewerScale };
+    }
+  });
+  dialog.addEventListener("pointermove", event => {
+    if (!event.target.closest?.("#image-viewer-image")) return;
+    if (!imageViewerPointers.has(event.pointerId)) return;
+    imageViewerPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (imageViewerPointers.size >= 2 && imageViewerGesture?.type === "pinch") {
+      const [first, second] = [...imageViewerPointers.values()];
+      const distance = pointerDistance(first, second);
+      if (imageViewerGesture.distance > 0) setImageViewerScale(imageViewerGesture.scale * distance / imageViewerGesture.distance);
+    } else if (imageViewerPointers.size === 1 && imageViewerGesture?.type === "pan") {
+      imageViewerOffsetX = imageViewerGesture.offsetX + event.clientX - imageViewerGesture.startX;
+      imageViewerOffsetY = imageViewerGesture.offsetY + event.clientY - imageViewerGesture.startY;
+      clampImageViewerOffset();
+      renderImageViewerState();
+    }
+  });
+  const finishPointer = event => {
+    if (!imageViewerPointers.has(event.pointerId)) return;
+    imageViewerPointers.delete(event.pointerId);
+    if (imageViewerPointers.size === 1 && imageViewerScale > 1) {
+      const [point] = imageViewerPointers.values();
+      imageViewerGesture = { type: "pan", startX: point.x, startY: point.y, offsetX: imageViewerOffsetX, offsetY: imageViewerOffsetY };
+    } else if (imageViewerPointers.size >= 2) {
+      const [first, second] = [...imageViewerPointers.values()];
+      imageViewerGesture = { type: "pinch", distance: pointerDistance(first, second), scale: imageViewerScale };
+    } else {
+      imageViewerGesture = null;
+    }
+  };
+  dialog.addEventListener("pointerup", finishPointer);
+  dialog.addEventListener("pointercancel", finishPointer);
+  dialog.addEventListener("close", () => {
+    resetImageViewer();
+    document.getElementById("image-viewer-stage").replaceChildren();
+  });
+}
+
 function setupDialogs() {
   const expenseDialog = document.getElementById("expense-dialog");
   const paymentDialog = document.getElementById("payment-dialog");
+  const imageViewer = document.getElementById("image-viewer-dialog");
+  setupImageViewerControls(imageViewer);
+  imageViewer.addEventListener("click", event => {
+    if (event.target === imageViewer) imageViewer.close();
+  });
   const receiptInput = document.getElementById("expense-receipt-image");
   document.getElementById("expense-receipt-scan").addEventListener("click", () => receiptInput.click());
   receiptInput.addEventListener("change", async () => {
@@ -1447,6 +1593,7 @@ if (!isConfigured) {
       return;
     }
     currentUser = user;
+    if (imageAnalysisRequested) loadImageAnalyses();
     onSnapshot(query(collection(database, "ledgers", appName, "expenses"), orderBy("date", "desc")), snapshot => {
       state.expenses = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }));
       render();
@@ -1466,9 +1613,6 @@ if (!isConfigured) {
       renderPlaces();
       void refreshExpiredGooglePlaces(user);
     }, showDataError);
-    onSnapshot(query(collection(database, "ledgers", appName, "imageAnalyses"), orderBy("createdAt", "desc"), limit(30)), snapshot => {
-      state.imageAnalyses = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }));
-      renderImageAnalysisPage();
-    }, showDataError);
   });
+  document.querySelector('[data-journey-tab="image-analysis"]')?.addEventListener("click", loadImageAnalyses);
 }

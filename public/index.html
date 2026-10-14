@@ -81,6 +81,29 @@
     #journey-app .journey-nav-btn[aria-current="page"] svg {
       stroke: #258246;
     }
+    #journey-app .image-analysis-mode[aria-pressed="true"] {
+      background: #d8f0c7;
+      color: #195b37;
+    }
+    #journey-app .image-analysis-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 6px;
+      background: #195b37;
+      color: #ffffff;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: background-color 160ms ease, opacity 160ms ease;
+    }
+    #journey-app .image-analysis-primary:hover:not(:disabled) {
+      background: #174a31;
+    }
+    #journey-app .image-analysis-primary:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
     @media (min-width: 640px) {
       .dialog-footer {
         flex-direction: row;
@@ -645,6 +668,19 @@
       </div>
     </div>
   </div>
+
+  <dialog id="image-viewer-dialog" class="image-viewer-dialog" aria-label="圖片放大檢視">
+    <form method="dialog" class="image-viewer-close-form">
+      <button type="submit" class="image-viewer-close" aria-label="關閉圖片"><i data-lucide="x" class="h-6 w-6"></i></button>
+    </form>
+    <div id="image-viewer-stage" class="image-viewer-stage"></div>
+    <div class="image-viewer-controls" aria-label="圖片縮放控制">
+      <button id="image-viewer-zoom-out" type="button" class="image-viewer-control" data-image-viewer-zoom-out aria-label="縮小圖片" title="縮小"><i data-lucide="minus" class="h-5 w-5"></i></button>
+      <output id="image-viewer-zoom" class="image-viewer-zoom" aria-live="polite">100%</output>
+      <button id="image-viewer-zoom-in" type="button" class="image-viewer-control" data-image-viewer-zoom-in aria-label="放大圖片" title="放大"><i data-lucide="plus" class="h-5 w-5"></i></button>
+      <button id="image-viewer-zoom-reset" type="button" class="image-viewer-control" data-image-viewer-zoom-reset aria-label="重設縮放" title="符合畫面"><i data-lucide="scan" class="h-5 w-5"></i></button>
+    </div>
+  </dialog>
 
   <script>
     lucide.createIcons();
