@@ -40,13 +40,13 @@ The ski map page supports Kamui Ski Links, Santa Present Park, and Pippu. Its au
 
 6. In the Firestore console, create a TTL policy for collection group `googleLocations` on timestamp field `expiresAt`. TTL is a Firestore project setting, not deployed by Firebase Hosting or Firestore Rules.
 
-7. Deploy the Worker and publish the updated Hosting files and rules:
+7. Deploy the Worker from this directory:
 
    ```powershell
    npm run deploy
    ```
 
-   From the workspace root, deploy Hosting and Rules with `firebase deploy --only hosting,firestore:rules`.
+   From this directory, `npm run deploy` deploys the Worker. From the workspace root, `npm run deploy` builds the static site and deploys Hosting only. To publish updated Firestore Rules as well, first run `npm run build` from the workspace root, then `firebase deploy --only hosting,firestore:rules`.
 
 Wrangler prints the Worker URL after deployment. `wrangler.toml` contains public configuration only. Update `ALLOWED_ORIGINS` if the Firebase Hosting site uses a custom domain or a different local development port. The local preview at port 8000 is already allowed. `DAILY_REQUEST_LIMIT` defaults to 200 workflows per day across all authorized accounts and cannot be configured above 200.
 
@@ -67,9 +67,4 @@ The Worker accepts place names up to 100 characters and addresses up to 200 char
 
 ## Local checks
 
-```powershell
-npm test
-npm run dev
-```
-
-The OpenAI secret is not needed for the unit tests. Local Worker requests that call OpenAI need a local secret configured with Wrangler; never commit `.dev.vars`.
+Run `npm test` from this directory for Worker tests. Run `npm run dev` from the workspace root to serve the site at port 5000. The OpenAI secret is not needed for the unit tests. Local Worker requests that call OpenAI need a local secret configured with Wrangler; never commit `.dev.vars`.

@@ -5,31 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Home – 旅遊分帳</title>
   <meta name="description" content="Manage and split your travel expenses." />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
-          colors: {
-            background: 'hsl(var(--background))', foreground: 'hsl(var(--foreground))',
-            card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
-            popover: { DEFAULT: 'hsl(var(--popover))', foreground: 'hsl(var(--popover-foreground))' },
-            primary: { DEFAULT: 'hsl(var(--primary))', foreground: 'hsl(var(--primary-foreground))' },
-            secondary: { DEFAULT: 'hsl(var(--secondary))', foreground: 'hsl(var(--secondary-foreground))' },
-            muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
-            accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
-            destructive: { DEFAULT: 'hsl(var(--destructive))', foreground: 'hsl(var(--destructive-foreground))' },
-            border: 'hsl(var(--border))', input: 'hsl(var(--input))', ring: 'hsl(var(--ring))',
-          },
-          fontFamily: { heading: ['var(--font-heading)'], body: ['var(--font-body)'], display: ['var(--font-display)'], mono: ['var(--font-mono)'] },
-        },
-      },
-    };
-  </script>
+  <link rel="stylesheet" href="./tailwind.generated.css" />
   <link rel="stylesheet" href="shared.css" />
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <style>
     .dialog-header {
       margin-bottom: 1.5rem;
@@ -683,8 +660,6 @@
   </dialog>
 
   <script>
-    lucide.createIcons();
-
     // Tab switching logic
     const ledgerApp = document.getElementById('ledger-app');
     const journeyApp = document.getElementById('journey-app');
@@ -717,9 +692,11 @@
         const active = btn.dataset[dataAttribute] === activeValue;
         btn.classList.toggle('text-indigo-600', active);
         btn.classList.toggle('text-slate-400', !active);
-        const icon = btn.querySelector('svg');
-        icon.classList.toggle('stroke-[2.5]', active);
-        icon.classList.toggle('stroke-2', !active);
+        const icon = btn.querySelector('svg, [data-lucide]');
+        if (icon) {
+          icon.classList.toggle('stroke-[2.5]', active);
+          icon.classList.toggle('stroke-2', !active);
+        }
         if (active) btn.setAttribute('aria-current', 'page');
         else btn.removeAttribute('aria-current');
       });
@@ -829,6 +806,6 @@
       document.getElementById(id).classList.remove('open');
     }
   </script>
-  <script type="module" src="home.js?v=travel-image-tabs-v3"></script>
+  <script type="module" src="./home.js"></script>
 </body>
 </html>

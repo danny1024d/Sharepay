@@ -8,10 +8,11 @@
 4. 在 Firestore Rules 貼上 `firestore.rules` 的內容並發布。
 5. 將 `firebase-config.js` 的 `allowedEmails` 和 `firestore.rules` 內的 Email 都改為可使用此帳本的 Google 帳號。
 
-瀏覽器需以本機伺服器或正式 HTTPS 網址開啟，不能直接雙擊 HTML 檔案。可在此資料夾執行：
+瀏覽器需以本機伺服器或正式 HTTPS 網址開啟，不能直接雙擊 HTML 檔案。在專案根目錄安裝依賴並啟動 Vite：
 
 ```powershell
-npx serve .
+npm install
+npm run dev
 ```
 
-第一次開啟請使用 `login.html`。資料將存放於 `ledgers/travel-split-app/expenses`、`ledgers/travel-split-app/payments` 與 `ledgers/travel-split-app/places`。
+本機網址為 `http://localhost:5000/login.html`。第一次開啟請使用登入頁。正式網站先執行 `npm run build`，或直接執行 `npm run deploy` 建置並部署 Hosting。資料將存放於 `ledgers/travel-split-app/expenses`、`ledgers/travel-split-app/payments` 與 `ledgers/travel-split-app/places`。

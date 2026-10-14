@@ -7,10 +7,12 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { allowedEmails, firebaseConfig } from "./firebase-config.js";
+import { renderIcons } from "./icons.js";
 
 const googleButton = document.getElementById("btn-google");
 const errorMessage = document.getElementById("error-msg");
 const hasFirebaseConfig = !Object.values(firebaseConfig).some(value => value.includes("YOUR_"));
+renderIcons();
 
 function showError(message) {
   errorMessage.textContent = message;

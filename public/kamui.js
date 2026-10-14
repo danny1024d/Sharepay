@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { allowedEmails, firebaseConfig, googleMapsApiKey, googleMapsMapId } from "./firebase-config.js?v=kamui-vector-v1";
-import { requestKamuiMapData } from "./ai-client.js?v=ski-map-v1";
+import { renderIcons } from "./icons.js";
+import { requestKamuiMapData } from "./ai-client.js";
 
 const isConfigured = !Object.values(firebaseConfig).some(value => value.includes("YOUR_"));
 const mapStatus = document.getElementById("kamui-map-status");
@@ -330,7 +331,7 @@ async function loadKamuiMap() {
     const cacheLabel = data.stale ? "（使用快取資料）" : "";
     mapStatus.textContent = `雪道線段 ${pistes} 條・纜車路線 ${lifts} 條｜OSM 查詢 ${fetchedAt}${cacheLabel}`;
     renderLiftList(data.features);
-    window.lucide?.createIcons();
+    renderIcons();
   } catch (error) {
     if (!isCurrentRequest()) return;
     mapStatus.textContent = `${resort.name}路線資料暫時不可用；纜車營運請查官方資訊。`;
@@ -371,7 +372,7 @@ updateSelectedResortLabels();
 window.addEventListener("resize", () => {
   if (kamuiMapFeatures.length) fitKamuiMapView(kamuiMapFeatures, selectedResortId);
 });
-window.lucide?.createIcons();
+renderIcons();
 
 if (!isConfigured) {
   window.location.replace("login.html");

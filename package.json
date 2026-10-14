@@ -1,0 +1,22 @@
+{
+  "name": "travel-split-app",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "vite": "npx --yes node@22 ./node_modules/vite/bin/vite.js",
+    "dev": "npm run build:css && npm run vite -- --host 0.0.0.0 --port 5000 --strictPort",
+    "build:css": "tailwindcss -i ./public/tailwind.input.css -o ./public/tailwind.generated.css --minify",
+    "build": "npm run build:css && npm run vite -- build",
+    "preview": "npm run vite -- preview --host 0.0.0.0 --port 4173 --strictPort",
+    "deploy": "npm run build && firebase deploy --only hosting"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.0",
+    "lucide": "^1.56.0",
+    "tailwindcss": "^4.3.3",
+    "vite": "^6.4.4"
+  }
+}

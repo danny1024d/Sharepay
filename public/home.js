@@ -17,11 +17,12 @@ import {
   updateDoc
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { allowedEmails, appName, firebaseConfig, googleMapsApiKey } from "./firebase-config.js";
-import { requestPlaceCoordinates, requestReceiptDraft, requestTravelImageAnalysis } from "./ai-client.js?v=travel-image-v1";
+import { renderIcons } from "./icons.js";
+import { requestPlaceCoordinates, requestReceiptDraft, requestTravelImageAnalysis } from "./ai-client.js";
 
 const people = ["高", "n"];
 const categories = ["住宿", "餐費", "交通", "滑雪", "雜支"];
-const state = { expenses: [], payments: [], places: [], imageAnalyses: [], imageAnalysisMode: "menu", imageAnalysisStatus: "", imageAnalysisStatusTone: "text-slate-600", expensePayer: "高", paymentPayer: "高", placeTagFilter: null, placeView: "list" };
+const state = { expenses: [], payments: [], places: [], imageAnalyses: [], imageAnalysisMode: "menu", imageAnalysisStatus: "", imageAnalysisStatusTone: "text-slate-600", expensePayer: "高", paymentPayer: "高", placeTagFilter: null, placeView: "list", settlementDirty: true };
 const googlePlaceCoordinateLifetimeMs = 30 * 24 * 60 * 60 * 1000;
 const currency = new Intl.NumberFormat("zh-TW");
 const isConfigured = !Object.values(firebaseConfig).some(value => value.includes("YOUR_"));
@@ -47,6 +48,8 @@ let imageViewerOffsetX = 0;
 let imageViewerOffsetY = 0;
 const imageViewerPointers = new Map();
 let imageViewerGesture = null;
+let placesListenerRequested = false;
+let placesListenerStarted = false;
 const refreshingGooglePlaces = new Set();
 
 function isAllowed(email) {
@@ -135,11 +138,18 @@ function calculation() {
   return { paid, owed, categoryTotals, paymentNet, balance };
 }
 
-function render() {
+function render({ expenses = true, payments = true } = {}) {
   const totals = calculation();
-  renderExpenses(totals);
-  renderPayments(totals);
-  renderSettlement(totals);
+  if (expenses) renderExpenses(totals);
+  if (payments) renderPayments(totals);
+  const ledgerApp = document.getElementById("ledger-app");
+  const settlementTab = document.getElementById("tab-settlement");
+  if (!ledgerApp.classList.contains("hidden") && !settlementTab.classList.contains("hidden")) {
+    renderSettlement(totals);
+    state.settlementDirty = false;
+  } else {
+    state.settlementDirty = true;
+  }
   document.querySelector("header .text-2xl").textContent = formatted(Math.abs(totals.balance["高"]));
   document.querySelector("header .text-lg").textContent = totals.balance["高"] >= 0 ? "n -> 高" : "高 -> n";
 }
@@ -157,7 +167,7 @@ function renderExpenses(totals) {
   }).join("") || emptyState("receipt", "尚無支出紀錄", "點右下角按鈕新增支出");
   document.getElementById("tab-expenses").innerHTML = `<div class="px-4 py-4"><div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><div class="flex justify-between items-end"><div><p class="text-xs text-slate-500">總支出</p><p class="text-2xl font-bold text-slate-900 mt-0.5">${formatted(total)} <span class="text-sm font-normal text-slate-400">元</span></p></div><div class="text-right"><p class="text-xs text-slate-500">筆數</p><p class="text-2xl font-bold text-slate-900 mt-0.5">${state.expenses.length}</p></div></div></div></div><div class="px-4 space-y-2.5">${list}</div><button onclick="openExpenseDialog(false)" class="fixed bottom-20 z-20 w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 flex items-center justify-center active:scale-95 transition-transform" style="right: max(1rem, calc(50% - 18rem + 1rem))" aria-label="新增支出"><i data-lucide="plus" class="w-6 h-6"></i></button>`;
   document.querySelectorAll("#tab-expenses [data-expense-id]").forEach(button => button.addEventListener("click", () => editExpense(button.dataset.expenseId)));
-  lucide.createIcons();
+  renderIcons(document.getElementById("tab-expenses"));
 }
 
 function renderPayments(totals) {
@@ -165,7 +175,7 @@ function renderPayments(totals) {
   const list = state.payments.map(payment => `<button class="w-full text-left bg-white rounded-2xl border border-slate-200 p-4 shadow-sm active:scale-[0.98] transition-transform" data-payment-id="${escapeHtml(payment.id)}"><div class="flex items-center justify-between"><div class="min-w-0 flex-1"><span class="text-sm font-medium text-slate-500">${formattedDate(payment.date)}</span><p class="text-base font-semibold text-slate-900 mt-0.5 truncate">${escapeHtml(payment.item)}</p><div class="flex items-center gap-1.5 mt-1.5"><span class="px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-600">${escapeHtml(payment.payer)}</span><i data-lucide="arrow-right" class="w-3 h-3 text-slate-400"></i><span class="px-2 py-0.5 rounded-md text-xs font-medium bg-amber-50 text-amber-600">${escapeHtml(payment.debtor)}</span><span class="text-xs text-slate-400 ml-1">${escapeHtml(payment.debtor)} 需支付${escapeHtml(payment.payer)}</span></div></div><div class="text-right ml-3"><span class="text-lg font-bold text-slate-900">${formatted(payment.amount)}</span><span class="text-xs text-slate-400 ml-1">元</span></div></div></button>`).join("") || emptyState("repeat", "尚無代付紀錄", "點右下角按鈕新增代付");
   document.getElementById("tab-payments").innerHTML = `<div class="px-4 py-4"><div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><div class="flex justify-between items-end"><div><p class="text-xs text-slate-500">代付總額</p><p class="text-2xl font-bold text-slate-900 mt-0.5">${formatted(total)} <span class="text-sm font-normal text-slate-400">元</span></p></div><div class="text-right"><p class="text-xs text-slate-500">筆數</p><p class="text-2xl font-bold text-slate-900 mt-0.5">${state.payments.length}</p></div></div></div></div><div class="px-4 space-y-2.5">${list}</div><button onclick="openPaymentDialog(false)" class="fixed bottom-20 z-20 w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 flex items-center justify-center active:scale-95 transition-transform" style="right: max(1rem, calc(50% - 18rem + 1rem))" aria-label="新增代付"><i data-lucide="plus" class="w-6 h-6"></i></button>`;
   document.querySelectorAll("#tab-payments [data-payment-id]").forEach(button => button.addEventListener("click", () => editPayment(button.dataset.paymentId)));
-  lucide.createIcons();
+  renderIcons(document.getElementById("tab-payments"));
 }
 
 // Built-in filter for places without tags; reserved, so it can't be a real tag.
@@ -297,7 +307,7 @@ async function openImageAnalysisDetail(analysisId, button) {
     if (!asset.exists()) throw new Error("找不到辨識圖片。");
     detail.innerHTML = renderImageAnalysisDetail(analysis, asset.data().dataUrl);
     detail.dataset.loaded = "true";
-    lucide.createIcons();
+    renderIcons(detail);
     detail.querySelector("[data-expand-image]")?.addEventListener("click", () => {
       const viewer = document.getElementById("image-viewer-dialog");
       const sourceImage = detail.querySelector("[data-expand-image] img");
@@ -396,7 +406,7 @@ function renderImageAnalysisPage() {
   const root = document.getElementById("tab-image-analysis");
   if (!root) return;
   root.innerHTML = renderImageAnalysisPanel();
-  lucide.createIcons();
+  renderIcons(root);
   setupImageAnalysisPanel();
 }
 
@@ -438,7 +448,7 @@ function setupImageAnalysisPanel() {
   document.querySelectorAll("[data-delete-image-analysis]").forEach(button => button.addEventListener("click", () => {
     void deleteImageAnalysis(button.dataset.deleteImageAnalysis);
   }));
-  lucide.createIcons();
+  renderIcons(document.getElementById("tab-image-analysis"));
 }
 
 function renderPlaces() {
@@ -486,7 +496,7 @@ function renderPlaces() {
     });
     renderPlaceResults();
   }));
-  lucide.createIcons();
+  renderIcons(document.getElementById("tab-places"));
   renderPlaceResults();
 }
 
@@ -547,7 +557,7 @@ function renderPlaceResults() {
     : emptyState("map-pin", "尚無收藏地點", "點右下角按鈕新增地點");
   results.innerHTML = list || empty;
   document.querySelectorAll("#place-results [data-place-id]").forEach(button => button.addEventListener("click", () => editPlace(button.dataset.placeId)));
-  lucide.createIcons();
+  renderIcons(document.getElementById("tab-places"));
 }
 
 function placeGoogleMapsUrl(place) {
@@ -768,22 +778,22 @@ async function updateGooglePlaceMap(places, renderGeneration, mapStatus, unlocat
   unlocatedList.querySelectorAll("[data-unlocated-place-id]").forEach(button => {
     button.addEventListener("click", () => editPlace(button.dataset.unlocatedPlaceId));
   });
-  lucide.createIcons();
+  renderIcons(document.getElementById("tab-places"));
 }
 
 function placeGoogleLocationRef(placeId) {
   return doc(database, "ledgers", appName, "places", placeId, "googleLocations", "places-api");
 }
 
-function updatePlaceState(placeId, changes) {
+function updatePlaceState(placeId, changes, shouldRender = true) {
   state.places = state.places.map(place => place.id === placeId ? { ...place, ...changes } : place);
-  renderPlaceResults();
+  if (shouldRender) renderPlaceResults();
 }
 
-async function refreshGooglePlaceCoordinates(place, user = currentUser) {
+async function refreshGooglePlaceCoordinates(place, user = currentUser, shouldRender = true) {
   if (!user || place.coordinateMethod !== "google_places" || refreshingGooglePlaces.has(place.id)) return;
   refreshingGooglePlaces.add(place.id);
-  updatePlaceState(place.id, { coordinateRefreshError: "refreshing" });
+  updatePlaceState(place.id, { coordinateRefreshError: "refreshing" }, shouldRender);
   try {
     const locationRef = placeGoogleLocationRef(place.id);
     const locationSnapshot = await getDoc(locationRef);
@@ -800,11 +810,11 @@ async function refreshGooglePlaceCoordinates(place, user = currentUser) {
         longitude,
         googleCoordinatesExpireAt: expiresAt.getTime(),
         coordinateRefreshError: ""
-      });
+      }, shouldRender);
       return;
     }
 
-    updatePlaceState(place.id, { latitude: null, longitude: null, googleCoordinatesExpireAt: 0 });
+    updatePlaceState(place.id, { latitude: null, longitude: null, googleCoordinatesExpireAt: 0 }, shouldRender);
     if (locationSnapshot.exists()) await deleteDoc(locationRef);
     const result = await requestPlaceCoordinates({
       user,
@@ -814,7 +824,7 @@ async function refreshGooglePlaceCoordinates(place, user = currentUser) {
       placeId: place.placeId
     });
     if (!result.found || result.method !== "google_places" || !result.placeId) {
-      updatePlaceState(place.id, { coordinateRefreshError: result.failureReason || "not_verified" });
+      updatePlaceState(place.id, { coordinateRefreshError: result.failureReason || "not_verified" }, shouldRender);
       return;
     }
 
@@ -833,9 +843,9 @@ async function refreshGooglePlaceCoordinates(place, user = currentUser) {
       longitude: result.longitude,
       googleCoordinatesExpireAt: newExpiry.getTime(),
       coordinateRefreshError: ""
-    });
+    }, shouldRender);
   } catch (error) {
-    updatePlaceState(place.id, { coordinateRefreshError: error.failureReason || "location_service_unavailable" });
+    updatePlaceState(place.id, { coordinateRefreshError: error.failureReason || "location_service_unavailable" }, shouldRender);
   } finally {
     refreshingGooglePlaces.delete(place.id);
     scheduleGooglePlaceExpiry(user);
@@ -862,17 +872,69 @@ function scheduleGooglePlaceExpiry(user = currentUser) {
       latitude: null,
       longitude: null,
       googleCoordinatesExpireAt: 0
-    }));
-    void Promise.all(expiredPlaces.map(place => refreshGooglePlaceCoordinates(place, user)));
+    }, false));
+    if (expiredPlaces.length) renderPlaceResults();
+    void Promise.all(expiredPlaces.map(place => refreshGooglePlaceCoordinates(place, user, false)))
+      .then(() => {
+        if (expiredPlaces.length) renderPlaceResults();
+      });
     scheduleGooglePlaceExpiry(user);
   }, Math.max(0, delay));
 }
 
 async function refreshExpiredGooglePlaces(user = currentUser) {
   if (!user) return;
-  const placesToRefresh = state.places.filter(place => place.coordinateMethod === "google_places");
-  await Promise.all(placesToRefresh.map(place => refreshGooglePlaceCoordinates(place, user)));
+  const now = Date.now();
+  const placesToRefresh = state.places.filter(place => {
+    if (place.coordinateMethod !== "google_places") return false;
+    const expiresAt = Number(place.googleCoordinatesExpireAt);
+    return !Number.isFinite(expiresAt) || expiresAt <= now;
+  });
+  if (placesToRefresh.length) {
+    const placesToRefreshIds = new Set(placesToRefresh.map(place => place.id));
+    state.places = state.places.map(place => placesToRefreshIds.has(place.id)
+      ? { ...place, coordinateRefreshError: "refreshing" }
+      : place);
+    renderPlaceResults();
+    await Promise.all(placesToRefresh.map(place => refreshGooglePlaceCoordinates(place, user, false)));
+    renderPlaceResults();
+  }
   scheduleGooglePlaceExpiry(user);
+}
+
+function isPlacesTabActive() {
+  const journeyApp = document.getElementById("journey-app");
+  const placesButton = document.querySelector('[data-journey-tab="places"]');
+  return Boolean(journeyApp && !journeyApp.classList.contains("hidden")
+    && placesButton?.getAttribute("aria-current") === "page");
+}
+
+function startPlacesListener() {
+  if (!isPlacesTabActive()) return;
+  placesListenerRequested = true;
+  if (!currentUser || placesListenerStarted) return;
+  placesListenerStarted = true;
+  const root = document.getElementById("tab-places");
+  root.innerHTML = `<p class="px-4 py-8 text-center text-sm text-slate-500" role="status">載入景點…</p>`;
+  const user = currentUser;
+  onSnapshot(collection(database, "ledgers", appName, "places"), snapshot => {
+    const previousPlaces = new Map(state.places.map(place => [place.id, place]));
+    state.places = snapshot.docs.map(entry => {
+      const place = { id: entry.id, ...entry.data() };
+      if (place.coordinateMethod !== "google_places") return place;
+      const previousPlace = previousPlaces.get(place.id);
+      const samePlaceId = previousPlace?.placeId === place.placeId;
+      return {
+        ...place,
+        latitude: null,
+        longitude: null,
+        googleCoordinatesExpireAt: samePlaceId ? previousPlace.googleCoordinatesExpireAt : 0
+      };
+    });
+    placeMapNeedsFit = true;
+    renderPlaces();
+    void refreshExpiredGooglePlaces(user);
+  }, showDataError);
 }
 
 function coordinatesFromText(text = "") {
@@ -1079,6 +1141,7 @@ function setupDialogs() {
   const expenseDialog = document.getElementById("expense-dialog");
   const paymentDialog = document.getElementById("payment-dialog");
   const imageViewer = document.getElementById("image-viewer-dialog");
+  renderIcons();
   setupImageViewerControls(imageViewer);
   imageViewer.addEventListener("click", event => {
     if (event.target === imageViewer) imageViewer.close();
@@ -1165,7 +1228,7 @@ function renderPlaceDialogTags() {
   const existing = allPlaceTags().filter(tag => !placeDialogTags.includes(tag));
   document.getElementById("place-tags-existing").innerHTML = existing
     .map(tag => `<button type="button" data-existing-tag="${escapeHtml(tag)}" class="inline-flex items-center gap-1 rounded-full border border-dashed border-slate-300 bg-white px-3 py-1 text-xs text-slate-600 hover:border-indigo-400 hover:text-indigo-600"><i data-lucide="plus" class="h-3 w-3"></i>${escapeHtml(tag)}</button>`).join("");
-  lucide.createIcons();
+  renderIcons(document.getElementById("place-dialog"));
 }
 
 window.openExpenseDialog = isEdit => {
@@ -1583,6 +1646,11 @@ if (!isConfigured) {
   database = getFirestore(app);
   setupDialogs();
   document.getElementById("logout-btn").addEventListener("click", () => signOut(auth));
+  document.querySelector('[data-tab="settlement"]')?.addEventListener("click", () => {
+    if (!state.settlementDirty) return;
+    renderSettlement(calculation());
+    state.settlementDirty = false;
+  });
   onAuthStateChanged(auth, user => {
     clearTimeout(placeExpiryTimer);
     refreshingGooglePlaces.clear();
@@ -1593,26 +1661,18 @@ if (!isConfigured) {
       return;
     }
     currentUser = user;
+    if (placesListenerRequested || isPlacesTabActive()) startPlacesListener();
     if (imageAnalysisRequested) loadImageAnalyses();
     onSnapshot(query(collection(database, "ledgers", appName, "expenses"), orderBy("date", "desc")), snapshot => {
       state.expenses = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }));
-      render();
+      render({ payments: false });
     }, showDataError);
     onSnapshot(query(collection(database, "ledgers", appName, "payments"), orderBy("date", "desc")), snapshot => {
       state.payments = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }));
-      render();
-    }, showDataError);
-    onSnapshot(collection(database, "ledgers", appName, "places"), snapshot => {
-      state.places = snapshot.docs.map(entry => {
-        const place = { id: entry.id, ...entry.data() };
-        return place.coordinateMethod === "google_places"
-          ? { ...place, latitude: null, longitude: null }
-          : place;
-      });
-      placeMapNeedsFit = true;
-      renderPlaces();
-      void refreshExpiredGooglePlaces(user);
+      render({ expenses: false });
     }, showDataError);
   });
+  document.querySelector('[data-tab="journey"]')?.addEventListener("click", startPlacesListener);
+  document.querySelector('[data-journey-tab="places"]')?.addEventListener("click", startPlacesListener);
   document.querySelector('[data-journey-tab="image-analysis"]')?.addEventListener("click", loadImageAnalyses);
 }

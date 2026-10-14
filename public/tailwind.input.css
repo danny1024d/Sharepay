@@ -1,0 +1,5 @@
+@import "tailwindcss";
+@config "../tailwind.config.cjs";
+@custom-variant dark (&:where(.dark, .dark *));
+@source "./*.html";
+@source "./*.js";
