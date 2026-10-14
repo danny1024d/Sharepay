@@ -95,5 +95,38 @@ export async function requestTravelImageAnalysis({ user, imageDataUrl, analysisT
     || !["high", "medium", "low"].includes(result.confidence)) {
     throw new Error("圖片辨識結果格式錯誤，請重試。");
   }
+  if (analysisType === "product") {
+    const validCurrencies = ["JPY", "TWD", "USD", "CNY", "HKD", "KRW", "OTHER", "UNKNOWN"];
+    const validTags = ["旭川限定", "北海道限定", "北海道特產", "特色伴手禮", "高 CP 值"];
+    const validAreas = ["asahikawa", "hokkaido_other", "unknown"];
+    const validAvailability = ["product_listed", "store_confirmed", "unknown"];
+    const validResearchStatuses = ["completed", "not_found", "not_searched", "search_unavailable"];
+    const safeSources = Array.isArray(result.sources) && result.sources.every(source => {
+      try {
+        return typeof source.title === "string" && new URL(source.url).protocol === "https:";
+      } catch {
+        return false;
+      }
+    });
+    const validPurchaseOptions = Array.isArray(result.purchaseOptions) && result.purchaseOptions.every(option =>
+      typeof option.name === "string" && validAreas.includes(option.area)
+      && typeof option.address === "string" && typeof option.reason === "string"
+      && validAvailability.includes(option.availability)
+    );
+    if (typeof result.origin !== "string" || !["verified", "unknown"].includes(result.originStatus)
+      || !["asahikawa", "hokkaido", "japan", "not_limited", "unknown"].includes(result.limitedScope)
+      || typeof result.limitedEvidence !== "string"
+      || !Array.isArray(result.tags) || result.tags.some(tag => !validTags.includes(tag))
+      || typeof result.oneLineFeature !== "string" || typeof result.recommendationReason !== "string"
+      || !Number.isFinite(result.referencePriceMin) || !Number.isFinite(result.referencePriceMax)
+      || !validCurrencies.includes(result.referencePriceCurrency)
+      || typeof result.referencePriceNote !== "string"
+      || !validResearchStatuses.includes(result.researchStatus)
+      || !validPurchaseOptions || !safeSources
+      || ![null, "", undefined].includes(result.referencePriceTwdMin) && !Number.isFinite(result.referencePriceTwdMin)
+      || ![null, "", undefined].includes(result.referencePriceTwdMax) && !Number.isFinite(result.referencePriceTwdMax)) {
+      throw new Error("商品查證結果格式錯誤，請重試。");
+    }
+  }
   return result;
 }

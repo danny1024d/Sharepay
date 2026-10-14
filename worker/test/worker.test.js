@@ -198,6 +198,7 @@ test("menu image analysis returns Japanese/Traditional Chinese lines and bounded
   );
 
   assert.equal(requestBody.text.format.name, "travel_image_analysis");
+  assert.equal(requestBody.tools, undefined);
   assert.match(requestBody.input[0].content[0].text, /Traditional Chinese/);
   assert.equal(result.type, "menu");
   assert.equal(result.menuItems[0].originalText, "味噌ラーメン");
@@ -217,17 +218,133 @@ test("product image analysis returns visible product details without inventing p
     priceText: "",
     currency: "UNKNOWN",
     menuItems: [],
-    confidence: "medium"
+    confidence: "low"
   };
-  const result = await analyzeTravelImage(`data:image/jpeg;base64,${"A".repeat(128)}`, "product", { OPENAI_API_KEY: "test" }, async () => Response.json({
-    output: [{ content: [{ type: "output_text", text: JSON.stringify(analysis) }] }]
-  }));
+  let requestCount = 0;
+  const result = await analyzeTravelImage(`data:image/jpeg;base64,${"A".repeat(128)}`, "product", { OPENAI_API_KEY: "test" }, async () => {
+    requestCount += 1;
+    return Response.json({ output: [{ content: [{ type: "output_text", text: JSON.stringify(analysis) }] }] });
+  });
 
   assert.equal(result.type, "product");
   assert.equal(result.productName, "Noise Cancelling Headphones");
   assert.equal(result.priceText, "");
   assert.equal(result.currency, "UNKNOWN");
   assert.deepEqual(result.features, ["主動降噪", "藍牙連線"]);
+  assert.equal(result.originStatus, "unknown");
+  assert.equal(result.referencePriceMin, 0);
+  assert.deepEqual(result.purchaseOptions, []);
+  assert.deepEqual(result.sources, []);
+  assert.equal(result.researchStatus, "not_searched");
+  assert.equal(requestCount, 1);
+});
+
+test("product image search is required after recognition and returns sourced Asahikawa options", async () => {
+  const recognition = {
+    title: "流氷DRAFT",
+    productName: "流氷ドラフト",
+    brand: "網走ビール",
+    description: "青色のクラフトビール。",
+    features: ["網走の流氷をイメージした青色"],
+    priceText: "",
+    currency: "UNKNOWN",
+    menuItems: [],
+    confidence: "high"
+  };
+  const research = {
+    title: "旭川蜂蜜",
+    productName: "Asahikawa Clover Honey",
+    brand: "Northern Apiary",
+    description: "旭川產蜂蜜。",
+    features: ["當地蜂場採收"],
+    priceText: "",
+    currency: "UNKNOWN",
+    origin: "北海道旭川市",
+    originStatus: "verified",
+    limitedScope: "asahikawa",
+    limitedEvidence: "生產者頁面註明蜂場位於旭川市。",
+    tags: ["旭川限定", "北海道特產", "高 CP 值", "unverified tag"],
+    oneLineFeature: "旭川蜂場採收的百花蜜。",
+    recommendationReason: "來源確認蜂蜜由旭川蜂場生產，適合想帶回當地農產伴手禮的旅客。",
+    referencePriceMin: 1200,
+    referencePriceMax: 1600,
+    referencePriceCurrency: "JPY",
+    referencePriceNote: "依官方 150g 瓶裝與零售頁價格。",
+    purchaseOptions: [{
+      name: "Northern Apiary Shop",
+      area: "asahikawa",
+      address: "旭川市",
+      reason: "生產者官方網站列為直營販售點。",
+      availability: "product_listed"
+    }],
+    confidence: "high"
+  };
+  const requestBodies = [];
+  const result = await analyzeTravelImage(
+    `data:image/jpeg;base64,${"A".repeat(128)}`,
+    "product",
+    { OPENAI_API_KEY: "test" },
+    async (_url, options) => {
+      const requestBody = JSON.parse(options.body);
+      requestBodies.push(requestBody);
+      if (requestBody.text.format.name === "travel_image_analysis") {
+        return Response.json({ output: [{ content: [{ type: "output_text", text: JSON.stringify(recognition) }] }] });
+      }
+      return Response.json({ output: [
+        { content: [{ type: "output_text", text: JSON.stringify(research) }] },
+        { type: "web_search_call", action: { sources: [
+          { title: "Official producer", url: "https://example.jp/honey" },
+          { title: "Insecure result", url: "http://example.jp/honey" },
+          { title: "Official producer duplicate", url: "https://example.jp/honey" }
+        ] } }
+      ] });
+    },
+    async () => Response.json({ result: "success", base_code: "JPY", time_last_update_unix: 1_791_849_451, rates: { TWD: 0.2 } })
+  );
+
+  assert.equal(requestBodies.length, 2);
+  assert.equal(requestBodies[0].tools, undefined);
+  assert.equal(requestBodies[1].text.format.name, "travel_product_research");
+  assert.equal(requestBodies[1].tools[0].type, "web_search");
+  assert.equal(requestBodies[1].tool_choice, "required");
+  assert.match(requestBodies[1].input, /Asahikawa/i);
+  assert.match(requestBodies[1].input, /網走ビール/);
+  assert.equal(result.productName, "流氷ドラフト");
+  assert.equal(result.researchStatus, "completed");
+  assert.equal(result.originStatus, "verified");
+  assert.equal(result.limitedScope, "asahikawa");
+  assert.deepEqual(result.tags, ["旭川限定", "北海道特產", "高 CP 值"]);
+  assert.equal(result.referencePriceTwdMin, 240);
+  assert.equal(result.referencePriceTwdMax, 320);
+  assert.equal(result.referenceExchangeRateDate, "2026-10-13");
+  assert.equal(result.purchaseOptions[0].availability, "product_listed");
+  assert.equal(result.sources.length, 1);
+  assert.equal(result.sources[0].url, "https://example.jp/honey");
+});
+
+test("product image search failure preserves visual recognition", async () => {
+  const recognition = {
+    title: "流氷DRAFT",
+    productName: "流氷ドラフト",
+    brand: "網走ビール",
+    description: "青色のクラフトビール。",
+    features: [],
+    priceText: "",
+    currency: "UNKNOWN",
+    menuItems: [],
+    confidence: "high"
+  };
+  let requestCount = 0;
+  const result = await analyzeTravelImage(`data:image/jpeg;base64,${"A".repeat(128)}`, "product", { OPENAI_API_KEY: "test" }, async () => {
+    requestCount += 1;
+    if (requestCount === 2) throw new Error("search service unavailable");
+    return Response.json({ output: [{ content: [{ type: "output_text", text: JSON.stringify(recognition) }] }] });
+  });
+
+  assert.equal(result.productName, "流氷ドラフト");
+  assert.equal(result.researchStatus, "search_unavailable");
+  assert.equal(result.referencePriceMin, 0);
+  assert.deepEqual(result.purchaseOptions, []);
 });
 
 test("travel image analysis rejects invalid image types before calling OpenAI", async () => {
