@@ -106,6 +106,54 @@ input:focus-visible,
   display: none;
 }
 
+.embedded-itinerary {
+  --paper: #fff7f6;
+  --line: #eadada;
+  --indigo: #9b3b49;
+  --indigo-dark: #7d3043;
+  --indigo-wash: #f8e5e4;
+}
+
+.embedded-itinerary body {
+  background: var(--paper);
+}
+
+.embedded-itinerary .date-tabs {
+  border-color: #e5cdcf;
+  background: #f3e3e2;
+}
+
+.embedded-itinerary .date-tab[aria-selected="true"] {
+  color: var(--indigo-dark);
+  box-shadow: 0 1px 3px rgb(125 48 67 / 0.14);
+}
+
+.embedded-itinerary .day-tag {
+  border-color: #e5c3c6;
+}
+
+.embedded-itinerary .timeline-marker {
+  background: #c56a72;
+  box-shadow: 0 0 0 1px #dfa6aa;
+}
+
+.embedded-itinerary .timeline-item.is-key .timeline-marker {
+  background: var(--indigo);
+  box-shadow: 0 0 0 3px #f5d9da;
+}
+
+.embedded-itinerary .connection-panel {
+  border-color: #e5c3c6;
+  background: #fff0ef;
+}
+
+.embedded-itinerary button:focus-visible,
+.embedded-itinerary a:focus-visible,
+.embedded-itinerary input:focus-visible,
+.embedded-itinerary [tabindex="0"]:focus-visible {
+  outline-color: #b64f5a;
+}
+
 .embedded-itinerary .page-footer {
   display: none;
 }

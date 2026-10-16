@@ -15,6 +15,7 @@ export default defineConfig({
       input: {
         index: resolve(publicRoot, "index.html"),
         login: resolve(publicRoot, "login.html"),
+        trips: resolve(publicRoot, "trips.html"),
         itinerary: resolve(publicRoot, "itinerary.html"),
         kamui: resolve(publicRoot, "kamui.html")
       },

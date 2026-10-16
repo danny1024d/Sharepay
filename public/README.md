@@ -15,4 +15,6 @@ npm install
 npm run dev
 ```
 
-本機網址為 `http://localhost:5000/login.html`。第一次開啟請使用登入頁。正式網站先執行 `npm run build`，或直接執行 `npm run deploy` 建置並部署 Hosting。資料將存放於 `ledgers/travel-split-app/expenses`、`ledgers/travel-split-app/payments` 與 `ledgers/travel-split-app/places`。
+本機網址為 `http://localhost:5000/login.html`。登入後會先進入行程清單，可選擇、建立或刪除行程。正式網站先執行 `npm run build`，或直接執行 `npm run deploy` 建置並部署 Hosting。
+
+行程資料存放於 `ledgers/travel-split-app/trips/{tripId}`，各行程的支出、代付、景點與圖片辨識紀錄位於該文件下的子集合。升級後第一次開啟行程清單時，舊版單一帳本資料會複製到「北海道之旅」。

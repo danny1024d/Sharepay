@@ -23,27 +23,65 @@
       gap: 0.5rem;
       margin-top: 1.5rem;
     }
+    body {
+      background-color: #eaf3ed !important;
+    }
+    #ledger-app {
+      background: #f2f8f3;
+    }
+    #ledger-app > header {
+      background-image: linear-gradient(118deg, #075568 0%, #09645d 58%, #245c3c 100%) !important;
+      box-shadow: 0 10px 28px rgb(7 91 82 / 0.24);
+    }
+    #ledger-app > header h1 {
+      color: #ffffff;
+    }
+    #ledger-app > header p {
+      color: #f0fff5;
+    }
+    #ledger-app #header-settlement-summary {
+      background: rgb(255 255 255 / 0.13);
+    }
+    #ledger-app .nav-btn {
+      min-height: 56px;
+      border-radius: 6px;
+      transition: background-color 160ms ease, color 160ms ease;
+    }
+    #ledger-app .nav-btn[aria-current="page"] {
+      background: #dfeee1;
+      color: #1c6945 !important;
+    }
+    #ledger-app .nav-btn[aria-current="page"] svg {
+      stroke: #1c6945;
+    }
+    #ledger-app .bg-indigo-600 {
+      background-color: #1c6945 !important;
+      box-shadow: 0 10px 24px rgb(28 105 69 / 0.28) !important;
+    }
+    #ledger-app .bg-indigo-600:hover {
+      background-color: #145137 !important;
+    }
     #journey-app {
-      background: #eaf7ed;
+      background: #fff7f6;
     }
     #journey-app > header {
-      background-image: linear-gradient(112deg, #075b70 0%, #087d6b 62%, #216c46 100%) !important;
-      box-shadow: 0 8px 24px rgb(7 91 82 / 0.22);
-      color: #f7fff9;
+      background-image: linear-gradient(112deg, #6e2638 0%, #88323f 58%, #9b4547 100%) !important;
+      box-shadow: 0 8px 24px rgb(125 48 67 / 0.24);
+      color: #fffafa;
     }
     #journey-app > header h1,
     #journey-app > header button {
       color: #ffffff !important;
     }
     #journey-app > header p {
-      color: #effff6 !important;
+      color: #fff0ef !important;
     }
     #journey-app.journey-map-active > header {
       display: none;
     }
     #journey-app > nav {
-      border-color: #b8ddc5 !important;
-      background-color: rgb(247 255 248 / 0.98) !important;
+      border-color: #ead1d1 !important;
+      background-color: rgb(255 250 249 / 0.98) !important;
     }
     #journey-app .journey-nav-btn {
       min-height: 56px;
@@ -52,11 +90,11 @@
       transition: background-color 160ms ease, color 160ms ease;
     }
     #journey-app .journey-nav-btn[aria-current="page"] {
-      background: #d8f0c7;
-      color: #195b37 !important;
+      background: #f3d8d6;
+      color: #7d3043 !important;
     }
     #journey-app .journey-nav-btn[aria-current="page"] svg {
-      stroke: #258246;
+      stroke: #9b3b49;
     }
     #journey-app .image-analysis-sticky {
       position: sticky;
@@ -64,23 +102,23 @@
       z-index: 10;
       margin: 0 -1rem;
       padding: 0.75rem 1rem 0.875rem;
-      border-bottom: 1px solid #b8ddc5;
-      background: #eaf7ed;
+      border-bottom: 1px solid #ead1d1;
+      background: #fff7f6;
     }
     #journey-app .image-analysis-mode[aria-selected="true"] {
-      background: #d8f0c7;
-      color: #195b37;
+      background: #f3d8d6;
+      color: #7d3043;
     }
     #journey-app .image-analysis-mode:focus-visible {
-      outline: 2px solid #258246;
+      outline: 2px solid #9b3b49;
       outline-offset: 2px;
     }
     #journey-app .image-analysis-count {
       min-width: 1.25rem;
       padding: 0.125rem 0.375rem;
       border-radius: 9999px;
-      background: rgb(25 91 55 / 0.1);
-      color: #195b37;
+      background: rgb(125 48 67 / 0.1);
+      color: #7d3043;
       font-size: 0.6875rem;
       line-height: 1rem;
       text-align: center;
@@ -92,18 +130,29 @@
       justify-content: center;
       border: 0;
       border-radius: 6px;
-      background: #195b37;
+      background: #8f3647;
       color: #ffffff;
       font-size: 0.875rem;
       font-weight: 500;
       transition: background-color 160ms ease, opacity 160ms ease;
     }
     #journey-app .image-analysis-primary:hover:not(:disabled) {
-      background: #174a31;
+      background: #71293a;
     }
     #journey-app .image-analysis-primary:disabled {
       cursor: not-allowed;
       opacity: 0.55;
+    }
+    #journey-app .text-indigo-600 {
+      color: #8f3647 !important;
+    }
+    #journey-app .hover\:text-indigo-600:hover,
+    #journey-app .hover\:text-indigo-800:hover {
+      color: #71293a !important;
+    }
+    #journey-app .bg-indigo-600 {
+      background-color: #8f3647 !important;
+      box-shadow: 0 10px 24px rgb(125 48 67 / 0.24) !important;
     }
     .barcode-scanner-dialog {
       width: 100vw;
@@ -165,11 +214,13 @@
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-xl font-bold tracking-tight">旅遊分帳</h1>
-          <p class="text-xs text-slate-400 mt-0.5">高 &amp; n 的支出結算</p>
+          <p id="header-trip-name" class="text-xs text-slate-300 mt-0.5">正在載入行程…</p>
         </div>
         <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-blue-400"></span>
-          <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+          <a href="trips.html" class="flex h-9 items-center gap-1.5 rounded-lg border border-white/20 px-2.5 text-xs font-medium text-white hover:bg-white/10" aria-label="切換行程">
+            <i data-lucide="arrow-left-right" class="h-4 w-4"></i>
+            <span>行程</span>
+          </a>
           <button id="logout-btn" type="button" class="ml-2 text-slate-300 hover:text-white" aria-label="登出">
             <i data-lucide="log-out" class="w-4 h-4"></i>
           </button>

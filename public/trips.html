@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f4f7f2" />
+  <meta name="description" content="選擇或建立旅遊行程。" />
+  <title>我的行程 | 旅遊分帳</title>
+  <link rel="stylesheet" href="trips.css" />
+  <script type="module" src="trips.js"></script>
+</head>
+<body>
+  <main class="trip-shell">
+    <header class="trip-header">
+      <div class="trip-heading-group">
+        <span class="trip-heading-icon" aria-hidden="true"><i data-lucide="map"></i></span>
+        <div>
+          <h1>我的行程</h1>
+          <p>選擇一趟旅程，繼續記帳與規劃。</p>
+        </div>
+      </div>
+      <button id="logout-btn" class="icon-button" type="button" aria-label="登出" title="登出">
+        <i data-lucide="log-out" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="trip-workspace">
+      <section class="trip-list-section" aria-labelledby="trip-list-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="trip-list-title">選擇行程</h2>
+            <p>最近使用的旅程會排在最前面</p>
+          </div>
+          <span id="trip-count" class="trip-count" aria-live="polite"></span>
+        </div>
+        <p id="trip-status" class="status-message" role="status" aria-live="polite">正在載入行程…</p>
+        <div id="trip-list" class="trip-list"></div>
+      </section>
+
+      <section class="create-section" aria-labelledby="create-trip-title">
+        <div class="create-heading">
+          <div>
+            <h2 id="create-trip-title">建立新行程</h2>
+            <p>先替下一趟旅行留個位置。</p>
+          </div>
+          <span class="create-icon" aria-hidden="true"><i data-lucide="calendar-plus"></i></span>
+        </div>
+        <form id="create-trip-form" class="create-form">
+          <div class="field-group">
+            <label for="trip-name">行程名稱</label>
+            <input id="trip-name" name="name" type="text" maxlength="60" required autocomplete="off" placeholder="例如：東京賞櫻" />
+          </div>
+          <div class="date-grid">
+            <div>
+              <label for="trip-start-date">開始日期</label>
+              <input id="trip-start-date" name="startDate" type="date" />
+            </div>
+            <div>
+              <label for="trip-end-date">結束日期</label>
+              <input id="trip-end-date" name="endDate" type="date" />
+            </div>
+          </div>
+          <p id="create-error" class="form-error" role="alert"></p>
+          <button id="create-trip-btn" class="primary-button" type="submit">
+            <i data-lucide="plus" aria-hidden="true"></i>
+            <span>建立行程</span>
+          </button>
+        </form>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

@@ -39,7 +39,7 @@ if (!hasFirebaseConfig) {
       showError("此 Google 帳號尚未獲授權使用本分帳。 ");
       return;
     }
-    window.location.replace("home.html");
+    window.location.replace("trips.html");
   });
 
   googleButton.addEventListener("click", async () => {

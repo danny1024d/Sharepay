@@ -36,6 +36,7 @@ let placeExpiryTimer;
 let placeDialogTags = [];
 let database;
 let currentUser = null;
+const activeTripId = new URLSearchParams(window.location.search).get("trip");
 let pendingTravelImageFile = null;
 let pendingTravelImagePreviewUrl = "";
 let pendingProductBarcode = "";
@@ -55,6 +56,14 @@ let placesListenerStarted = false;
 const refreshingGooglePlaces = new Set();
 const imageAnalysisThumbnailCache = new Map();
 const loadingImageAnalysisThumbnails = new Set();
+
+function tripCollection(type) {
+  return collection(database, "ledgers", appName, "trips", activeTripId, type);
+}
+
+function tripDocument(type, id, ...segments) {
+  return doc(database, "ledgers", appName, "trips", activeTripId, type, id, ...segments);
+}
 
 function isAllowed(email) {
   return Boolean(email) && allowedEmails.some(value => value.toLowerCase() === email.toLowerCase());
@@ -391,7 +400,7 @@ async function openImageAnalysisDetail(analysisId, button) {
     const analysis = state.imageAnalyses.find(item => item.id === analysisId);
     if (analysis?.identificationMethod === "barcode") {
       const asset = analysis.hasImage
-        ? await getDoc(doc(database, "ledgers", appName, "imageAnalyses", analysisId, "assets", "original"))
+        ? await getDoc(tripDocument("imageAnalyses", analysisId, "assets", "original"))
         : null;
       detail.innerHTML = `<p class="mb-3 text-xs font-medium text-emerald-800">條碼 ${escapeHtml(analysis.barcode || "")}</p>${asset?.exists() ? renderImageAnalysisDetail(analysis, asset.data().dataUrl) : renderProductResearch(analysis)}`;
       detail.dataset.loaded = "true";
@@ -410,7 +419,7 @@ async function openImageAnalysisDetail(analysisId, button) {
       });
       return;
     }
-    const asset = await getDoc(doc(database, "ledgers", appName, "imageAnalyses", analysisId, "assets", "original"));
+    const asset = await getDoc(tripDocument("imageAnalyses", analysisId, "assets", "original"));
     if (!asset.exists()) throw new Error("找不到辨識圖片。");
     detail.innerHTML = renderImageAnalysisDetail(analysis, asset.data().dataUrl);
     detail.dataset.loaded = "true";
@@ -445,8 +454,8 @@ async function deleteImageAnalysis(analysisId) {
   if (!confirm(`確定刪除「${title}」與圖片嗎？`)) return;
   try {
     const batch = writeBatch(database);
-    batch.delete(doc(database, "ledgers", appName, "imageAnalyses", analysisId, "assets", "original"));
-    batch.delete(doc(database, "ledgers", appName, "imageAnalyses", analysisId));
+    batch.delete(tripDocument("imageAnalyses", analysisId, "assets", "original"));
+    batch.delete(tripDocument("imageAnalyses", analysisId));
     await batch.commit();
     imageAnalysisThumbnailCache.delete(analysisId);
   } catch (error) {
@@ -480,7 +489,7 @@ async function analyzeAndSaveImage() {
       imageDataUrl: image.dataUrl,
       analysisType: analysisMode
     });
-    const analysisRef = doc(collection(database, "ledgers", appName, "imageAnalyses"));
+    const analysisRef = doc(tripCollection("imageAnalyses"));
     const createdAt = Date.now();
     const record = {
       ...analysis,
@@ -529,7 +538,7 @@ async function analyzeAndSaveBarcode() {
   renderImageAnalysisPage();
   try {
     const analysis = await requestProductBarcodeAnalysis({ user: currentUser, barcode });
-    const analysisRef = doc(collection(database, "ledgers", appName, "imageAnalyses"));
+    const analysisRef = doc(tripCollection("imageAnalyses"));
     const createdAt = Date.now();
     await setDoc(analysisRef, {
       ...analysis,
@@ -638,7 +647,7 @@ function loadProductAnalysisThumbnails() {
     }
     if (loadingImageAnalysisThumbnails.has(analysisId)) return;
     loadingImageAnalysisThumbnails.add(analysisId);
-    getDoc(doc(database, "ledgers", appName, "imageAnalyses", analysisId, "assets", "original"))
+    getDoc(tripDocument("imageAnalyses", analysisId, "assets", "original"))
       .then(asset => {
         const dataUrl = asset.data()?.dataUrl;
         if (!asset.exists() || typeof dataUrl !== "string") return;
@@ -656,7 +665,7 @@ function loadImageAnalyses() {
   imageAnalysisRequested = true;
   if (!currentUser || imageAnalysisSubscribed) return;
   imageAnalysisSubscribed = true;
-  onSnapshot(query(collection(database, "ledgers", appName, "imageAnalyses"), orderBy("createdAt", "desc"), limit(30)), snapshot => {
+  onSnapshot(query(tripCollection("imageAnalyses"), orderBy("createdAt", "desc"), limit(30)), snapshot => {
     state.imageAnalyses = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }));
     renderImageAnalysisPage();
   }, showDataError);
@@ -1070,7 +1079,7 @@ async function updateGooglePlaceMap(places, renderGeneration, mapStatus, unlocat
 }
 
 function placeGoogleLocationRef(placeId) {
-  return doc(database, "ledgers", appName, "places", placeId, "googleLocations", "places-api");
+  return tripDocument("places", placeId, "googleLocations", "places-api");
 }
 
 function updatePlaceState(placeId, changes, shouldRender = true) {
@@ -1118,7 +1127,7 @@ async function refreshGooglePlaceCoordinates(place, user = currentUser, shouldRe
 
     const newExpiry = new Date(Date.now() + googlePlaceCoordinateLifetimeMs);
     if (result.placeId !== place.placeId) {
-      await updateDoc(doc(database, "ledgers", appName, "places", place.id), { placeId: result.placeId });
+      await updateDoc(tripDocument("places", place.id), { placeId: result.placeId });
     }
     await setDoc(locationRef, {
       latitude: result.latitude,
@@ -1205,7 +1214,7 @@ function startPlacesListener() {
   const root = document.getElementById("tab-places");
   root.innerHTML = `<p class="px-4 py-8 text-center text-sm text-slate-500" role="status">載入景點…</p>`;
   const user = currentUser;
-  onSnapshot(collection(database, "ledgers", appName, "places"), snapshot => {
+  onSnapshot(tripCollection("places"), snapshot => {
     const previousPlaces = new Map(state.places.map(place => [place.id, place]));
     state.places = snapshot.docs.map(entry => {
       const place = { id: entry.id, ...entry.data() };
@@ -1870,7 +1879,7 @@ async function savePlace() {
   }
   saveButton.textContent = "儲存中…";
   try {
-    const placeEntries = collection(database, "ledgers", appName, "places");
+    const placeEntries = tripCollection("places");
     const placeRef = existing ? doc(placeEntries, existing.id) : doc(placeEntries);
     const locationRef = placeGoogleLocationRef(placeRef.id);
     const batch = writeBatch(database);
@@ -1911,7 +1920,7 @@ async function savePlace() {
 }
 
 async function saveEntry(type, id, entry) {
-  const entries = collection(database, "ledgers", appName, type);
+  const entries = tripCollection(type);
   if (id) {
     await updateDoc(doc(entries, id), entry);
     return id;
@@ -1924,7 +1933,7 @@ async function removeEntry(type, id) {
   if (!id || !confirm("確定要刪除這筆紀錄嗎？")) return;
   try {
     if (type === "places") await deleteDoc(placeGoogleLocationRef(id));
-    await deleteDoc(doc(database, "ledgers", appName, type, id));
+    await deleteDoc(tripDocument(type, id));
     closeDialog({ expenses: "expense-dialog", payments: "payment-dialog", places: "place-dialog" }[type]);
   } catch (error) {
     showDataError(error);
@@ -1933,6 +1942,8 @@ async function removeEntry(type, id) {
 
 if (!isConfigured) {
   window.location.replace("login.html");
+} else if (!activeTripId) {
+  window.location.replace("trips.html");
 } else {
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -1944,7 +1955,7 @@ if (!isConfigured) {
     renderSettlement(calculation());
     state.settlementDirty = false;
   });
-  onAuthStateChanged(auth, user => {
+  onAuthStateChanged(auth, async user => {
     clearTimeout(placeExpiryTimer);
     refreshingGooglePlaces.clear();
     currentUser = null;
@@ -1954,13 +1965,26 @@ if (!isConfigured) {
       return;
     }
     currentUser = user;
+    try {
+      const tripSnapshot = await getDoc(doc(database, "ledgers", appName, "trips", activeTripId));
+      if (!tripSnapshot.exists()) {
+        window.location.replace("trips.html");
+        return;
+      }
+      const tripName = tripSnapshot.data().name || "未命名行程";
+      document.getElementById("header-trip-name").textContent = tripName;
+      localStorage.setItem("active-trip-name", tripName);
+    } catch (error) {
+      showDataError(error);
+      return;
+    }
     if (placesListenerRequested || isPlacesTabActive()) startPlacesListener();
     if (imageAnalysisRequested) loadImageAnalyses();
-    onSnapshot(query(collection(database, "ledgers", appName, "expenses"), orderBy("date", "desc")), snapshot => {
+    onSnapshot(query(tripCollection("expenses"), orderBy("date", "desc")), snapshot => {
       state.expenses = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }));
       render({ payments: false });
     }, showDataError);
-    onSnapshot(query(collection(database, "ledgers", appName, "payments"), orderBy("date", "desc")), snapshot => {
+    onSnapshot(query(tripCollection("payments"), orderBy("date", "desc")), snapshot => {
       state.payments = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }));
       render({ expenses: false });
     }, showDataError);
