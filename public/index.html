@@ -105,6 +105,50 @@
       cursor: not-allowed;
       opacity: 0.55;
     }
+    .barcode-scanner-dialog {
+      width: 100vw;
+      max-width: none;
+      height: 100vh;
+      height: 100dvh;
+      max-height: none;
+      margin: 0;
+      border: 0;
+      border-radius: 0;
+      background: #071b17;
+      padding: 0;
+      color: #ffffff;
+    }
+    .barcode-scanner-dialog[open] {
+      display: flex;
+      flex-direction: column;
+    }
+    .barcode-scanner-dialog::backdrop {
+      background: rgb(2 15 12 / 0.82);
+    }
+    .barcode-scanner-viewport {
+      position: relative;
+      min-height: 0;
+      flex: 1;
+      overflow: hidden;
+      background: #071b17;
+    }
+    .barcode-scanner-viewport video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .barcode-scanner-frame {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: min(82%, 22rem);
+      height: 8rem;
+      border: 2px solid #86efac;
+      border-radius: 8px;
+      box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.42);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
     @media (min-width: 640px) {
       .dialog-footer {
         flex-direction: row;
@@ -681,6 +725,23 @@
       <button id="image-viewer-zoom-in" type="button" class="image-viewer-control" data-image-viewer-zoom-in aria-label="放大圖片" title="放大"><i data-lucide="plus" class="h-5 w-5"></i></button>
       <button id="image-viewer-zoom-reset" type="button" class="image-viewer-control" data-image-viewer-zoom-reset aria-label="重設縮放" title="符合畫面"><i data-lucide="scan" class="h-5 w-5"></i></button>
     </div>
+  </dialog>
+
+  <dialog id="barcode-scanner-dialog" class="barcode-scanner-dialog" aria-labelledby="barcode-scanner-title">
+    <div class="flex shrink-0 items-center justify-between px-4 py-3" style="padding-top:max(0.75rem, env(safe-area-inset-top))">
+      <div>
+        <h2 id="barcode-scanner-title" class="text-base font-semibold">掃描商品條碼</h2>
+        <p class="mt-0.5 text-xs text-emerald-100">支援 JAN／EAN／UPC 商品條碼</p>
+      </div>
+      <form method="dialog">
+        <button type="submit" class="grid h-11 w-11 place-items-center rounded-md text-white hover:bg-white/10" aria-label="關閉條碼掃描"><i data-lucide="x" class="h-5 w-5"></i></button>
+      </form>
+    </div>
+    <div class="barcode-scanner-viewport">
+      <video id="barcode-scanner-video" playsinline muted aria-label="條碼掃描相機畫面"></video>
+      <div class="barcode-scanner-frame" aria-hidden="true"></div>
+    </div>
+    <p id="barcode-scanner-status" class="min-h-12 shrink-0 px-4 py-3 text-center text-sm text-emerald-50" style="padding-bottom:max(0.75rem, env(safe-area-inset-bottom))" role="status" aria-live="polite">正在開啟相機…</p>
   </dialog>
 
   <script>

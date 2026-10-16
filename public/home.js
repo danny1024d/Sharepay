@@ -18,7 +18,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { allowedEmails, appName, firebaseConfig, googleMapsApiKey } from "./firebase-config.js";
 import { renderIcons } from "./icons.js";
-import { requestPlaceCoordinates, requestReceiptDraft, requestTravelImageAnalysis } from "./ai-client.js";
+import { requestPlaceCoordinates, requestProductBarcodeAnalysis, requestReceiptDraft, requestTravelImageAnalysis } from "./ai-client.js";
 
 const people = ["高", "n"];
 const categories = ["住宿", "餐費", "交通", "滑雪", "雜支"];
@@ -38,6 +38,8 @@ let database;
 let currentUser = null;
 let pendingTravelImageFile = null;
 let pendingTravelImagePreviewUrl = "";
+let pendingProductBarcode = "";
+let barcodeScannerControls = null;
 let imageAnalysisBusy = false;
 let imageAnalysisStatus = "";
 let imageAnalysisStatusTone = "text-slate-600";
@@ -51,6 +53,8 @@ let imageViewerGesture = null;
 let placesListenerRequested = false;
 let placesListenerStarted = false;
 const refreshingGooglePlaces = new Set();
+const imageAnalysisThumbnailCache = new Map();
+const loadingImageAnalysisThumbnails = new Set();
 
 function isAllowed(email) {
   return Boolean(email) && allowedEmails.some(value => value.toLowerCase() === email.toLowerCase());
@@ -222,12 +226,17 @@ function renderImageAnalysisPanel() {
       : analysis.productName || analysis.title || "商品辨識";
     const detailId = `image-analysis-detail-${escapeHtml(analysis.id)}`;
     const date = Number.isFinite(analysis.createdAt) ? formattedDate(new Date(analysis.createdAt).toISOString().slice(0, 10)) : "";
-    return `<article class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"><div class="flex items-start gap-2"><button type="button" data-open-image-analysis="${escapeHtml(analysis.id)}" aria-expanded="false" aria-controls="${detailId}" class="min-w-0 flex-1 text-left"><span class="flex items-center gap-2"><i data-lucide="${analysis.type === "menu" ? "book-open" : "package"}" class="h-4 w-4 shrink-0 text-indigo-600"></i><span class="truncate text-sm font-semibold text-slate-900">${escapeHtml(title)}</span></span><span class="mt-1 block text-xs text-slate-500">${analysis.type === "menu" ? `菜單 · ${analysis.menuItems?.length || 0} 項` : `商品 · ${escapeHtml(analysis.brand || "品牌未辨識")}`} ${date ? `· ${date}` : ""}</span></button><button type="button" data-delete-image-analysis="${escapeHtml(analysis.id)}" class="shrink-0 rounded-md p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label="刪除${escapeHtml(title)}"><i data-lucide="trash-2" class="h-4 w-4"></i></button></div><div id="${detailId}" class="hidden mt-3 border-t border-slate-100 pt-3" data-image-analysis-detail></div></article>`;
+    const thumbnail = analysis.identificationMethod === "barcode" && !analysis.hasImage
+      ? `<span class="grid h-12 w-12 shrink-0 place-items-center rounded-md border border-emerald-200 bg-emerald-50"><i data-lucide="barcode" class="h-5 w-5 text-emerald-700"></i></span>`
+      : `<span class="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-md border border-slate-200 bg-slate-50" data-image-analysis-thumbnail="${escapeHtml(analysis.id)}" data-thumbnail-alt="${escapeHtml(title)}縮圖"><i data-lucide="${analysis.type === "menu" ? "book-open" : "package"}" class="h-5 w-5 text-slate-400" data-thumbnail-placeholder></i></span>`;
+    return `<article class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"><div class="flex items-start gap-2"><button type="button" data-open-image-analysis="${escapeHtml(analysis.id)}" aria-expanded="false" aria-controls="${detailId}" class="min-w-0 flex-1 text-left"><span class="flex items-center gap-3">${thumbnail}<span class="min-w-0 flex-1"><span class="block truncate text-sm font-semibold text-slate-900">${escapeHtml(title)}</span><span class="mt-1 block text-xs text-slate-500">${analysis.type === "menu" ? `菜單 · ${analysis.menuItems?.length || 0} 項` : `商品 · ${escapeHtml(analysis.brand || "品牌未辨識")}`} ${date ? `· ${date}` : ""}</span></span></span></button><button type="button" data-delete-image-analysis="${escapeHtml(analysis.id)}" class="shrink-0 rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-700" aria-label="刪除${escapeHtml(title)}"><i data-lucide="trash-2" class="h-4 w-4"></i></button></div><div id="${detailId}" class="hidden mt-3 border-t border-slate-100 pt-3" data-image-analysis-detail></div></article>`;
   });
 
   const selectedImage = pendingTravelImageFile
     ? `<div class="mt-3 flex min-h-16 min-w-0 items-center gap-3 rounded-lg bg-slate-50 px-2"><img src="${escapeHtml(pendingTravelImagePreviewUrl)}" alt="已選圖片預覽" class="h-12 w-12 shrink-0 rounded-md border border-slate-200 object-cover"><span id="travel-image-name" class="min-w-0 flex-1 truncate text-left text-sm text-slate-700">${escapeHtml(pendingTravelImageFile.name)}</span></div>`
     : `<p id="travel-image-name" class="mt-2 text-center text-xs text-slate-500">支援 JPEG、PNG、WebP</p>`;
+  imageAnalysisStatus = state.imageAnalysisStatus;
+  imageAnalysisStatusTone = state.imageAnalysisStatusTone;
   const statusIsCurrent = imageAnalysisStatus && state.imageAnalysisStatusMode === mode;
   const busyNotice = imageAnalysisBusy && state.imageAnalysisBusyMode !== mode
     ? `<p class="mt-3 text-sm text-slate-600" role="status">正在辨識${state.imageAnalysisBusyMode === "menu" ? "菜單" : "商品"}；目前可先瀏覽此頁籤。</p>`
@@ -380,6 +389,27 @@ async function openImageAnalysisDetail(analysisId, button) {
   detail.textContent = "載入圖片…";
   try {
     const analysis = state.imageAnalyses.find(item => item.id === analysisId);
+    if (analysis?.identificationMethod === "barcode") {
+      const asset = analysis.hasImage
+        ? await getDoc(doc(database, "ledgers", appName, "imageAnalyses", analysisId, "assets", "original"))
+        : null;
+      detail.innerHTML = `<p class="mb-3 text-xs font-medium text-emerald-800">條碼 ${escapeHtml(analysis.barcode || "")}</p>${asset?.exists() ? renderImageAnalysisDetail(analysis, asset.data().dataUrl) : renderProductResearch(analysis)}`;
+      detail.dataset.loaded = "true";
+      renderIcons(detail);
+      detail.querySelector("[data-expand-image]")?.addEventListener("click", () => {
+        const viewer = document.getElementById("image-viewer-dialog");
+        const sourceImage = detail.querySelector("[data-expand-image] img");
+        const viewerImage = document.createElement("img");
+        viewerImage.id = "image-viewer-image";
+        viewerImage.src = sourceImage.src;
+        viewerImage.alt = sourceImage.alt;
+        viewerImage.draggable = false;
+        document.getElementById("image-viewer-stage").replaceChildren(viewerImage);
+        resetImageViewer();
+        viewer.showModal();
+      });
+      return;
+    }
     const asset = await getDoc(doc(database, "ledgers", appName, "imageAnalyses", analysisId, "assets", "original"));
     if (!asset.exists()) throw new Error("找不到辨識圖片。");
     detail.innerHTML = renderImageAnalysisDetail(analysis, asset.data().dataUrl);
@@ -418,6 +448,7 @@ async function deleteImageAnalysis(analysisId) {
     batch.delete(doc(database, "ledgers", appName, "imageAnalyses", analysisId, "assets", "original"));
     batch.delete(doc(database, "ledgers", appName, "imageAnalyses", analysisId));
     await batch.commit();
+    imageAnalysisThumbnailCache.delete(analysisId);
   } catch (error) {
     showDataError(error);
   }
@@ -453,6 +484,7 @@ async function analyzeAndSaveImage() {
     const createdAt = Date.now();
     const record = {
       ...analysis,
+      identificationMethod: "image",
       title: analysis.type === "menu" ? analysis.title || file.name : analysis.productName || analysis.title || file.name,
       originalFileName: file.name.slice(0, 180),
       imageType: "image/jpeg",
@@ -487,12 +519,137 @@ async function analyzeAndSaveImage() {
   }
 }
 
+async function analyzeAndSaveBarcode() {
+  if (!pendingProductBarcode || imageAnalysisBusy || !currentUser) return;
+  const barcode = pendingProductBarcode;
+  imageAnalysisBusy = true;
+  state.imageAnalysisBusyMode = "product";
+  state.imageAnalysisStatusMode = "product";
+  state.imageAnalysisStatus = `正在搜尋條碼 ${barcode}…`;
+  renderImageAnalysisPage();
+  try {
+    const analysis = await requestProductBarcodeAnalysis({ user: currentUser, barcode });
+    const analysisRef = doc(collection(database, "ledgers", appName, "imageAnalyses"));
+    const createdAt = Date.now();
+    await setDoc(analysisRef, {
+      ...analysis,
+      title: analysis.productName || analysis.title || barcode,
+      identificationMethod: "barcode",
+      barcode,
+      hasImage: false,
+      imageType: "",
+      imageBytes: 0,
+      imageSource: "",
+      createdAt
+    });
+    pendingProductBarcode = "";
+    state.imageAnalysisStatus = "條碼商品資訊已儲存，可展開查看或刪除。";
+    state.imageAnalysisStatusTone = "text-emerald-700";
+  } catch (error) {
+    state.imageAnalysisStatus = error.message || "條碼商品搜尋失敗，請重試。";
+    state.imageAnalysisStatusTone = "text-rose-700";
+  } finally {
+    imageAnalysisBusy = false;
+    state.imageAnalysisBusyMode = "";
+    renderImageAnalysisPage();
+  }
+}
+
+function stopBarcodeScanner() {
+  barcodeScannerControls?.stop();
+  barcodeScannerControls = null;
+  const video = document.getElementById("barcode-scanner-video");
+  if (video?.srcObject) {
+    video.srcObject.getTracks().forEach(track => track.stop());
+    video.srcObject = null;
+  }
+}
+
+async function openBarcodeScanner() {
+  pendingTravelImageFile = null;
+  URL.revokeObjectURL(pendingTravelImagePreviewUrl);
+  pendingTravelImagePreviewUrl = "";
+  const dialog = document.getElementById("barcode-scanner-dialog");
+  const video = document.getElementById("barcode-scanner-video");
+  const status = document.getElementById("barcode-scanner-status");
+  status.textContent = "正在開啟相機…";
+  dialog.showModal();
+  try {
+    const { BrowserMultiFormatOneDReader } = await import("@zxing/browser");
+    const reader = new BrowserMultiFormatOneDReader(undefined, { delayBetweenScanAttempts: 180 });
+    barcodeScannerControls = await reader.decodeFromConstraints({
+      audio: false,
+      video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }
+    }, video, result => {
+      if (!result) return;
+      const barcode = result.getText().replace(/\D/g, "");
+      if (!/^\d+$/.test(barcode) || ![8, 12, 13, 14].includes(barcode.length)) {
+        status.textContent = "這不是可用的 JAN／EAN 商品條碼，請重新對準。";
+        return;
+      }
+      pendingProductBarcode = barcode;
+      stopBarcodeScanner();
+      dialog.close();
+      state.imageAnalysisStatus = `已讀取條碼 ${barcode}，可以開始搜尋。`;
+      state.imageAnalysisStatusTone = "text-emerald-700";
+      state.imageAnalysisStatusMode = "product";
+      renderImageAnalysisPage();
+    });
+    if (!dialog.open) {
+      stopBarcodeScanner();
+      return;
+    }
+    status.textContent = "將商品條碼置於框線內。";
+  } catch (error) {
+    console.error("Barcode camera unavailable:", error);
+    status.textContent = "無法使用相機，請確認已允許相機權限並使用 HTTPS。";
+  }
+}
+
 function renderImageAnalysisPage() {
   const root = document.getElementById("tab-image-analysis");
   if (!root) return;
   root.innerHTML = renderImageAnalysisPanel();
   renderIcons(root);
   setupImageAnalysisPanel();
+}
+
+function showImageAnalysisThumbnail(container, dataUrl) {
+  if (!container || !dataUrl) return;
+  let image = container.querySelector("img");
+  if (!image) {
+    image = document.createElement("img");
+    image.alt = container.dataset.thumbnailAlt || "商品縮圖";
+    image.className = "absolute inset-0 h-full w-full object-cover";
+    image.loading = "lazy";
+    container.append(image);
+  }
+  image.src = dataUrl;
+  container.querySelector("[data-thumbnail-placeholder]")?.classList.add("hidden");
+}
+
+function loadProductAnalysisThumbnails() {
+  document.querySelectorAll("[data-image-analysis-thumbnail]").forEach(container => {
+    const analysisId = container.dataset.imageAnalysisThumbnail;
+    const cachedDataUrl = imageAnalysisThumbnailCache.get(analysisId);
+    if (cachedDataUrl) {
+      showImageAnalysisThumbnail(container, cachedDataUrl);
+      return;
+    }
+    if (loadingImageAnalysisThumbnails.has(analysisId)) return;
+    loadingImageAnalysisThumbnails.add(analysisId);
+    getDoc(doc(database, "ledgers", appName, "imageAnalyses", analysisId, "assets", "original"))
+      .then(asset => {
+        const dataUrl = asset.data()?.dataUrl;
+        if (!asset.exists() || typeof dataUrl !== "string") return;
+        imageAnalysisThumbnailCache.set(analysisId, dataUrl);
+        document.querySelectorAll("[data-image-analysis-thumbnail]").forEach(currentContainer => {
+          if (currentContainer.dataset.imageAnalysisThumbnail === analysisId) showImageAnalysisThumbnail(currentContainer, dataUrl);
+        });
+      })
+      .catch(error => console.warn("Unable to load product thumbnail:", error))
+      .finally(() => loadingImageAnalysisThumbnails.delete(analysisId));
+  });
 }
 
 function loadImageAnalyses() {
@@ -512,6 +669,33 @@ function setupImageAnalysisPanel() {
   chooseButton.title = pendingTravelImageFile ? "更換圖片" : "選擇圖片";
   chooseButton.setAttribute("aria-label", chooseButton.title);
   chooseButton.innerHTML = `<i data-lucide="${pendingTravelImageFile ? "refresh-cw" : "camera"}" class="mr-1 h-4 w-4"></i>${chooseButton.title}`;
+  if (state.imageAnalysisMode === "product") {
+    const choiceGroup = document.createElement("div");
+    choiceGroup.className = "grid grid-cols-2 gap-2";
+    chooseButton.before(choiceGroup);
+    choiceGroup.append(chooseButton);
+    chooseButton.classList.remove("w-full");
+    if (pendingProductBarcode) {
+      chooseButton.classList.remove("image-analysis-primary");
+      chooseButton.classList.add("btn-outline");
+    }
+    const barcodeButton = document.createElement("button");
+    barcodeButton.type = "button";
+    barcodeButton.id = "product-barcode-scan";
+    barcodeButton.className = `${pendingProductBarcode ? "image-analysis-primary" : "btn-outline"} btn-flex min-h-11 justify-center rounded-md`;
+    barcodeButton.innerHTML = `<i data-lucide="scan-line" class="mr-1 h-4 w-4"></i>${pendingProductBarcode ? "重新掃描" : "條碼辨識"}`;
+    barcodeButton.addEventListener("click", () => void openBarcodeScanner());
+    choiceGroup.append(barcodeButton);
+    if (pendingProductBarcode) {
+      const barcodeResult = document.createElement("div");
+      barcodeResult.className = "mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3";
+      barcodeResult.innerHTML = `<div class="flex items-center justify-between gap-3"><div><p class="text-xs font-medium text-emerald-800">已掃描商品條碼</p><p class="mt-0.5 font-mono text-base font-semibold tracking-normal text-emerald-950">${escapeHtml(pendingProductBarcode)}</p></div><i data-lucide="barcode" class="h-6 w-6 shrink-0 text-emerald-700"></i></div><button id="product-barcode-analyze" type="button" class="image-analysis-primary btn-flex mt-3 min-h-11 w-full justify-center rounded-md" ${imageAnalysisBusy ? "disabled" : ""}>${imageAnalysisBusy ? "正在搜尋條碼商品…" : "搜尋條碼商品"}</button>`;
+      choiceGroup.after(barcodeResult);
+      document.getElementById("travel-image-name").classList.add("hidden");
+      document.getElementById("product-barcode-analyze").addEventListener("click", () => void analyzeAndSaveBarcode());
+      document.getElementById("travel-image-status").previousElementSibling.textContent = "條碼只用於搜尋商品資料；搜尋結果會儲存在 Firebase，請核對內容。";
+    }
+  }
   document.querySelectorAll("[data-image-analysis-mode]").forEach(button => button.addEventListener("click", () => {
     const mode = button.dataset.imageAnalysisMode;
     if (mode === state.imageAnalysisMode) return;
@@ -537,6 +721,7 @@ function setupImageAnalysisPanel() {
   input.addEventListener("change", () => {
     URL.revokeObjectURL(pendingTravelImagePreviewUrl);
     pendingTravelImageFile = input.files?.[0] || null;
+    if (pendingTravelImageFile) pendingProductBarcode = "";
     pendingTravelImagePreviewUrl = pendingTravelImageFile ? URL.createObjectURL(pendingTravelImageFile) : "";
     state.imageAnalysisStatus = pendingTravelImageFile ? "圖片已選取，辨識前會先壓縮。" : "";
     state.imageAnalysisStatusTone = "text-slate-600";
@@ -551,6 +736,7 @@ function setupImageAnalysisPanel() {
     void deleteImageAnalysis(button.dataset.deleteImageAnalysis);
   }));
   renderIcons(document.getElementById("tab-image-analysis"));
+  loadProductAnalysisThumbnails();
 }
 
 function renderPlaces() {
@@ -1243,10 +1429,15 @@ function setupDialogs() {
   const expenseDialog = document.getElementById("expense-dialog");
   const paymentDialog = document.getElementById("payment-dialog");
   const imageViewer = document.getElementById("image-viewer-dialog");
+  const barcodeScanner = document.getElementById("barcode-scanner-dialog");
   renderIcons();
   setupImageViewerControls(imageViewer);
   imageViewer.addEventListener("click", event => {
     if (event.target === imageViewer) imageViewer.close();
+  });
+  barcodeScanner.addEventListener("close", stopBarcodeScanner);
+  barcodeScanner.addEventListener("click", event => {
+    if (event.target === barcodeScanner) barcodeScanner.close();
   });
   const receiptInput = document.getElementById("expense-receipt-image");
   document.getElementById("expense-receipt-scan").addEventListener("click", () => receiptInput.click());

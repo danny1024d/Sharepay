@@ -224,6 +224,16 @@ function imageDataUrlByteLength(imageDataUrl, maxBytes) {
   return imageBytes;
 }
 
+export function normalizeProductBarcode(value) {
+  const barcode = typeof value === "string" ? value.trim() : "";
+  if (!/^\d+$/.test(barcode) || ![8, 12, 13, 14].includes(barcode.length)) throw new Error("barcode_invalid");
+  const digits = [...barcode].map(Number);
+  const checkDigit = digits.pop();
+  const sum = digits.reverse().reduce((total, digit, index) => total + digit * (index % 2 === 0 ? 3 : 1), 0);
+  if ((10 - sum % 10) % 10 !== checkDigit) throw new Error("barcode_invalid");
+  return barcode;
+}
+
 function receiptImageByteLength(imageDataUrl) {
   try {
     return imageDataUrlByteLength(imageDataUrl, maxReceiptImageBytes);
@@ -232,9 +242,11 @@ function receiptImageByteLength(imageDataUrl) {
   }
 }
 
-export function buildProductResearchPrompt({ productName, brand, visibleTitle, visibleDetails }) {
+export function buildProductResearchPrompt({ productName, brand, visibleTitle, visibleDetails, barcode = "" }) {
   return [
-    "Research this exact travel product using web search. Search the exact product and brand first; do not substitute a similar product or infer facts from the photo alone.",
+    barcode
+      ? "Research the exact product identified by this JAN/EAN/UPC barcode using web search. Search the complete barcode first and do not substitute products with a different barcode, size, flavor, or package count."
+      : "Research this exact travel product using web search. Search the exact product and brand first; do not substitute a similar product or infer facts from the photo alone.",
     "Use official manufacturer/product pages first for origin and limited-edition claims. Distinguish the manufacturer origin from the photo's location and from where the visitor can buy it. If sources do not verify origin or a limited scope, return unknown and empty evidence.",
     "For physical purchase options, search the exact product in Asahikawa independently from the product's origin area in Hokkaido. Prefer official shops, department-store listings, and established retailers. Only list a shop when a source connects that shop to this exact product or explicitly lists its category. A general nearby shop is not enough.",
     "Mark store_confirmed only when a source explicitly confirms branch stock now; product_listed means a source lists that product but does not prove current stock; otherwise use unknown. Never claim live availability.",
@@ -245,6 +257,7 @@ export function buildProductResearchPrompt({ productName, brand, visibleTitle, v
     `Visible brand: ${JSON.stringify(brand || "")}`,
     `Other visible product text: ${JSON.stringify(visibleTitle || "")}`,
     `Image-only description and visible features (clues, not verified facts): ${JSON.stringify(visibleDetails || "")}`,
+    `Exact product barcode: ${JSON.stringify(barcode || "")}`,
     "Purchase search priority: physical stores in Asahikawa, then verified stores in the product's origin area elsewhere in Hokkaido."
   ].join("\n");
 }
@@ -302,7 +315,6 @@ export async function analyzeTravelImage(imageDataUrl, analysisType, env, fetchI
   if (searchableProduct) {
     try {
       const researchResponse = await fetchImpl("https://api.openai.com/v1/responses", {
-        method: "POST",
         headers: {
           Authorization: `Bearer ${env.OPENAI_API_KEY}`,
           "Content-Type": "application/json"
@@ -459,6 +471,123 @@ export async function analyzeTravelImage(imageDataUrl, analysisType, env, fetchI
     exchangeRateDate: menuExchange?.date || "",
     exchangeRateSource: menuExchange?.source || "",
     confidence: ["high", "medium", "low"].includes(analysis.confidence) ? analysis.confidence : "low"
+  };
+}
+
+export async function analyzeProductBarcode(barcode, env, fetchImpl = fetch, exchangeRateFetch = fetch) {
+  const normalizedBarcode = normalizeProductBarcode(barcode);
+  if (!env.OPENAI_API_KEY) throw new Error("barcode_research_unavailable");
+
+  let researchedProduct;
+  let searchSources;
+  try {
+    const response = await fetchImpl("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: env.OPENAI_MODEL || "gpt-4.1-mini",
+        input: buildProductResearchPrompt({ productName: "", brand: "", visibleTitle: "", visibleDetails: "", barcode: normalizedBarcode }),
+        tools: [{ type: "web_search", search_context_size: "medium" }],
+        tool_choice: "required",
+        text: { format: travelProductResearchResponseFormat },
+        include: ["web_search_call.action.sources"],
+        max_output_tokens: 2400
+      }),
+      signal: AbortSignal.timeout(30_000)
+    });
+    if (!response.ok) throw new Error("barcode_research_unavailable");
+    const result = await response.json();
+    const outputText = (result.output || [])
+      .flatMap(item => item.content || [])
+      .filter(part => part.type === "output_text" && typeof part.text === "string")
+      .map(part => part.text)
+      .join("");
+    researchedProduct = JSON.parse(outputText);
+    searchSources = safeSources((result.output || [])
+      .filter(item => item.type === "web_search_call")
+      .flatMap(item => item.action?.sources || []));
+  } catch (error) {
+    console.error("Barcode product web research failed", { message: error.message });
+    throw new Error("barcode_research_unavailable");
+  }
+  if (!searchSources.length || typeof researchedProduct.productName !== "string" || !researchedProduct.productName.trim()) {
+    throw new Error("barcode_product_not_found");
+  }
+
+  const productCurrencies = ["JPY", "TWD", "USD", "CNY", "HKD", "KRW", "OTHER", "UNKNOWN"];
+  const referencePriceCurrency = productCurrencies.includes(researchedProduct.referencePriceCurrency)
+    ? researchedProduct.referencePriceCurrency
+    : "UNKNOWN";
+  let referencePriceMin = Number.isFinite(researchedProduct.referencePriceMin) && researchedProduct.referencePriceMin > 0
+    ? Math.round(researchedProduct.referencePriceMin)
+    : 0;
+  let referencePriceMax = Number.isFinite(researchedProduct.referencePriceMax) && researchedProduct.referencePriceMax > 0
+    ? Math.round(researchedProduct.referencePriceMax)
+    : 0;
+  if (referencePriceCurrency === "UNKNOWN" || !referencePriceMin || !referencePriceMax) {
+    referencePriceMin = 0;
+    referencePriceMax = 0;
+  } else if (referencePriceMin > referencePriceMax) {
+    [referencePriceMin, referencePriceMax] = [referencePriceMax, referencePriceMin];
+  }
+  let referenceExchange = null;
+  if (referencePriceCurrency === "JPY" && referencePriceMax > 0) {
+    try {
+      referenceExchange = await getLatestJpyTwdRate(exchangeRateFetch);
+    } catch (error) {
+      console.error("Barcode product JPY to TWD rate unavailable", { message: error.message });
+    }
+  }
+  const limitedScopes = ["asahikawa", "hokkaido", "japan", "not_limited", "unknown"];
+  const productTags = ["旭川限定", "北海道限定", "北海道特產", "特色伴手禮", "高 CP 值"];
+  const purchaseAreas = ["asahikawa", "hokkaido_other", "unknown"];
+  const availabilities = ["product_listed", "store_confirmed", "unknown"];
+  const visibleCurrency = productCurrencies.includes(researchedProduct.currency) ? researchedProduct.currency : "UNKNOWN";
+  return {
+    type: "product",
+    identificationMethod: "barcode",
+    barcode: normalizedBarcode,
+    title: typeof researchedProduct.title === "string" ? researchedProduct.title.trim().slice(0, 120) : "",
+    productName: researchedProduct.productName.trim().slice(0, 160),
+    brand: typeof researchedProduct.brand === "string" ? researchedProduct.brand.trim().slice(0, 120) : "",
+    description: typeof researchedProduct.description === "string" ? researchedProduct.description.trim().slice(0, 1200) : "",
+    features: (Array.isArray(researchedProduct.features) ? researchedProduct.features : []).filter(item => typeof item === "string").slice(0, 12).map(item => item.trim().slice(0, 240)),
+    priceText: typeof researchedProduct.priceText === "string" ? researchedProduct.priceText.trim().slice(0, 80) : "",
+    currency: visibleCurrency,
+    origin: typeof researchedProduct.origin === "string" ? researchedProduct.origin.trim().slice(0, 120) : "",
+    originStatus: researchedProduct.originStatus === "verified" ? "verified" : "unknown",
+    limitedScope: limitedScopes.includes(researchedProduct.limitedScope) ? researchedProduct.limitedScope : "unknown",
+    limitedEvidence: typeof researchedProduct.limitedEvidence === "string" ? researchedProduct.limitedEvidence.trim().slice(0, 400) : "",
+    tags: Array.isArray(researchedProduct.tags) ? [...new Set(researchedProduct.tags.filter(tag => productTags.includes(tag)))].slice(0, 4) : [],
+    oneLineFeature: typeof researchedProduct.oneLineFeature === "string" ? researchedProduct.oneLineFeature.trim().slice(0, 240) : "",
+    recommendationReason: typeof researchedProduct.recommendationReason === "string" ? researchedProduct.recommendationReason.trim().slice(0, 400) : "",
+    referencePriceMin,
+    referencePriceMax,
+    referencePriceCurrency: referencePriceMin ? referencePriceCurrency : "UNKNOWN",
+    referencePriceNote: referencePriceMin && typeof researchedProduct.referencePriceNote === "string" ? researchedProduct.referencePriceNote.trim().slice(0, 240) : "",
+    referencePriceCheckedAt: referencePriceMin ? new Date().toISOString().slice(0, 10) : "",
+    referencePriceTwdMin: referencePriceCurrency === "TWD" && referencePriceMin ? referencePriceMin : referenceExchange && referencePriceMin ? Math.round(referencePriceMin * referenceExchange.rate) : null,
+    referencePriceTwdMax: referencePriceCurrency === "TWD" && referencePriceMax ? referencePriceMax : referenceExchange && referencePriceMax ? Math.round(referencePriceMax * referenceExchange.rate) : null,
+    referenceExchangeRateDate: referenceExchange?.date || "",
+    referenceExchangeRateSource: referenceExchange?.source || "",
+    purchaseOptions: Array.isArray(researchedProduct.purchaseOptions)
+      ? researchedProduct.purchaseOptions.slice(0, 4).filter(option => typeof option?.name === "string" && option.name.trim()).map(option => ({
+        name: option.name.trim().slice(0, 120),
+        area: purchaseAreas.includes(option.area) ? option.area : "unknown",
+        address: typeof option.address === "string" ? option.address.trim().slice(0, 240) : "",
+        reason: typeof option.reason === "string" ? option.reason.trim().slice(0, 240) : "",
+        availability: availabilities.includes(option.availability) ? option.availability : "unknown"
+      }))
+      : [],
+    sources: searchSources,
+    researchStatus: "completed",
+    menuItems: [],
+    exchangeRateDate: "",
+    exchangeRateSource: "",
+    confidence: ["high", "medium", "low"].includes(researchedProduct.confidence) ? researchedProduct.confidence : "medium"
   };
 }
 
@@ -1205,6 +1334,26 @@ export async function handleRequest(request, env, ctx) {
       const unavailable = error.message === "image_analysis_unavailable";
       return jsonResponse({
         error: unavailable ? "圖片辨識服務暫時無法使用，請稍後重試。" : "無法辨識這張圖片，請確認畫面清晰後重試。"
+      }, unavailable ? 502 : 422, origin);
+    }
+  }
+  if (body?.action === "analyze_product_barcode") {
+    let barcode;
+    try {
+      barcode = normalizeProductBarcode(body.barcode);
+    } catch {
+      return jsonResponse({ error: "請掃描有效的 JAN／EAN 商品條碼。" }, 400, origin);
+    }
+    const quotaResponse = await takeDailyQuota(env, `image-analysis:${identity.email.toLowerCase()}`, maxTravelImageAnalysesPerDay);
+    if (quotaResponse.status === 429) {
+      return jsonResponse({ error: "今日商品辨識次數已達上限（50 次），請明天再試。" }, 429, origin);
+    }
+    try {
+      return jsonResponse(await analyzeProductBarcode(barcode, env), 200, origin);
+    } catch (error) {
+      const unavailable = error.message === "barcode_research_unavailable";
+      return jsonResponse({
+        error: unavailable ? "條碼商品搜尋服務暫時無法使用，請稍後重試。" : "找不到這個條碼對應的可靠商品資料。"
       }, unavailable ? 502 : 422, origin);
     }
   }

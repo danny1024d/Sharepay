@@ -4,6 +4,7 @@ import {
   buildPlaceIdentificationPrompt,
   extractGoogleMapsPlaceName,
   getKamuiMapData,
+  analyzeProductBarcode,
   analyzeTravelImage,
   findGooglePlace,
   handleRequest,
@@ -237,6 +238,56 @@ test("product image analysis returns visible product details without inventing p
   assert.deepEqual(result.sources, []);
   assert.equal(result.researchStatus, "not_searched");
   assert.equal(requestCount, 1);
+});
+
+test("barcode product analysis uses web search without searching for an image", async () => {
+  const research = {
+    title: "測試商品",
+    productName: "測試商品 100g",
+    brand: "測試品牌",
+    description: "條碼對應商品。",
+    features: ["100g 包裝"],
+    priceText: "",
+    currency: "UNKNOWN",
+    origin: "日本",
+    originStatus: "verified",
+    limitedScope: "japan",
+    limitedEvidence: "官方商品頁列出日本製。",
+    tags: [],
+    oneLineFeature: "條碼對應的 100g 商品。",
+    recommendationReason: "官方資料可確認商品規格。",
+    referencePriceMin: 0,
+    referencePriceMax: 0,
+    referencePriceCurrency: "UNKNOWN",
+    referencePriceNote: "",
+    purchaseOptions: [],
+    confidence: "high"
+  };
+  let requestBody;
+  const result = await analyzeProductBarcode("4901234567894", { OPENAI_API_KEY: "test" }, async (_url, options) => {
+    requestBody = JSON.parse(options.body);
+    return Response.json({ output: [
+      { content: [{ type: "output_text", text: JSON.stringify(research) }] },
+      { type: "web_search_call", action: { sources: [{ title: "Official product", url: "https://example.jp/product" }] } }
+    ] });
+  });
+
+  assert.match(requestBody.input, /4901234567894/);
+  assert.equal(JSON.stringify(requestBody).includes("input_image"), false);
+  assert.equal(result.identificationMethod, "barcode");
+  assert.equal(result.barcode, "4901234567894");
+  assert.equal(result.productName, "測試商品 100g");
+  assert.equal(result.researchStatus, "completed");
+  assert.equal(Object.hasOwn(result, "barcodeImageDataUrl"), false);
+});
+
+test("barcode product analysis rejects an invalid checksum before web search", async () => {
+  let requested = false;
+  await assert.rejects(analyzeProductBarcode("4901234567890", { OPENAI_API_KEY: "test" }, async () => {
+    requested = true;
+    return Response.json({});
+  }), /barcode_invalid/);
+  assert.equal(requested, false);
 });
 
 test("product image search is required after recognition and returns sourced Asahikawa options", async () => {
