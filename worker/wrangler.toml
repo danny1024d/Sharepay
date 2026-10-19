@@ -14,9 +14,6 @@ DAILY_REQUEST_LIMIT = "200"
 binding = "KAMUI_MAP_CACHE"
 id = "31ae30a853b046098f4f52aa764575ff"
 
-[triggers]
-crons = ["0 */6 * * *"]
-
 [[durable_objects.bindings]]
 name = "USER_DAILY_LIMITER"
 class_name = "UserDailyRateLimiter"

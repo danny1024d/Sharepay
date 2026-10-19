@@ -1,4 +1,5 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import { offlineSkiResortsData } from "./ski-resorts-offline-data.js";
 
 const firebaseJwks = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
@@ -29,7 +30,6 @@ const skiResorts = Object.freeze({
     cacheKey: "ski-map-data-v1:pippu"
   }
 });
-const skiMapCacheLifetimeMs = 6 * 60 * 60 * 1000;
 const kamuiOverpassEndpoints = [
   "https://overpass.openstreetmap.fr/api/interpreter",
   "https://overpass-api.de/api/interpreter"
@@ -1056,12 +1056,31 @@ export function normalizeKamuiMapElements(elements, fetchedAt = new Date().toISO
   };
 }
 
+export async function getAllSkiResortsData(fetchImpl = fetch, forceRefresh = false) {
+  const resortIds = Object.keys(skiResorts);
+  const entries = await Promise.all(resortIds.map(async resortId => {
+    const data = await getKamuiMapData(fetchImpl, forceRefresh, resortId);
+    return [resortId, data];
+  }));
+  return {
+    source: "OpenStreetMap",
+    attributionUrl: "https://www.openstreetmap.org/copyright",
+    resorts: Object.fromEntries(entries)
+  };
+}
+
 export async function getKamuiMapData(fetchImpl = fetch, forceRefresh = false, resortId = "kamui") {
+  if (resortId === "all") {
+    return getAllSkiResortsData(fetchImpl, forceRefresh);
+  }
   const resort = Object.hasOwn(skiResorts, resortId) ? skiResorts[resortId] : null;
   if (!resort) throw new Error("Unknown ski resort");
   const now = Date.now();
   const cached = cachedSkiMapData.get(resortId);
-  if (!forceRefresh && fetchImpl === fetch && cached && now < cached.expiresAt) return cached.data;
+  if (!forceRefresh && fetchImpl === fetch && cached) return cached.data;
+  if (!forceRefresh && fetchImpl === fetch && offlineSkiResortsData[resortId]) {
+    return { ...offlineSkiResortsData[resortId], resortId };
+  }
 
   const { south, west, north, east } = resort.bounds;
   const query = `[out:json][timeout:25];(way["piste:type"="downhill"](${south},${west},${north},${east});relation["piste:type"="downhill"](${south},${west},${north},${east});way["aerialway"](${south},${west},${north},${east}););out geom;`;
@@ -1092,7 +1111,7 @@ export async function getKamuiMapData(fetchImpl = fetch, forceRefresh = false, r
   }
   if (!result) throw new Error("Kamui map data unavailable");
   if (fetchImpl === fetch) {
-    cachedSkiMapData.set(resortId, { data: result, expiresAt: now + skiMapCacheLifetimeMs });
+    cachedSkiMapData.set(resortId, { data: result });
   }
   return result;
 }
@@ -1101,15 +1120,36 @@ async function refreshKamuiMapCache(env, resortId = "kamui", fetchImpl = fetch) 
   const resort = Object.hasOwn(skiResorts, resortId) ? skiResorts[resortId] : null;
   if (!resort) throw new Error("Unknown ski resort");
   const data = await getKamuiMapData(fetchImpl, true, resortId);
-  await env.KAMUI_MAP_CACHE.put(resort.cacheKey, JSON.stringify({ savedAt: Date.now(), data }));
+  if (env?.KAMUI_MAP_CACHE) {
+    await env.KAMUI_MAP_CACHE.put(resort.cacheKey, JSON.stringify({ savedAt: Date.now(), data }));
+  }
   return data;
 }
 
+export async function serveAllSkiResortsData(env, ctx, fetchImpl = fetch) {
+  const resortIds = Object.keys(skiResorts);
+  const entries = await Promise.all(resortIds.map(async resortId => {
+    const data = await serveKamuiMapData(env, ctx, fetchImpl, resortId);
+    return [resortId, data];
+  }));
+  return {
+    source: "OpenStreetMap",
+    attributionUrl: "https://www.openstreetmap.org/copyright",
+    resorts: Object.fromEntries(entries)
+  };
+}
+
 export async function serveKamuiMapData(env, ctx, fetchImpl = fetch, resortId = "kamui") {
+  if (resortId === "all") {
+    return serveAllSkiResortsData(env, ctx, fetchImpl);
+  }
   const resort = Object.hasOwn(skiResorts, resortId) ? skiResorts[resortId] : null;
   if (!resort) throw new Error("Unknown ski resort");
-  const cache = env.KAMUI_MAP_CACHE;
-  if (!cache) return getKamuiMapData(fetchImpl, false, resortId);
+  const cache = env?.KAMUI_MAP_CACHE;
+  if (!cache) {
+    if (offlineSkiResortsData[resortId]) return { ...offlineSkiResortsData[resortId], resortId };
+    return getKamuiMapData(fetchImpl, false, resortId);
+  }
 
   let cachedRecord;
   try {
@@ -1119,21 +1159,17 @@ export async function serveKamuiMapData(env, ctx, fetchImpl = fetch, resortId = 
   }
 
   if (cachedRecord?.data) {
-    const isFresh = Date.now() - cachedRecord.savedAt < skiMapCacheLifetimeMs;
-    if (isFresh) return cachedRecord.data;
-    const refresh = refreshKamuiMapCache(env, resortId, fetchImpl).catch(error => {
-      console.error("Ski resort OSM cache refresh failed", { resortId, message: error.message });
-    });
-    if (ctx?.waitUntil) {
-      ctx.waitUntil(refresh);
-      return { ...cachedRecord.data, stale: true };
-    }
+    return cachedRecord.data;
+  }
+
+  if (offlineSkiResortsData[resortId]) {
+    const data = { ...offlineSkiResortsData[resortId], resortId };
     try {
-      return await refreshKamuiMapCache(env, resortId, fetchImpl);
+      await cache.put(resort.cacheKey, JSON.stringify({ savedAt: Date.now(), data }));
     } catch (error) {
-      console.error("Ski resort OSM cache refresh failed", { resortId, message: error.message });
-      return { ...cachedRecord.data, stale: true };
+      console.error("Ski resort OSM cache write failed", { resortId, message: error.message });
     }
+    return data;
   }
 
   return refreshKamuiMapCache(env, resortId, fetchImpl);
@@ -1364,13 +1400,16 @@ export async function handleRequest(request, env, ctx) {
       }, unavailable ? 502 : 422, origin);
     }
   }
-  if (body?.action === "kamui_map_data") {
-    const resortId = body.resortId || "kamui";
-    if (typeof resortId !== "string" || !Object.hasOwn(skiResorts, resortId)) {
+  if (body?.action === "kamui_map_data" || body?.action === "ski_map_data") {
+    const resortId = body.resortId;
+    if (resortId && resortId !== "all" && !Object.hasOwn(skiResorts, resortId)) {
       return jsonResponse({ error: "Unknown ski resort." }, 400, origin);
     }
     try {
-      return jsonResponse(await serveKamuiMapData(env, ctx, fetch, resortId), 200, origin);
+      if (resortId && resortId !== "all") {
+        return jsonResponse(await serveKamuiMapData(env, ctx, fetch, resortId), 200, origin);
+      }
+      return jsonResponse(await serveAllSkiResortsData(env, ctx, fetch), 200, origin);
     } catch {
       return jsonResponse({ error: "Ski resort map data is temporarily unavailable." }, 503, origin);
     }
@@ -1521,13 +1560,5 @@ export class UserDailyRateLimiter {
 
 export default {
   fetch: handleRequest,
-  scheduled(_controller, env, ctx) {
-    ctx.waitUntil(Promise.all(Object.keys(skiResorts).map(async resortId => {
-      try {
-        await refreshKamuiMapCache(env, resortId);
-      } catch (error) {
-        console.error("Scheduled ski resort OSM refresh failed", { resortId, message: error.message });
-      }
-    })));
-  }
+  scheduled() {}
 };

@@ -15,7 +15,7 @@ const skiResorts = {
     subtitle: "Kamui Ski Links・旭川",
     center: { lat: 43.7007, lng: 142.1995 },
     zoom: 14,
-     heading: 120,
+    heading: 120,
     officialUrl: "https://www.kamui-skilinks.com/today/",
     officialLabel: "官方本日營業內容",
     courseMapUrl: "https://www.kamui-skilinks.com/today/#coursemap"
@@ -25,7 +25,7 @@ const skiResorts = {
     subtitle: "Santa Present Park・旭川",
     center: { lat: 43.7585, lng: 142.2992 },
     zoom: 14,
-     heading: 224,
+    heading: 224,
     officialUrl: "https://www.asahikawasantapresentpark.com/",
     officialLabel: "雪場官方網站",
     courseMapUrl: ""
@@ -35,7 +35,7 @@ const skiResorts = {
     subtitle: "ぴっぷスキー場・比布町",
     center: { lat: 43.934, lng: 142.5015 },
     zoom: 14,
-     heading: 68,
+    heading: 68,
     officialUrl: "https://www.town.pippu.hokkaido.jp/",
     officialLabel: "比布町官方網站",
     courseMapUrl: ""
@@ -96,7 +96,7 @@ function fitKamuiMapView(features, resortId = selectedResortId) {
 
   map.setCenter(center);
   map.setZoom(zoom);
-    map.setHeading(headingDegrees);
+  map.setHeading(headingDegrees);
 }
 
 function updateSelectedResortLabels() {
@@ -188,7 +188,7 @@ function renderLiftList(features) {
     .map(feature => [feature.name, feature])).values()]
     .sort((left, right) => left.name.localeCompare(right.name, "ja"));
   liftList.innerHTML = lifts.length
-     ? lifts.map(lift => `<li><span class="kamui-lift-name" title="${escapeHtml(lift.name)}">${escapeHtml(lift.name)}</span><span class="kamui-lift-state">開放與收班待確認</span></li>`).join("")
+    ? lifts.map(lift => `<li><span class="kamui-lift-name" title="${escapeHtml(lift.name)}">${escapeHtml(lift.name)}</span><span class="kamui-lift-state">開放與收班待確認</span></li>`).join("")
     : `<li class="kamui-empty">目前圖資沒有標記纜車路線。</li>`;
 }
 
@@ -240,7 +240,7 @@ function locateSelectedResort() {
   } else {
     map.setCenter(resort.center);
     map.setZoom(resort.zoom);
-      map.setHeading(resort.heading);
+    map.setHeading(resort.heading);
   }
   mapStatus.textContent = `已回到${resort.name}。`;
 }
@@ -255,6 +255,35 @@ function escapeHtml(value = "") {
   })[character]);
 }
 
+const offlineStorageKey = "sharepay_ski_map_data_v1";
+let allSkiResortsData = null;
+
+function getStoredSkiMapData() {
+  if (allSkiResortsData) return allSkiResortsData;
+  try {
+    const raw = localStorage.getItem(offlineStorageKey);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object" && (parsed.kamui || parsed.resorts?.kamui)) {
+        allSkiResortsData = parsed.resorts || parsed;
+        return allSkiResortsData;
+      }
+    }
+  } catch (error) {
+    console.error("無法讀取本機離線雪場圖資", error);
+  }
+  return null;
+}
+
+function saveStoredSkiMapData(data) {
+  allSkiResortsData = data;
+  try {
+    localStorage.setItem(offlineStorageKey, JSON.stringify(data));
+  } catch (error) {
+    console.error("無法儲存離線雪場圖資至本機快取", error);
+  }
+}
+
 async function loadKamuiMap() {
   const requestId = ++mapRequestId;
   const resortId = selectedResortId;
@@ -264,7 +293,7 @@ async function loadKamuiMap() {
   mapStatus.textContent = `正在載入${resort.name}雪道與纜車圖資…`;
   try {
     await loadGoogleMaps();
-    const { Map, InfoWindow, Polyline } = await google.maps.importLibrary("maps");
+    const { Map, InfoWindow } = await google.maps.importLibrary("maps");
     if (!map) {
       map = new Map(document.getElementById("kamui-map"), {
         center: resort.center,
@@ -310,9 +339,34 @@ async function loadKamuiMap() {
 
   try {
     const { Polyline } = await google.maps.importLibrary("maps");
-    const data = await requestKamuiMapData({ user: currentUser, resortId });
+    let resortsBundle = getStoredSkiMapData();
+    if (!resortsBundle) {
+      mapStatus.textContent = "正在下載雪場離線圖資（含三個雪場）…";
+      try {
+        const response = await requestKamuiMapData({ user: currentUser, resortId: "all" });
+        resortsBundle = response.resorts || response;
+        saveStoredSkiMapData(resortsBundle);
+      } catch (workerError) {
+        try {
+          const fallbackRes = await fetch("./ski-resorts-offline-data.json");
+          if (fallbackRes.ok) {
+            const fallbackJson = await fallbackRes.json();
+            resortsBundle = fallbackJson.resorts || fallbackJson;
+            saveStoredSkiMapData(resortsBundle);
+          } else {
+            throw workerError;
+          }
+        } catch {
+          throw workerError;
+        }
+      }
+    }
     if (!isCurrentRequest()) return;
-    if (!data.features.length) throw new Error("目前沒有可顯示的路線細節。");
+
+    const data = resortsBundle?.[resortId];
+    if (!data || !Array.isArray(data.features) || !data.features.length) {
+      throw new Error("目前沒有可顯示的路線細節。");
+    }
 
     mapLines.forEach(line => line.setMap(null));
     mapLines = [];
@@ -327,9 +381,8 @@ async function loadKamuiMap() {
 
     const pistes = data.features.filter(feature => feature.kind === "piste").length;
     const lifts = data.features.filter(feature => feature.kind === "lift").length;
-    const fetchedAt = new Date(data.fetchedAt).toLocaleString("zh-TW", { dateStyle: "short", timeStyle: "short" });
-    const cacheLabel = data.stale ? "（使用快取資料）" : "";
-    mapStatus.textContent = `雪道線段 ${pistes} 條・纜車路線 ${lifts} 條｜OSM 查詢 ${fetchedAt}${cacheLabel}`;
+    const fetchedAt = data.fetchedAt ? new Date(data.fetchedAt).toLocaleString("zh-TW", { dateStyle: "short", timeStyle: "short" }) : "";
+    mapStatus.textContent = `雪道線段 ${pistes} 條・纜車路線 ${lifts} 條`;
     renderLiftList(data.features);
     renderIcons();
   } catch (error) {
@@ -364,7 +417,13 @@ function switchSkiResort(resortId) {
   void loadKamuiMap();
 }
 
-mapRetry.addEventListener("click", () => void loadKamuiMap());
+mapRetry.addEventListener("click", () => {
+  allSkiResortsData = null;
+  try {
+    localStorage.removeItem(offlineStorageKey);
+  } catch { }
+  void loadKamuiMap();
+});
 document.getElementById("kamui-current-location").addEventListener("click", locateCurrentPosition);
 document.getElementById("kamui-locate").addEventListener("click", locateSelectedResort);
 resortSelector.addEventListener("change", () => switchSkiResort(resortSelector.value));

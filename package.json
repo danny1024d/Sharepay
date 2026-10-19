@@ -14,6 +14,8 @@
     "build:css": "tailwindcss -i ./public/tailwind.input.css -o ./public/tailwind.generated.css --minify",
     "build": "npm run build:css && npm run vite -- build",
     "test:ledger": "node --test test/ledger-math.test.js",
+    "test": "npm run test:ledger && npm --prefix worker test",
+    "download:maps": "node ./scripts/download-ski-maps.mjs",
     "preview": "npm run vite -- preview --host 0.0.0.0 --port 4173 --strictPort",
     "deploy": "npm run build && firebase deploy --only hosting,firestore:rules"
   },

@@ -18,6 +18,7 @@ import {
   placeLookupFailure,
   parseReceiptDraft,
   placesTextSearchBody,
+  serveAllSkiResortsData,
   serveKamuiMapData,
   translatePlaceIntroduction,
   resolveGoogleMapsShareUrl,
@@ -860,31 +861,70 @@ test("each ski resort reads its own KV snapshot", async () => {
   assert.deepEqual(requestedKeys, [...snapshots.keys()]);
 });
 
-test("serves stale Kamui KV data immediately and refreshes in the background", async () => {
+test("serves offline KV snapshot directly without refreshing or downloading latest version", async () => {
   const snapshot = { source: "OpenStreetMap", fetchedAt: "2026-01-01T00:00:00.000Z", features: [{ id: "way-1" }] };
-  let savedRecord = { savedAt: Date.now() - 7 * 60 * 60 * 1000, data: snapshot };
+  const savedRecord = { savedAt: Date.now() - 7 * 60 * 60 * 1000, data: snapshot };
   const tasks = [];
   const cache = {
     get: async () => savedRecord,
-    put: async (_key, value) => { savedRecord = JSON.parse(value); }
+    put: async () => { throw new Error("Should not write or refresh in offline mode"); }
   };
   const ctx = { waitUntil: task => tasks.push(task) };
-  const result = await serveKamuiMapData({ KAMUI_MAP_CACHE: cache }, ctx, async () => Response.json({ elements: [
-    { type: "way", id: 2, tags: { name: "Piste", "piste:type": "downhill" }, geometry: [{ lat: 43.7, lon: 142.2 }, { lat: 43.71, lon: 142.21 }] }
-  ] }));
+  let queriedOverpass = false;
+  const result = await serveKamuiMapData({ KAMUI_MAP_CACHE: cache }, ctx, async () => {
+    queriedOverpass = true;
+    throw new Error("Overpass should not be queried when offline KV snapshot exists");
+  });
 
-  assert.equal(result.stale, true);
+  assert.equal(queriedOverpass, false);
+  assert.equal(tasks.length, 0);
   assert.deepEqual(result.features, snapshot.features);
-  assert.equal(tasks.length, 1);
-  await Promise.all(tasks);
-  assert.equal(savedRecord.data.features[0].id, "way-2");
 });
 
-test("keeps serving stale Kamui KV data when Overpass refresh fails", async () => {
-  const snapshot = { source: "OpenStreetMap", fetchedAt: "2026-01-01T00:00:00.000Z", features: [{ id: "way-1" }] };
-  const cache = { get: async () => ({ savedAt: Date.now() - 7 * 60 * 60 * 1000, data: snapshot }) };
-  const result = await serveKamuiMapData({ KAMUI_MAP_CACHE: cache }, undefined, async () => new Response("Unavailable", { status: 503 }));
+test("serves all three ski resorts at once in offline mode", async () => {
+  const snapshots = new Map([
+    ["ski-map-data-v3:kamui", { resortId: "kamui", features: [{ id: "kamui-1" }] }],
+    ["ski-map-data-v1:santa-present-park", { resortId: "santa-present-park", features: [{ id: "santa-1" }] }],
+    ["ski-map-data-v1:pippu", { resortId: "pippu", features: [{ id: "pippu-1" }] }]
+  ]);
+  const cache = {
+    get: async key => ({ savedAt: Date.now(), data: snapshots.get(key) })
+  };
+  const result = await serveAllSkiResortsData({ KAMUI_MAP_CACHE: cache });
+  assert.equal(result.source, "OpenStreetMap");
+  assert.ok(result.resorts.kamui);
+  assert.ok(result.resorts["santa-present-park"]);
+  assert.ok(result.resorts.pippu);
+  assert.equal(result.resorts.kamui.features[0].id, "kamui-1");
+  assert.equal(result.resorts["santa-present-park"].features[0].id, "santa-1");
+  assert.equal(result.resorts.pippu.features[0].id, "pippu-1");
+});
 
-  assert.equal(result.stale, true);
-  assert.deepEqual(result.features, snapshot.features);
+test("falls back to bundled offline data when KV is empty without querying Overpass", async () => {
+  let putKey = null;
+  const cache = {
+    get: async () => null,
+    put: async (key, _val) => { putKey = key; }
+  };
+  let queriedOverpass = false;
+  const result = await serveKamuiMapData({ KAMUI_MAP_CACHE: cache }, undefined, async () => {
+    queriedOverpass = true;
+    throw new Error("Overpass should not be queried when bundled offline data is available");
+  }, "kamui");
+
+  assert.equal(queriedOverpass, false);
+  assert.equal(result.resortId, "kamui");
+  assert.ok(result.features.length > 0);
+  assert.equal(putKey, "ski-map-data-v3:kamui");
+});
+
+test("getKamuiMapData with 'all' returns all three ski resorts at once", async () => {
+  const result = await getKamuiMapData(undefined, false, "all");
+  assert.equal(result.source, "OpenStreetMap");
+  assert.ok(result.resorts.kamui);
+  assert.ok(result.resorts["santa-present-park"]);
+  assert.ok(result.resorts.pippu);
+  assert.ok(result.resorts.kamui.features.length > 0);
+  assert.ok(result.resorts["santa-present-park"].features.length > 0);
+  assert.ok(result.resorts.pippu.features.length > 0);
 });

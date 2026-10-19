@@ -68,7 +68,7 @@ export async function requestPlaceCoordinates({ user, name, address, mapsUrl, pl
   return result;
 }
 
-export async function requestKamuiMapData({ user, resortId = "kamui" }) {
+export async function requestKamuiMapData({ user, resortId = "all" } = {}) {
   if (!user || typeof user.getIdToken !== "function") throw new Error("Sign-in required.");
   const token = await user.getIdToken();
   const response = await fetch(workerUrl, {
@@ -80,9 +80,18 @@ export async function requestKamuiMapData({ user, resortId = "kamui" }) {
     body: JSON.stringify({ action: "kamui_map_data", resortId })
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.error || "Kamui map data is temporarily unavailable.");
-  if (result.source !== "OpenStreetMap" || !Array.isArray(result.features)) {
-    throw new Error("Kamui map data response was invalid.");
+  if (!response.ok) throw new Error(result.error || "滑雪場圖資暫時無法使用。");
+  if (result.source !== "OpenStreetMap") {
+    throw new Error("滑雪場圖資回應格式不正確。");
+  }
+  if (resortId === "all" || !resortId) {
+    if (!result.resorts || typeof result.resorts !== "object") {
+      throw new Error("滑雪場離線圖資格式不正確。");
+    }
+    return result;
+  }
+  if (!Array.isArray(result.features)) {
+    throw new Error("滑雪場圖資回應格式不正確。");
   }
   return result;
 }
