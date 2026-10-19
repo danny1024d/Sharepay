@@ -7,6 +7,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   getFirestore,
   limit,
   onSnapshot,
@@ -18,11 +19,20 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { allowedEmails, appName, firebaseConfig, googleMapsApiKey } from "./firebase-config.js";
 import { renderIcons } from "./icons.js";
-import { requestPlaceCoordinates, requestProductBarcodeAnalysis, requestReceiptDraft, requestTravelImageAnalysis } from "./ai-client.js";
+import { requestJpyTwdRate, requestPlaceCoordinates, requestProductBarcodeAnalysis, requestReceiptDraft, requestTravelImageAnalysis } from "./ai-client.js";
+import { calculateLedger, normalizeAmount, remapMemberId, remapSplitWeights, settlementTransfers } from "./ledger-math.js";
 
-const people = ["高", "n"];
+const legacyMembers = [
+  { id: "legacy-high", name: "高", legacyName: "高", legacyRatioKey: "high" },
+  { id: "legacy-n", name: "n", legacyName: "n", legacyRatioKey: "n" }
+];
+const legacyAccountIds = {
+  "legacy-high": "zzdanny781024@gmail.com",
+  "legacy-n": "ben155373@gmail.com"
+};
+let members = legacyMembers;
 const categories = ["住宿", "餐費", "交通", "滑雪", "雜支"];
-const state = { expenses: [], payments: [], places: [], imageAnalyses: [], imageAnalysisMode: "menu", imageAnalysisBusyMode: "", imageAnalysisStatus: "", imageAnalysisStatusTone: "text-slate-600", imageAnalysisStatusMode: "menu", expensePayer: "高", paymentPayer: "高", placeTagFilter: null, placeView: "list", settlementDirty: true };
+const state = { expenses: [], payments: [], places: [], imageAnalyses: [], imageAnalysisMode: "menu", imageAnalysisBusyMode: "", imageAnalysisStatus: "", imageAnalysisStatusTone: "text-slate-600", imageAnalysisStatusMode: "menu", expensePayerId: legacyMembers[0].id, paymentPayerId: legacyMembers[0].id, paymentDebtorId: legacyMembers[1].id, placeTagFilter: null, placeView: "list", settlementDirty: true };
 const googlePlaceCoordinateLifetimeMs = 30 * 24 * 60 * 60 * 1000;
 const currency = new Intl.NumberFormat("zh-TW");
 const isConfigured = !Object.values(firebaseConfig).some(value => value.includes("YOUR_"));
@@ -46,6 +56,7 @@ let imageAnalysisStatus = "";
 let imageAnalysisStatusTone = "text-slate-600";
 let imageAnalysisRequested = false;
 let imageAnalysisSubscribed = false;
+let dialogsReady = false;
 let imageViewerScale = 1;
 let imageViewerOffsetX = 0;
 let imageViewerOffsetY = 0;
@@ -56,6 +67,10 @@ let placesListenerStarted = false;
 const refreshingGooglePlaces = new Set();
 const imageAnalysisThumbnailCache = new Map();
 const loadingImageAnalysisThumbnails = new Set();
+const jpyTwdRateCacheKey = "sharepay-jpy-twd-rate";
+let calculatorYen = "0";
+let calculatorExchange = null;
+let calculatorRateLoading = false;
 
 function tripCollection(type) {
   return collection(database, "ledgers", appName, "trips", activeTripId, type);
@@ -65,12 +80,175 @@ function tripDocument(type, id, ...segments) {
   return doc(database, "ledgers", appName, "trips", activeTripId, type, id, ...segments);
 }
 
+function cachedJpyTwdRate() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(jpyTwdRateCacheKey));
+    return Number.isFinite(cached?.rate) && cached.rate > 0 && typeof cached.date === "string" ? cached : null;
+  } catch {
+    return null;
+  }
+}
+
+function renderCurrencyCalculator() {
+  const yenOutput = document.getElementById("currency-jpy-amount");
+  const twdOutput = document.getElementById("currency-twd-amount");
+  const rateStatus = document.getElementById("currency-rate-status");
+  if (!yenOutput || !twdOutput || !rateStatus) return;
+  const yen = Number(calculatorYen);
+  yenOutput.textContent = currency.format(yen);
+  yenOutput.dataset.digits = String(calculatorYen.length);
+  twdOutput.textContent = calculatorExchange ? currency.format(Math.round(yen * calculatorExchange.rate)) : "—";
+  twdOutput.dataset.digits = String(twdOutput.textContent.length);
+  if (calculatorRateLoading) {
+    rateStatus.textContent = calculatorExchange ? "正在確認最新匯率…" : "正在取得最新匯率…";
+    rateStatus.dataset.tone = "loading";
+  } else if (calculatorExchange) {
+    const prefix = calculatorExchange.cached ? "使用上次匯率" : "匯率更新";
+    rateStatus.textContent = `${prefix} ${calculatorExchange.date} · ¥1 = NT$${calculatorExchange.rate.toFixed(4)}`;
+    rateStatus.dataset.tone = calculatorExchange.cached ? "warning" : "ready";
+  }
+}
+
+async function loadJpyTwdRate({ force = false } = {}) {
+  if (calculatorRateLoading || calculatorExchange && !force && !calculatorExchange.cached) return;
+  const cached = cachedJpyTwdRate();
+  if (!calculatorExchange && cached) calculatorExchange = { ...cached, cached: true };
+  calculatorRateLoading = true;
+  renderCurrencyCalculator();
+  try {
+    const exchange = await requestJpyTwdRate({ user: currentUser });
+    calculatorExchange = { ...exchange, cached: false };
+    localStorage.setItem(jpyTwdRateCacheKey, JSON.stringify(exchange));
+  } catch (error) {
+    calculatorExchange = calculatorExchange || (cached ? { ...cached, cached: true } : null);
+    const rateStatus = document.getElementById("currency-rate-status");
+    if (!calculatorExchange && rateStatus) {
+      rateStatus.textContent = error.message || "日圓匯率暫時無法取得，請稍後重試。";
+      rateStatus.dataset.tone = "error";
+    }
+  } finally {
+    calculatorRateLoading = false;
+    renderCurrencyCalculator();
+  }
+}
+
+function updateCalculatorInput(action, value = "") {
+  if (action === "clear") calculatorYen = "0";
+  if (action === "backspace") calculatorYen = calculatorYen.length > 1 ? calculatorYen.slice(0, -1) : "0";
+  if (action === "append") {
+    const next = calculatorYen === "0" ? value.replace(/^0+/, "") || "0" : `${calculatorYen}${value}`;
+    calculatorYen = next.slice(0, 10);
+  }
+  renderCurrencyCalculator();
+}
+
+function setupCurrencyCalculator() {
+  const dialog = document.getElementById("currency-calculator-dialog");
+  const trigger = document.getElementById("currency-calculator-open");
+  if (!dialog || !trigger) return;
+  trigger.addEventListener("click", () => {
+    dialog.showModal();
+    renderCurrencyCalculator();
+    loadJpyTwdRate();
+  });
+  dialog.querySelector("[data-currency-close]").addEventListener("click", () => dialog.close());
+  dialog.querySelector("[data-currency-refresh]").addEventListener("click", () => loadJpyTwdRate({ force: true }));
+  dialog.querySelectorAll("[data-currency-key]").forEach(button => button.addEventListener("click", () => {
+    updateCalculatorInput(button.dataset.action, button.dataset.value);
+  }));
+  document.addEventListener("keydown", event => {
+    if (!dialog.open) return;
+    if (/^\d$/.test(event.key)) updateCalculatorInput("append", event.key);
+    else if (event.key === "Backspace") updateCalculatorInput("backspace");
+    else if (event.key === "Delete") updateCalculatorInput("clear");
+    else return;
+    event.preventDefault();
+  });
+}
+
+function validTripMembers(value) {
+  if (!Array.isArray(value) || value.length < 2) return null;
+  const normalized = value.map(member => ({ ...member, id: String(member?.id || "").trim(), name: String(member?.name || "").trim() }));
+  if (normalized.some(member => !member.id || !member.name)) return null;
+  if (new Set(normalized.map(member => member.id)).size !== normalized.length) return null;
+  return normalized;
+}
+
+async function commitMigrationUpdates(updates) {
+  for (let offset = 0; offset < updates.length; offset += 450) {
+    const batch = writeBatch(database);
+    updates.slice(offset, offset + 450).forEach(({ reference, fields }) => batch.update(reference, fields));
+    await batch.commit();
+  }
+}
+
+async function migrateTripLedger(tripReference, tripSnapshot) {
+  const tripData = tripSnapshot.data();
+  members = validTripMembers(tripData.members) || legacyMembers.map(member => ({ ...member }));
+  const [expenseSnapshot, paymentSnapshot, profileSnapshot] = await Promise.all([
+    getDocs(tripCollection("expenses")),
+    getDocs(tripCollection("payments")),
+    getDocs(collection(database, "ledgers", appName, "users"))
+  ]);
+  const profiles = new Map(profileSnapshot.docs.map(profileDocument => {
+    const profile = profileDocument.data();
+    return [String(profile.email || profileDocument.id).toLowerCase(), profile];
+  }));
+  members = members.map(member => {
+    const mappedId = remapMemberId(member.id, legacyAccountIds);
+    const email = String(member.email || (String(mappedId).includes("@") ? mappedId : "")).toLowerCase();
+    const profile = profiles.get(email);
+    if (!profile && mappedId === member.id) return member;
+    return {
+      ...member,
+      id: mappedId,
+      email,
+      name: profile?.displayName?.trim() || (mappedId !== member.id ? email.replace(/@gmail\.com$/i, "") : member.name),
+      photoURL: profile?.photoURL || member.photoURL || ""
+    };
+  });
+  const updates = [];
+  expenseSnapshot.docs.forEach(expenseDocument => {
+    const entry = expenseDocument.data();
+    const remappedEntry = {
+      ...entry,
+      payerId: remapMemberId(entry.payerId, legacyAccountIds),
+      splitWeights: remapSplitWeights(entry.splitWeights, legacyAccountIds)
+    };
+    const normalized = normalizeExpense(remappedEntry);
+    const fields = {};
+    if (entry.payerId !== normalized.payerId) fields.payerId = normalized.payerId;
+    const hasLegacySplitWeights = Object.keys(entry.splitWeights || {}).some(memberId => legacyAccountIds[memberId]);
+    if (!entry.splitWeights || hasLegacySplitWeights || !members.some(member => Number(entry.splitWeights[member.id]) > 0)) fields.splitWeights = normalized.splitWeights;
+    if (Object.keys(fields).length) updates.push({ reference: expenseDocument.ref, fields });
+  });
+  paymentSnapshot.docs.forEach(paymentDocument => {
+    const entry = paymentDocument.data();
+    const normalized = normalizePayment({
+      ...entry,
+      payerId: remapMemberId(entry.payerId, legacyAccountIds),
+      debtorId: remapMemberId(entry.debtorId, legacyAccountIds)
+    });
+    const fields = {};
+    if (entry.payerId !== normalized.payerId) fields.payerId = normalized.payerId;
+    if (entry.debtorId !== normalized.debtorId) fields.debtorId = normalized.debtorId;
+    if (Object.keys(fields).length) updates.push({ reference: paymentDocument.ref, fields });
+  });
+  await commitMigrationUpdates(updates);
+  await setDoc(tripReference, {
+    members,
+    schemaVersion: Math.max(2, Number(tripData.schemaVersion) || 0),
+    memberMigrationVersion: 1,
+    legacyAccountMigrationVersion: 1
+  }, { merge: true });
+}
+
 function isAllowed(email) {
   return Boolean(email) && allowedEmails.some(value => value.toLowerCase() === email.toLowerCase());
 }
 
 function amount(value) {
-  return Math.max(0, Math.round(Number(value) || 0));
+  return normalizeAmount(value);
 }
 
 function formatted(value) {
@@ -106,6 +284,63 @@ function expenseTotal(expense) {
   return categories.reduce((total, category) => total + amount(expense.items?.[category]), 0);
 }
 
+function memberName(memberId) {
+  const name = members.find(member => member.id === memberId)?.name || "未知成員";
+  return name.replace(/@gmail\.com$/i, "");
+}
+
+function memberAvatar(memberId, sizeClasses = "h-7 w-7 text-xs") {
+  const member = members.find(candidate => candidate.id === memberId);
+  const name = memberName(memberId);
+  const memberIndex = Math.max(0, members.findIndex(candidate => candidate.id === memberId));
+  const content = member?.photoURL
+    ? `<img src="${escapeHtml(member.photoURL)}" alt="" referrerpolicy="no-referrer" class="h-full w-full object-cover" />`
+    : escapeHtml(name.slice(0, 1).toUpperCase());
+  return `<span class="${sizeClasses} inline-grid shrink-0 place-items-center overflow-hidden rounded-full font-bold text-white ring-1 ring-white/80" style="background:${memberAccent(memberIndex)}" aria-hidden="true">${content}</span>`;
+}
+
+function memberIdentity(memberId, sizeClasses = "h-7 w-7 text-xs") {
+  return `<span class="inline-flex min-w-0 items-center gap-2">${memberAvatar(memberId, sizeClasses)}<span class="truncate">${escapeHtml(memberName(memberId))}</span></span>`;
+}
+
+function legacyMemberId(name) {
+  return members.find(member => member.legacyName === name || member.name === name)?.id || null;
+}
+
+function normalizedSplitWeights(expense) {
+  if (expense.splitWeights && members.some(member => Number(expense.splitWeights[member.id]) > 0)) {
+    return Object.fromEntries(members.map(member => [member.id, Math.max(0, Number(expense.splitWeights[member.id]) || 0)]));
+  }
+  if (expense.ratios && members.length === 2) {
+    return {
+      [members[0].id]: Math.max(1, amount(expense.ratios.high)),
+      [members[1].id]: Math.max(1, amount(expense.ratios.n))
+    };
+  }
+  return Object.fromEntries(members.map(member => [member.id, 1]));
+}
+
+function normalizeExpense(entry) {
+  const payerId = members.some(member => member.id === entry.payerId)
+    ? entry.payerId
+    : legacyMemberId(entry.payer) || members[0].id;
+  return {
+    ...entry,
+    payerId,
+    splitWeights: normalizedSplitWeights(entry)
+  };
+}
+
+function normalizePayment(entry) {
+  const payerId = members.some(member => member.id === entry.payerId)
+    ? entry.payerId
+    : legacyMemberId(entry.payer) || members[0].id;
+  const debtorId = members.some(member => member.id === entry.debtorId)
+    ? entry.debtorId
+    : legacyMemberId(entry.debtor) || members.find(member => member.id !== payerId)?.id || members[0].id;
+  return { ...entry, payerId, debtorId };
+}
+
 function updateExpenseTotalPreview() {
   const dialog = document.getElementById("expense-dialog");
   const itemInputs = [...dialog.querySelectorAll('input[type="number"]')].slice(0, categories.length);
@@ -113,42 +348,8 @@ function updateExpenseTotalPreview() {
   document.getElementById("expense-total-preview").textContent = formatted(total);
 }
 
-function expenseShares(expense) {
-  const total = expenseTotal(expense);
-  const highRatio = amount(expense.ratios?.high) || 1;
-  const nRatio = amount(expense.ratios?.n) || 1;
-  const high = Math.round(total * highRatio / (highRatio + nRatio));
-  return { "高": high, n: total - high };
-}
-
 function calculation() {
-  const paid = { "高": 0, n: 0 };
-  const owed = { "高": 0, n: 0 };
-  const categoryTotals = Object.fromEntries(categories.map(category => [category, { "高": 0, n: 0 }]));
-  const paymentNet = { "高": 0, n: 0 };
-
-  state.expenses.forEach(expense => {
-    const shares = expenseShares(expense);
-    paid[expense.payer] += expenseTotal(expense);
-    people.forEach(person => { owed[person] += shares[person]; });
-    categories.forEach(category => {
-      const categoryValue = amount(expense.items?.[category]);
-      const ratioTotal = (amount(expense.ratios?.high) || 1) + (amount(expense.ratios?.n) || 1);
-      const highShare = Math.round(categoryValue * (amount(expense.ratios?.high) || 1) / ratioTotal);
-      categoryTotals[category]["高"] += highShare;
-      categoryTotals[category].n += categoryValue - highShare;
-    });
-  });
-
-  state.payments.forEach(payment => {
-    paymentNet[payment.payer] += amount(payment.amount);
-    paymentNet[payment.debtor] -= amount(payment.amount);
-  });
-  const balance = {
-    "高": paid["高"] - owed["高"] + paymentNet["高"],
-    n: paid.n - owed.n + paymentNet.n
-  };
-  return { paid, owed, categoryTotals, paymentNet, balance };
+  return calculateLedger({ members, expenses: state.expenses, payments: state.payments, categories });
 }
 
 function render({ expenses = true, payments = true } = {}) {
@@ -163,8 +364,20 @@ function render({ expenses = true, payments = true } = {}) {
   } else {
     state.settlementDirty = true;
   }
-  document.querySelector("header .text-2xl").textContent = formatted(Math.abs(totals.balance["高"]));
-  document.querySelector("header .text-lg").textContent = totals.balance["高"] >= 0 ? "n -> 高" : "高 -> n";
+  const transfers = settlementTransfers(totals.balance, members);
+  const settlementAmount = transfers.reduce((sum, transfer) => sum + transfer.amount, 0);
+  document.querySelector("header .text-2xl").textContent = formatted(settlementAmount);
+  document.querySelector("header .text-lg").textContent = transfers.length === 0
+    ? "目前已結清"
+    : transfers.length === 1
+      ? `${memberName(transfers[0].fromId)} → ${memberName(transfers[0].toId)}`
+      : `${transfers.length} 筆待結算`;
+}
+
+function splitSummary(expense) {
+  const entries = members.map(member => [memberName(member.id), amount(expense.splitWeights?.[member.id])]).filter(([, weight]) => weight > 0);
+  if (entries.length === members.length && entries.every(([, weight]) => weight === entries[0][1])) return `${members.length} 人平均分攤`;
+  return entries.map(([name, weight]) => `${name} ${weight}`).join(" : ");
 }
 
 function renderExpenses(totals) {
@@ -173,9 +386,9 @@ function renderExpenses(totals) {
     const entries = categories.filter(category => amount(expense.items?.[category])).map(category => `
       <div class="flex justify-between text-sm"><span class="text-slate-500">${category}</span><span class="font-medium text-slate-700">${formatted(expense.items[category])}</span></div>`).join("");
     return `<button class="w-full text-left bg-white rounded-2xl border border-slate-200 p-4 shadow-sm active:scale-[0.98] transition-transform" data-expense-id="${escapeHtml(expense.id)}">
-      <div class="flex items-center justify-between mb-2.5"><span class="text-sm font-medium text-slate-500">${formattedDate(expense.date)}</span><span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-600">${escapeHtml(expense.payer)} 付款</span></div>
+      <div class="flex items-center justify-between mb-2.5"><span class="text-sm font-medium text-slate-500">${formattedDate(expense.date)}</span><span class="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 py-1 pl-1 pr-2.5 text-xs font-semibold text-indigo-700">${memberAvatar(expense.payerId, "h-5 w-5 text-[10px]")}<span>${escapeHtml(memberName(expense.payerId))} 付款</span></span></div>
       <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-3">${entries}</div>
-      <div class="flex items-end justify-between pt-2.5 border-t border-slate-100"><div class="min-w-0 flex-1"><span class="text-xs text-slate-400">比例 ${amount(expense.ratios?.high) || 1} : ${amount(expense.ratios?.n) || 1}</span><p class="text-xs text-slate-500 mt-0.5 truncate">${escapeHtml(expense.note || "無備註")}</p></div><div class="text-right ml-3"><span class="text-lg font-bold text-slate-900">${formatted(expenseTotal(expense))}</span><span class="text-xs text-slate-400 ml-1">元</span></div></div>
+      <div class="flex items-end justify-between pt-2.5 border-t border-slate-100"><div class="min-w-0 flex-1"><span class="text-xs text-slate-400">${escapeHtml(splitSummary(expense))}</span><p class="text-xs text-slate-500 mt-0.5 truncate">${escapeHtml(expense.note || "無備註")}</p></div><div class="text-right ml-3"><span class="text-lg font-bold text-slate-900">${formatted(expenseTotal(expense))}</span><span class="text-xs text-slate-400 ml-1">元</span></div></div>
     </button>`;
   }).join("") || emptyState("receipt", "尚無支出紀錄", "點右下角按鈕新增支出");
   document.getElementById("tab-expenses").innerHTML = `<div class="px-4 py-4"><div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><div class="flex justify-between items-end"><div><p class="text-xs text-slate-500">總支出</p><p class="text-2xl font-bold text-slate-900 mt-0.5">${formatted(total)} <span class="text-sm font-normal text-slate-400">元</span></p></div><div class="text-right"><p class="text-xs text-slate-500">筆數</p><p class="text-2xl font-bold text-slate-900 mt-0.5">${state.expenses.length}</p></div></div></div></div><div class="px-4 space-y-2.5">${list}</div><button onclick="openExpenseDialog(false)" class="fixed bottom-20 z-20 w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 flex items-center justify-center active:scale-95 transition-transform" style="right: max(1rem, calc(50% - 18rem + 1rem))" aria-label="新增支出"><i data-lucide="plus" class="w-6 h-6"></i></button>`;
@@ -185,7 +398,7 @@ function renderExpenses(totals) {
 
 function renderPayments(totals) {
   const total = state.payments.reduce((sum, payment) => sum + amount(payment.amount), 0);
-  const list = state.payments.map(payment => `<button class="w-full text-left bg-white rounded-2xl border border-slate-200 p-4 shadow-sm active:scale-[0.98] transition-transform" data-payment-id="${escapeHtml(payment.id)}"><div class="flex items-center justify-between"><div class="min-w-0 flex-1"><span class="text-sm font-medium text-slate-500">${formattedDate(payment.date)}</span><p class="text-base font-semibold text-slate-900 mt-0.5 truncate">${escapeHtml(payment.item)}</p><div class="flex items-center gap-1.5 mt-1.5"><span class="px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-600">${escapeHtml(payment.payer)}</span><i data-lucide="arrow-right" class="w-3 h-3 text-slate-400"></i><span class="px-2 py-0.5 rounded-md text-xs font-medium bg-amber-50 text-amber-600">${escapeHtml(payment.debtor)}</span><span class="text-xs text-slate-400 ml-1">${escapeHtml(payment.debtor)} 需支付${escapeHtml(payment.payer)}</span></div></div><div class="text-right ml-3"><span class="text-lg font-bold text-slate-900">${formatted(payment.amount)}</span><span class="text-xs text-slate-400 ml-1">元</span></div></div></button>`).join("") || emptyState("repeat", "尚無代付紀錄", "點右下角按鈕新增代付");
+  const list = state.payments.map(payment => `<button class="w-full text-left bg-white rounded-2xl border border-slate-200 p-4 shadow-sm active:scale-[0.98] transition-transform" data-payment-id="${escapeHtml(payment.id)}"><div class="flex items-center justify-between"><div class="min-w-0 flex-1"><span class="text-sm font-medium text-slate-500">${formattedDate(payment.date)}</span><p class="text-base font-semibold text-slate-900 mt-0.5 truncate">${escapeHtml(payment.item)}</p><div class="mt-2 flex items-center gap-2 text-xs font-medium text-slate-700">${memberIdentity(payment.debtorId, "h-6 w-6 text-[10px]")}<i data-lucide="arrow-right" class="h-3.5 w-3.5 shrink-0 text-slate-400"></i>${memberIdentity(payment.payerId, "h-6 w-6 text-[10px]")}</div><p class="mt-1 text-xs text-slate-400">${escapeHtml(memberName(payment.debtorId))} 需支付 ${escapeHtml(memberName(payment.payerId))}</p></div><div class="text-right ml-3"><span class="text-lg font-bold text-slate-900">${formatted(payment.amount)}</span><span class="text-xs text-slate-400 ml-1">元</span></div></div></button>`).join("") || emptyState("repeat", "尚無代付紀錄", "點右下角按鈕新增代付");
   document.getElementById("tab-payments").innerHTML = `<div class="px-4 py-4"><div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><div class="flex justify-between items-end"><div><p class="text-xs text-slate-500">代付總額</p><p class="text-2xl font-bold text-slate-900 mt-0.5">${formatted(total)} <span class="text-sm font-normal text-slate-400">元</span></p></div><div class="text-right"><p class="text-xs text-slate-500">筆數</p><p class="text-2xl font-bold text-slate-900 mt-0.5">${state.payments.length}</p></div></div></div></div><div class="px-4 space-y-2.5">${list}</div><button onclick="openPaymentDialog(false)" class="fixed bottom-20 z-20 w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 flex items-center justify-center active:scale-95 transition-transform" style="right: max(1rem, calc(50% - 18rem + 1rem))" aria-label="新增代付"><i data-lucide="plus" class="w-6 h-6"></i></button>`;
   document.querySelectorAll("#tab-payments [data-payment-id]").forEach(button => button.addEventListener("click", () => editPayment(button.dataset.paymentId)));
   renderIcons(document.getElementById("tab-payments"));
@@ -1304,19 +1517,48 @@ function emptyState(icon, title, detail) {
   return `<div class="flex flex-col items-center py-16 text-slate-400"><i data-lucide="${icon}" class="w-12 h-12 mb-3 stroke-1"></i><p class="text-sm">${title}</p><p class="text-xs mt-1">${detail}</p></div>`;
 }
 
+function memberAccent(index) {
+  return ["#1c6945", "#b45309", "#2563eb", "#9b3b49", "#7c3aed", "#0f766e", "#be123c", "#4d7c0f", "#0369a1", "#a16207"][index % 10];
+}
+
 function renderSettlement(totals) {
+  const totalExpense = state.expenses.reduce((sum, expense) => sum + expenseTotal(expense), 0);
+  const transfers = settlementTransfers(totals.balance, members);
+  const gridTemplate = `minmax(5.5rem, 1.2fr) repeat(${members.length}, minmax(5rem, 1fr)) minmax(5rem, 1fr)`;
+  const memberHeaders = members.map((member, index) => `<span class="text-right font-semibold" style="color:${memberAccent(index)}">${escapeHtml(memberName(member.id))}</span>`).join("");
+  const categoryRows = categories.map(category => {
+    const memberValues = members.map(member => `<span class="text-right tabular-nums text-slate-600">${formatted(totals.categoryTotals[category][member.id])}</span>`).join("");
+    const categoryTotal = members.reduce((sum, member) => sum + totals.categoryTotals[category][member.id], 0);
+    return `<div class="grid gap-2 border-b border-slate-100 py-2.5 text-sm" style="grid-template-columns:${gridTemplate}"><span class="font-medium text-slate-700">${escapeHtml(category)}</span>${memberValues}<span class="text-right font-semibold tabular-nums text-slate-900">${formatted(categoryTotal)}</span></div>`;
+  }).join("");
+  const owedTotals = members.map(member => `<span class="text-right tabular-nums" style="color:${memberAccent(members.indexOf(member))}">${formatted(totals.owed[member.id])}</span>`).join("");
+  const paidRows = members.map((member, index) => {
+    const balance = totals.balance[member.id];
+    return `<div class="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-3 border-b border-slate-100 py-2.5 text-sm last:border-0"><span class="min-w-0 font-semibold" style="color:${memberAccent(index)}">${memberIdentity(member.id, "h-8 w-8 text-xs")}</span><span class="text-right text-slate-500"><small class="block text-[10px]">實付</small>${formatted(totals.paid[member.id])}</span><span class="text-right text-slate-500"><small class="block text-[10px]">應付</small>${formatted(totals.owed[member.id])}</span><span class="min-w-20 text-right font-bold ${balance >= 0 ? "text-emerald-700" : "text-rose-700"}"><small class="block text-[10px] font-medium">淨額</small>${balance >= 0 ? "+" : "−"}${formatted(Math.abs(balance))}</span></div>`;
+  }).join("");
+  const transferRows = transfers.length
+    ? transfers.map(transfer => `<li class="flex items-center justify-between gap-3 border-b border-slate-100 py-3 last:border-0"><span class="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-700">${memberIdentity(transfer.fromId, "h-7 w-7 text-[10px]")}<i data-lucide="arrow-right" class="h-4 w-4 shrink-0 text-slate-400"></i>${memberIdentity(transfer.toId, "h-7 w-7 text-[10px]")}</span><span class="shrink-0 font-bold tabular-nums text-slate-900">${formatted(transfer.amount)} 元</span></li>`).join("")
+    : '<li class="py-5 text-center text-sm font-medium text-emerald-700">目前已結清</li>';
+
+  document.getElementById("tab-settlement").innerHTML = `<div class="space-y-4 p-4"><section class="overflow-hidden rounded-2xl bg-white shadow-sm"><div class="flex items-center justify-between bg-emerald-700 px-4 py-3 text-white"><div><h3 class="text-sm font-semibold">旅程花費</h3><p class="mt-0.5 text-[11px] text-emerald-50">依各筆權重計算的負擔金額</p></div><div class="text-right"><span class="text-xl font-bold">${formatted(totalExpense)}</span><span class="ml-1 text-xs text-emerald-50">元</span></div></div><div class="overflow-x-auto p-4"><div class="min-w-max"><div class="grid gap-2 border-b border-slate-200 pb-2 text-xs font-medium text-slate-400" style="grid-template-columns:${gridTemplate}"><span>類別</span>${memberHeaders}<span class="text-right">合計</span></div>${categoryRows}<div class="grid gap-2 pt-3 text-sm font-bold" style="grid-template-columns:${gridTemplate}"><span>合計</span>${owedTotals}<span class="text-right tabular-nums">${formatted(totalExpense)}</span></div></div></div></section><section class="overflow-hidden rounded-2xl bg-white shadow-sm"><div class="bg-slate-800 px-4 py-2.5 text-white"><h3 class="text-sm font-semibold">每人成本</h3></div><div class="px-4">${paidRows}</div></section><section class="overflow-hidden rounded-2xl bg-white shadow-sm"><div class="flex items-center justify-between bg-emerald-700 px-4 py-2.5 text-white"><h3 class="text-sm font-semibold">建議結算</h3><span class="text-xs text-emerald-50">${transfers.length} 筆轉帳</span></div><ul class="px-4">${transferRows}</ul></section></div>`;
+  renderIcons(document.getElementById("tab-settlement"));
+}
+
+/* Obsolete renderer retained only as migration reference; remove after schema v2 adoption is complete.
+function renderLegacySettlement(totals) {
   const rows = categories.map(category => `<div class="grid grid-cols-[1.1fr_1fr_1fr_1.1fr] gap-1 py-2.5 border-b border-slate-50 text-sm"><span class="text-slate-700 font-medium">${category}</span><span class="text-right tabular-nums text-slate-600">${formatted(totals.categoryTotals[category]["高"])}</span><span class="text-right tabular-nums text-slate-600">${formatted(totals.categoryTotals[category].n)}</span><span class="text-right tabular-nums font-semibold text-slate-900">${formatted(totals.categoryTotals[category]["高"] + totals.categoryTotals[category].n)}</span></div>`).join("");
   const totalExpense = state.expenses.reduce((sum, expense) => sum + expenseTotal(expense), 0);
   const highBalance = totals.balance["高"];
   const statement = highBalance === 0 ? "目前已結清" : `${highBalance > 0 ? "n 需支付 高" : "高 需支付 n"} ${formatted(Math.abs(highBalance))} 元`;
   document.getElementById("tab-settlement").innerHTML = `<div class="p-4 space-y-4"><div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div class="bg-emerald-600 px-4 py-3 flex items-center justify-between"><div><h3 class="text-sm font-semibold text-white">旅程花費</h3><p class="text-[11px] text-emerald-100 mt-0.5">每人各項支出統計（負擔金額）</p></div><div class="text-right"><span class="text-xl font-bold text-white">${formatted(totalExpense)}</span><span class="text-xs text-emerald-100 ml-1">元</span></div></div><div class="p-4"><div class="grid grid-cols-[1.1fr_1fr_1fr_1.1fr] gap-1 pb-2 border-b border-slate-200 text-xs font-medium text-slate-400"><span>類別</span><span class="text-right text-blue-500">高</span><span class="text-right text-amber-500">n</span><span class="text-right">合計</span></div>${rows}<div class="grid grid-cols-[1.1fr_1fr_1fr_1.1fr] gap-1 pt-3 text-sm font-bold"><span class="text-slate-900">合計</span><span class="text-right tabular-nums text-blue-600">${formatted(totals.owed["高"])}</span><span class="text-right tabular-nums text-amber-600">${formatted(totals.owed.n)}</span><span class="text-right tabular-nums text-slate-900">${formatted(totalExpense)}</span></div></div></div><div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div class="bg-blue-600 px-4 py-2.5 flex items-center justify-between"><h3 class="text-sm font-semibold text-white">支出統計</h3><span class="text-xs text-blue-100">總支出 ${formatted(totalExpense)} 元</span></div><div class="p-4 space-y-3"><div class="flex h-2 rounded-full overflow-hidden bg-slate-100"><div class="bg-blue-500" style="width:${totalExpense ? totals.paid["高"] / totalExpense * 100 : 50}%"></div><div class="bg-amber-500" style="width:${totalExpense ? totals.paid.n / totalExpense * 100 : 50}%"></div></div>${people.map(person => `<div class="flex items-center justify-between text-sm"><span class="font-semibold ${person === "高" ? "text-blue-600" : "text-amber-600"}">${person}</span><span class="text-slate-500">代墊 <b class="text-slate-900">${formatted(totals.paid[person])}</b> 元，負擔 <b class="text-slate-900">${formatted(totals.owed[person])}</b> 元</span></div>`).join("")}</div></div><div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"><div class="bg-orange-500 px-4 py-2.5"><h3 class="text-sm font-semibold text-white">代付統計</h3></div><div class="p-4 space-y-2.5"><div class="flex justify-between text-sm"><span class="text-slate-600">高 代付結餘</span><span class="font-semibold text-slate-900">${formatted(totals.paymentNet["高"])} 元</span></div><div class="flex justify-between text-sm"><span class="text-slate-600">n 代付結餘</span><span class="font-semibold text-slate-900">${formatted(totals.paymentNet.n)} 元</span></div></div></div><div class="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl overflow-hidden shadow-lg shadow-indigo-600/20"><div class="px-4 py-2.5 bg-white/10"><h3 class="text-sm font-semibold text-white">總結餘</h3></div><div class="p-5 text-center"><p class="text-lg font-bold text-white">${statement}</p></div></div></div>`;
 }
+*/
 
 function selectButton(buttons, selected, value) {
-  buttons.forEach(button => button.classList.toggle("bg-indigo-600", button.dataset.value === selected));
-  buttons.forEach(button => button.classList.toggle("text-white", button.dataset.value === selected));
-  buttons.forEach(button => button.classList.toggle("bg-slate-100", button.dataset.value !== selected));
-  buttons.forEach(button => button.classList.toggle("text-slate-500", button.dataset.value !== selected));
+  buttons.forEach(button => button.classList.toggle("bg-indigo-600", (button.dataset.memberId || button.dataset.value) === selected));
+  buttons.forEach(button => button.classList.toggle("text-white", (button.dataset.memberId || button.dataset.value) === selected));
+  buttons.forEach(button => button.classList.toggle("bg-slate-100", (button.dataset.memberId || button.dataset.value) !== selected));
+  buttons.forEach(button => button.classList.toggle("text-slate-500", (button.dataset.memberId || button.dataset.value) !== selected));
   if (value) state[value] = selected;
 }
 
@@ -1457,23 +1699,38 @@ function setupDialogs() {
   });
   [...expenseDialog.querySelectorAll('input[type="number"]')].slice(0, categories.length)
     .forEach(input => input.addEventListener("input", updateExpenseTotalPreview));
-  const expensePayerButtons = [...expenseDialog.querySelectorAll(".grid.grid-cols-2 button")];
-  expensePayerButtons.forEach((button, index) => {
-    button.dataset.value = people[index];
-    button.addEventListener("click", () => selectButton(expensePayerButtons, button.dataset.value, "expensePayer"));
+  const payerOptions = document.getElementById("expense-payer-options");
+  payerOptions.innerHTML = members.map(member => `<button type="button" data-member-id="${escapeHtml(member.id)}" class="flex min-h-12 items-center gap-2 rounded-lg bg-slate-100 px-2.5 py-2 text-sm font-semibold text-slate-600 transition-colors">${memberAvatar(member.id, "h-7 w-7 text-[10px]")}<span class="truncate">${escapeHtml(memberName(member.id))}</span></button>`).join("");
+  payerOptions.addEventListener("click", event => {
+    const button = event.target.closest("[data-member-id]");
+    if (!button) return;
+    state.expensePayerId = button.dataset.memberId;
+    selectButton([...payerOptions.querySelectorAll("button")], state.expensePayerId);
   });
-  const setPaymentPayer = payer => {
-    state.paymentPayer = payer;
-    directionButtons.forEach(option => option.classList.toggle("border-indigo-500", option.dataset.value === payer));
-    directionButtons.forEach(option => option.classList.toggle("bg-indigo-50", option.dataset.value === payer));
-    directionButtons.forEach(option => option.classList.toggle("border-slate-200", option.dataset.value !== payer));
-    directionButtons.forEach(option => option.classList.toggle("bg-white", option.dataset.value !== payer));
+  document.getElementById("expense-split-options").innerHTML = members.map(member => `
+    <label class="flex min-w-0 items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
+      ${memberAvatar(member.id, "h-7 w-7 text-[10px]")}
+      <span class="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">${escapeHtml(memberName(member.id))}</span>
+      <input type="number" min="0" step="1" inputmode="numeric" value="1" data-split-member="${escapeHtml(member.id)}" aria-label="${escapeHtml(memberName(member.id))}分攤權重" class="input-field h-10 w-16 shrink-0 text-center tabular-nums" />
+    </label>`).join("");
+
+  const paymentPayer = document.getElementById("payment-payer");
+  const paymentDebtor = document.getElementById("payment-debtor");
+  const memberOptions = members.map(member => `<option value="${escapeHtml(member.id)}">${escapeHtml(memberName(member.id))}</option>`).join("");
+  paymentPayer.innerHTML = memberOptions;
+  paymentDebtor.innerHTML = memberOptions;
+  const updatePaymentDirection = changedSelect => {
+    if (paymentPayer.value === paymentDebtor.value) {
+      const replacement = members.find(member => member.id !== changedSelect.value);
+      if (changedSelect === paymentPayer) paymentDebtor.value = replacement?.id || paymentDebtor.value;
+      else paymentPayer.value = replacement?.id || paymentPayer.value;
+    }
+    state.paymentPayerId = paymentPayer.value;
+    state.paymentDebtorId = paymentDebtor.value;
+    document.getElementById("payment-direction-summary").innerHTML = `${memberIdentity(state.paymentDebtorId, "h-6 w-6 text-[10px]")}<span>需支付</span>${memberIdentity(state.paymentPayerId, "h-6 w-6 text-[10px]")}`;
   };
-  const directionButtons = [...paymentDialog.querySelectorAll(".space-y-2 > button")];
-  directionButtons.forEach((button, index) => {
-    button.dataset.value = people[index];
-    button.addEventListener("click", () => setPaymentPayer(button.dataset.value));
-  });
+  paymentPayer.addEventListener("change", () => updatePaymentDirection(paymentPayer));
+  paymentDebtor.addEventListener("change", () => updatePaymentDirection(paymentDebtor));
   expenseDialog.querySelector(".btn-primary").addEventListener("click", saveExpense);
   paymentDialog.querySelector(".btn-primary").addEventListener("click", savePayment);
   document.getElementById("expense-delete-btn").addEventListener("click", () => removeEntry("expenses", expenseDialog.dataset.id));
@@ -1541,16 +1798,16 @@ window.openExpenseDialog = isEdit => {
   document.getElementById("expense-receipt-image").value = "";
   dialog.dataset.id = isEdit ? dialog.dataset.id : "";
   if (!isEdit) {
-    dialog.querySelectorAll('input[type="number"]').forEach(input => { input.value = input.closest(".space-y-1") ? "" : "1"; });
-    [...dialog.querySelectorAll('input[type="number"]')].slice(-2).forEach(input => { input.value = "1"; });
+    [...dialog.querySelectorAll('input[type="number"]')].slice(0, categories.length).forEach(input => { input.value = ""; });
+    dialog.querySelectorAll("[data-split-member]").forEach(input => { input.value = "1"; });
     dialog.querySelector("textarea").value = "";
     dialog.querySelector("#expense-date").value = new Date().toISOString().slice(0, 10);
-    state.expensePayer = "高";
+    state.expensePayerId = members[0].id;
   }
   updateExpenseTotalPreview();
   document.getElementById("expense-dialog-title").textContent = isEdit ? "編輯支出" : "新增支出";
   document.getElementById("expense-delete-btn").classList.toggle("hidden", !isEdit);
-  selectButton([...dialog.querySelectorAll(".grid.grid-cols-2 button")], state.expensePayer);
+  selectButton([...document.querySelectorAll("#expense-payer-options button")], state.expensePayerId);
   dialog.classList.add("open");
 };
 
@@ -1652,10 +1909,14 @@ window.openPaymentDialog = isEdit => {
     dialog.querySelector("#payment-date").value = new Date().toISOString().slice(0, 10);
     dialog.querySelector('input[type="text"]').value = "";
     dialog.querySelector('input[type="number"]').value = "";
-    state.paymentPayer = "高";
+    state.paymentPayerId = members[0].id;
+    state.paymentDebtorId = members[1]?.id || members[0].id;
   }
-  const payerButton = [...dialog.querySelectorAll(".space-y-2 > button")].find(button => button.dataset.value === state.paymentPayer);
-  payerButton?.click();
+  const payerSelect = document.getElementById("payment-payer");
+  const debtorSelect = document.getElementById("payment-debtor");
+  payerSelect.value = state.paymentPayerId;
+  debtorSelect.value = state.paymentDebtorId;
+  document.getElementById("payment-direction-summary").innerHTML = `${memberIdentity(state.paymentDebtorId, "h-6 w-6 text-[10px]")}<span>需支付</span>${memberIdentity(state.paymentPayerId, "h-6 w-6 text-[10px]")}`;
   document.getElementById("payment-dialog-title").textContent = isEdit ? "編輯代付" : "新增代付";
   document.getElementById("payment-delete-btn").classList.toggle("hidden", !isEdit);
   dialog.classList.add("open");
@@ -1718,11 +1979,10 @@ window.editExpense = id => {
   dialog.querySelector("#expense-date").value = expense.date;
   const numberInputs = [...dialog.querySelectorAll('input[type="number"]')];
   categories.forEach((category, index) => { numberInputs[index].value = amount(expense.items?.[category]) || ""; });
-  numberInputs[5].value = expense.ratios.high;
-  numberInputs[6].value = expense.ratios.n;
+  dialog.querySelectorAll("[data-split-member]").forEach(input => { input.value = String(expense.splitWeights[input.dataset.splitMember] || 0); });
   updateExpenseTotalPreview();
   dialog.querySelector("textarea").value = expense.note || "";
-  state.expensePayer = expense.payer;
+  state.expensePayerId = expense.payerId;
   window.openExpenseDialog(true);
 };
 
@@ -1734,7 +1994,8 @@ window.editPayment = id => {
   dialog.querySelector("#payment-date").value = payment.date;
   dialog.querySelector('input[type="text"]').value = payment.item;
   dialog.querySelector('input[type="number"]').value = payment.amount;
-  state.paymentPayer = payment.payer;
+  state.paymentPayerId = payment.payerId;
+  state.paymentDebtorId = payment.debtorId;
   window.openPaymentDialog(true);
 };
 
@@ -1743,7 +2004,9 @@ async function saveExpense() {
   const inputs = [...dialog.querySelectorAll('input[type="number"]')];
   const items = Object.fromEntries(categories.map((category, index) => [category, amount(inputs[index].value)]));
   if (!expenseTotal({ items })) return alert("請輸入至少一項支出金額。");
-  const entry = { date: dialog.querySelector("#expense-date").value, items, payer: state.expensePayer, ratios: { high: Math.max(1, amount(inputs[5].value)), n: Math.max(1, amount(inputs[6].value)) }, note: dialog.querySelector("textarea").value.trim(), updatedAt: Date.now() };
+  const splitWeights = Object.fromEntries([...dialog.querySelectorAll("[data-split-member]")].map(input => [input.dataset.splitMember, amount(input.value)]));
+  if (!Object.values(splitWeights).some(Boolean)) return alert("至少一位成員的分攤權重需大於 0。");
+  const entry = { date: dialog.querySelector("#expense-date").value, items, payerId: state.expensePayerId, payer: memberName(state.expensePayerId), splitWeights, note: dialog.querySelector("textarea").value.trim(), updatedAt: Date.now() };
   try {
     await saveEntry("expenses", dialog.dataset.id, entry);
     closeDialog("expense-dialog");
@@ -1754,8 +2017,11 @@ async function saveExpense() {
 
 async function savePayment() {
   const dialog = document.getElementById("payment-dialog");
-  const entry = { date: dialog.querySelector("#payment-date").value, item: dialog.querySelector('input[type="text"]').value.trim(), amount: amount(dialog.querySelector('input[type="number"]').value), payer: state.paymentPayer, debtor: state.paymentPayer === "高" ? "n" : "高", updatedAt: Date.now() };
+  const payerId = document.getElementById("payment-payer").value;
+  const debtorId = document.getElementById("payment-debtor").value;
+  const entry = { date: dialog.querySelector("#payment-date").value, item: dialog.querySelector('input[type="text"]').value.trim(), amount: amount(dialog.querySelector('input[type="number"]').value), payerId, debtorId, payer: memberName(payerId), debtor: memberName(debtorId), updatedAt: Date.now() };
   if (!entry.item || !entry.amount) return alert("請填寫品項與金額。");
+  if (payerId === debtorId) return alert("付款人與應付款人不能是同一人。");
   try {
     await saveEntry("payments", dialog.dataset.id, entry);
     closeDialog("payment-dialog");
@@ -1940,6 +2206,8 @@ async function removeEntry(type, id) {
   }
 }
 
+setupCurrencyCalculator();
+
 if (!isConfigured) {
   window.location.replace("login.html");
 } else if (!activeTripId) {
@@ -1948,7 +2216,6 @@ if (!isConfigured) {
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   database = getFirestore(app);
-  setupDialogs();
   document.getElementById("logout-btn").addEventListener("click", () => signOut(auth));
   document.querySelector('[data-tab="settlement"]')?.addEventListener("click", () => {
     if (!state.settlementDirty) return;
@@ -1966,14 +2233,20 @@ if (!isConfigured) {
     }
     currentUser = user;
     try {
-      const tripSnapshot = await getDoc(doc(database, "ledgers", appName, "trips", activeTripId));
+      const tripReference = doc(database, "ledgers", appName, "trips", activeTripId);
+      const tripSnapshot = await getDoc(tripReference);
       if (!tripSnapshot.exists()) {
         window.location.replace("trips.html");
         return;
       }
+      await migrateTripLedger(tripReference, tripSnapshot);
       const tripName = tripSnapshot.data().name || "未命名行程";
       document.getElementById("header-trip-name").textContent = tripName;
       localStorage.setItem("active-trip-name", tripName);
+      if (!dialogsReady) {
+        setupDialogs();
+        dialogsReady = true;
+      }
     } catch (error) {
       showDataError(error);
       return;
@@ -1981,11 +2254,11 @@ if (!isConfigured) {
     if (placesListenerRequested || isPlacesTabActive()) startPlacesListener();
     if (imageAnalysisRequested) loadImageAnalyses();
     onSnapshot(query(tripCollection("expenses"), orderBy("date", "desc")), snapshot => {
-      state.expenses = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }));
+      state.expenses = snapshot.docs.map(entry => normalizeExpense({ id: entry.id, ...entry.data() }));
       render({ payments: false });
     }, showDataError);
     onSnapshot(query(tripCollection("payments"), orderBy("date", "desc")), snapshot => {
-      state.payments = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }));
+      state.payments = snapshot.docs.map(entry => normalizePayment({ id: entry.id, ...entry.data() }));
       render({ expenses: false });
     }, showDataError);
   });

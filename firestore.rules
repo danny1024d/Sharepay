@@ -4,7 +4,11 @@ service cloud.firestore {
     function isAllowedUser() {
       return request.auth != null
         && request.auth.token.email in [
-          'zzdanny781024@gmail.com','ben155373@gmail.com'
+        // BEGIN GENERATED ALLOWED EMAILS
+          'zzdanny781024@gmail.com',
+          'ben155373@gmail.com',
+          'jjkao1024@gmail.com'
+        // END GENERATED ALLOWED EMAILS
         ];
     }
 

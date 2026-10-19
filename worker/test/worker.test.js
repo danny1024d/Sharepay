@@ -7,6 +7,7 @@ import {
   analyzeProductBarcode,
   analyzeTravelImage,
   findGooglePlace,
+  getLatestJpyTwdRate,
   handleRequest,
   normalizeGoogleMapsUrl,
   normalizeKamuiMapElements,
@@ -156,6 +157,31 @@ test("receipt parser returns the printed currency without converting the amount"
   assert.equal(result.confidence, "high");
   assert.equal(openAiRequest.input[0].content[1].type, "input_image");
   assert.equal(openAiRequest.text.format.name, "receipt_expense_draft");
+});
+
+test("JPY to TWD rate returns a dated positive exchange rate", async () => {
+  const result = await getLatestJpyTwdRate(async url => {
+    assert.equal(url, "https://open.er-api.com/v6/latest/JPY");
+    return Response.json({
+      result: "success",
+      base_code: "JPY",
+      time_last_update_unix: 1_791_849_451,
+      rates: { TWD: 0.201496 }
+    });
+  });
+
+  assert.deepEqual(result, {
+    rate: 0.201496,
+    date: "2026-10-13",
+    source: "ExchangeRate-API"
+  });
+});
+
+test("JPY to TWD rate rejects unavailable upstream responses", async () => {
+  await assert.rejects(
+    getLatestJpyTwdRate(async () => new Response("Unavailable", { status: 503 })),
+    /jpy_twd_rate_unavailable/
+  );
 });
 
 test("receipt parser leaves JPY total unconverted when the FX endpoint is unavailable", async () => {

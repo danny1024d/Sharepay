@@ -217,6 +217,9 @@
           <p id="header-trip-name" class="text-xs text-slate-300 mt-0.5">正在載入行程…</p>
         </div>
         <div class="flex items-center gap-2">
+          <button id="currency-calculator-open" type="button" class="grid h-9 w-9 place-items-center rounded-lg border border-white/20 text-white hover:bg-white/10" aria-label="日圓換算台幣" title="日圓換算台幣">
+            <i data-lucide="circle-dollar-sign" class="h-4 w-4"></i>
+          </button>
           <a href="trips.html" class="flex h-9 items-center gap-1.5 rounded-lg border border-white/20 px-2.5 text-xs font-medium text-white hover:bg-white/10" aria-label="切換行程">
             <i data-lucide="arrow-left-right" class="h-4 w-4"></i>
             <span>行程</span>
@@ -616,19 +619,15 @@
 
         <div class="space-y-1.5">
           <label class="label">付款人</label>
-          <div class="grid grid-cols-2 gap-2">
-            <button type="button" class="py-2.5 rounded-xl text-sm font-semibold transition-colors bg-indigo-600 text-white">高</button>
-            <button type="button" class="py-2.5 rounded-xl text-sm font-semibold transition-colors bg-slate-100 text-slate-500">n</button>
-          </div>
+          <div id="expense-payer-options" class="grid grid-cols-2 gap-2"></div>
         </div>
 
         <div class="space-y-1.5">
-          <label class="label">負擔比例（高 : n）</label>
-          <div class="flex items-center gap-3">
-            <input type="number" inputmode="numeric" value="1" class="input-field w-24 text-center tabular-nums" />
-            <span class="text-slate-400 font-bold">:</span>
-            <input type="number" inputmode="numeric" value="1" class="input-field w-24 text-center tabular-nums" />
+          <div class="flex items-center justify-between gap-3">
+            <label class="label">分攤權重</label>
+            <span class="text-xs text-slate-500">全部填 1 即平均分攤</span>
           </div>
+          <div id="expense-split-options" class="grid grid-cols-2 gap-2"></div>
         </div>
 
         <div class="space-y-1.5">
@@ -674,29 +673,20 @@
           <input type="number" inputmode="numeric" placeholder="0" class="input-field text-right text-lg font-semibold tabular-nums" />
         </div>
 
-        <div class="space-y-1.5">
+        <div class="space-y-2">
           <label class="label">代付方向</label>
-          <div class="space-y-2">
-            <!-- Selected State -->
-            <button type="button" class="w-full p-3 rounded-xl border-2 transition-colors flex items-center justify-between border-indigo-500 bg-indigo-50">
-              <div class="flex items-center gap-2">
-                <span class="px-2.5 py-1 rounded-md text-sm font-semibold bg-blue-100 text-blue-600">高</span>
-                <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
-                <span class="px-2.5 py-1 rounded-md text-sm font-semibold bg-amber-100 text-amber-600">n</span>
-              </div>
-              <span class="text-xs text-slate-500">n 需支付高</span>
-            </button>
-            
-            <!-- Unselected State -->
-            <button type="button" class="w-full p-3 rounded-xl border-2 transition-colors flex items-center justify-between border-slate-200 bg-white">
-              <div class="flex items-center gap-2">
-                <span class="px-2.5 py-1 rounded-md text-sm font-semibold bg-amber-100 text-amber-600">n</span>
-                <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
-                <span class="px-2.5 py-1 rounded-md text-sm font-semibold bg-blue-100 text-blue-600">高</span>
-              </div>
-              <span class="text-xs text-slate-500">高 需支付n</span>
-            </button>
+          <div class="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+            <div class="space-y-1.5">
+              <label for="payment-payer" class="text-xs text-slate-500">付款人</label>
+              <select id="payment-payer" class="input-field"></select>
+            </div>
+            <i data-lucide="arrow-right" class="mb-3 h-4 w-4 text-slate-400" aria-hidden="true"></i>
+            <div class="space-y-1.5">
+              <label for="payment-debtor" class="text-xs text-slate-500">應付款人</label>
+              <select id="payment-debtor" class="input-field"></select>
+            </div>
           </div>
+          <div id="payment-direction-summary" class="flex flex-wrap items-center gap-2 text-xs text-slate-500" aria-live="polite"></div>
         </div>
       </div>
 
@@ -793,6 +783,55 @@
       <div class="barcode-scanner-frame" aria-hidden="true"></div>
     </div>
     <p id="barcode-scanner-status" class="min-h-12 shrink-0 px-4 py-3 text-center text-sm text-emerald-50" style="padding-bottom:max(0.75rem, env(safe-area-inset-bottom))" role="status" aria-live="polite">正在開啟相機…</p>
+  </dialog>
+
+  <dialog id="currency-calculator-dialog" class="currency-calculator-dialog" aria-labelledby="currency-calculator-title">
+    <div class="currency-calculator-shell">
+      <header class="currency-calculator-header">
+        <div>
+          <h2 id="currency-calculator-title">日圓換算</h2>
+          <p>JPY → TWD</p>
+        </div>
+        <button type="button" class="currency-calculator-icon" data-currency-close aria-label="關閉日圓換算" title="關閉">
+          <i data-lucide="x" aria-hidden="true"></i>
+        </button>
+      </header>
+
+      <section class="currency-calculator-display" aria-label="換算結果">
+        <div class="currency-amount-row currency-amount-input">
+          <span class="currency-code">JPY</span>
+          <output id="currency-jpy-amount" class="currency-amount" data-digits="1">0</output>
+        </div>
+        <div class="currency-conversion-rule" aria-hidden="true"><span></span><i data-lucide="arrow-down"></i><span></span></div>
+        <div class="currency-amount-row currency-amount-result">
+          <span class="currency-code">TWD</span>
+          <output id="currency-twd-amount" class="currency-amount" data-digits="1" aria-live="polite">—</output>
+        </div>
+        <div class="currency-rate-row">
+          <p id="currency-rate-status" data-tone="loading" role="status" aria-live="polite">正在取得最新匯率…</p>
+          <button type="button" class="currency-rate-refresh" data-currency-refresh aria-label="重新取得匯率" title="重新取得匯率">
+            <i data-lucide="refresh-cw" aria-hidden="true"></i>
+          </button>
+        </div>
+      </section>
+
+      <div class="currency-keypad" aria-label="日圓金額鍵盤">
+        <button type="button" data-currency-key data-action="append" data-value="7">7</button>
+        <button type="button" data-currency-key data-action="append" data-value="8">8</button>
+        <button type="button" data-currency-key data-action="append" data-value="9">9</button>
+        <button type="button" class="currency-key-action" data-currency-key data-action="backspace" aria-label="刪除一位數" title="刪除一位數"><i data-lucide="delete" aria-hidden="true"></i></button>
+        <button type="button" data-currency-key data-action="append" data-value="4">4</button>
+        <button type="button" data-currency-key data-action="append" data-value="5">5</button>
+        <button type="button" data-currency-key data-action="append" data-value="6">6</button>
+        <button type="button" class="currency-key-action currency-key-clear" data-currency-key data-action="clear">AC</button>
+        <button type="button" data-currency-key data-action="append" data-value="1">1</button>
+        <button type="button" data-currency-key data-action="append" data-value="2">2</button>
+        <button type="button" data-currency-key data-action="append" data-value="3">3</button>
+        <button type="button" data-currency-key data-action="append" data-value="00">00</button>
+        <button type="button" class="currency-key-zero" data-currency-key data-action="append" data-value="0">0</button>
+        <button type="button" data-currency-key data-action="append" data-value="000">000</button>
+      </div>
+    </div>
   </dialog>
 
   <script>

@@ -1,4 +1,5 @@
 import createElement from "lucide/dist/esm/createElement.mjs";
+import ArrowDown from "lucide/dist/esm/icons/arrow-down.mjs";
 import ArrowLeft from "lucide/dist/esm/icons/arrow-left.mjs";
 import ArrowLeftRight from "lucide/dist/esm/icons/arrow-left-right.mjs";
 import ArrowRight from "lucide/dist/esm/icons/arrow-right.mjs";
@@ -6,6 +7,8 @@ import BookOpen from "lucide/dist/esm/icons/book-open.mjs";
 import CalendarDays from "lucide/dist/esm/icons/calendar-days.mjs";
 import Calculator from "lucide/dist/esm/icons/calculator.mjs";
 import Camera from "lucide/dist/esm/icons/camera.mjs";
+import CircleDollarSign from "lucide/dist/esm/icons/circle-dollar-sign.mjs";
+import Delete from "lucide/dist/esm/icons/delete.mjs";
 import ExternalLink from "lucide/dist/esm/icons/external-link.mjs";
 import List from "lucide/dist/esm/icons/list.mjs";
 import LocateFixed from "lucide/dist/esm/icons/locate-fixed.mjs";
@@ -32,6 +35,7 @@ import Trash from "lucide/dist/esm/icons/trash.mjs";
 import X from "lucide/dist/esm/icons/x.mjs";
 
 const icons = {
+  "arrow-down": ArrowDown,
   "arrow-left": ArrowLeft,
   "arrow-left-right": ArrowLeftRight,
   "arrow-right": ArrowRight,
@@ -39,6 +43,8 @@ const icons = {
   "calendar-days": CalendarDays,
   calculator: Calculator,
   camera: Camera,
+  "circle-dollar-sign": CircleDollarSign,
+  delete: Delete,
   "external-link": ExternalLink,
   list: List,
   "locate-fixed": LocateFixed,

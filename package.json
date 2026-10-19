@@ -6,12 +6,16 @@
     "node": ">=20.19.0"
   },
   "scripts": {
+    "sync:access": "node ./scripts/sync-access.mjs",
+    "predev": "npm run sync:access",
+    "prebuild": "npm run sync:access",
     "vite": "npx --yes node@22 ./node_modules/vite/bin/vite.js",
     "dev": "npm run build:css && npm run vite -- --host 0.0.0.0 --port 5000 --strictPort",
     "build:css": "tailwindcss -i ./public/tailwind.input.css -o ./public/tailwind.generated.css --minify",
     "build": "npm run build:css && npm run vite -- build",
+    "test:ledger": "node --test test/ledger-math.test.js",
     "preview": "npm run vite -- preview --host 0.0.0.0 --port 4173 --strictPort",
-    "deploy": "npm run build && firebase deploy --only hosting"
+    "deploy": "npm run build && firebase deploy --only hosting,firestore:rules"
   },
   "devDependencies": {
     "@tailwindcss/cli": "4.3.0",

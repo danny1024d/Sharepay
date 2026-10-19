@@ -109,6 +109,25 @@ export async function requestReceiptDraft({ user, imageDataUrl }) {
   return result;
 }
 
+export async function requestJpyTwdRate({ user }) {
+  if (!user || typeof user.getIdToken !== "function") throw new Error("請先登入後再取得匯率。");
+  const token = await user.getIdToken();
+  const response = await fetch(workerUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ action: "jpy_twd_rate" })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "日圓匯率暫時無法取得，請稍後重試。");
+  if (!Number.isFinite(result.rate) || result.rate <= 0 || typeof result.date !== "string" || typeof result.source !== "string") {
+    throw new Error("匯率資料格式錯誤，請稍後重試。");
+  }
+  return result;
+}
+
 export async function requestTravelImageAnalysis({ user, imageDataUrl, analysisType }) {
   if (!user || typeof user.getIdToken !== "function") throw new Error("Sign-in required.");
   if (!["menu", "product"].includes(analysisType)) throw new Error("請選擇菜單或商品辨識。");

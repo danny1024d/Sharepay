@@ -10,20 +10,21 @@
   <script type="module" src="trips.js"></script>
 </head>
 <body>
-  <main class="trip-shell">
-    <header class="trip-header">
+  <header class="trip-header">
+    <div class="trip-header-inner">
       <div class="trip-heading-group">
-        <span class="trip-heading-icon" aria-hidden="true"><i data-lucide="map"></i></span>
         <div>
           <h1>我的行程</h1>
-          <p>選擇一趟旅程，繼續記帳與規劃。</p>
+          <p>每一趟同行，都從這裡繼續。</p>
         </div>
       </div>
       <button id="logout-btn" class="icon-button" type="button" aria-label="登出" title="登出">
         <i data-lucide="log-out" aria-hidden="true"></i>
       </button>
-    </header>
+    </div>
+  </header>
 
+  <main class="trip-shell">
     <div class="trip-workspace">
       <section class="trip-list-section" aria-labelledby="trip-list-title">
         <div class="section-heading">
@@ -43,21 +44,21 @@
             <h2 id="create-trip-title">建立新行程</h2>
             <p>先替下一趟旅行留個位置。</p>
           </div>
-          <span class="create-icon" aria-hidden="true"><i data-lucide="calendar-plus"></i></span>
         </div>
         <form id="create-trip-form" class="create-form">
           <div class="field-group">
             <label for="trip-name">行程名稱</label>
             <input id="trip-name" name="name" type="text" maxlength="60" required autocomplete="off" placeholder="例如：東京賞櫻" />
           </div>
-          <div class="date-grid">
-            <div>
-              <label for="trip-start-date">開始日期</label>
-              <input id="trip-start-date" name="startDate" type="date" />
+          <div class="member-section">
+            <div class="member-heading">
+              <div>
+                <span class="member-label">旅程成員</span>
+                <p>從已授權的 Google 帳號選擇 2–10 人。</p>
+              </div>
             </div>
-            <div>
-              <label for="trip-end-date">結束日期</label>
-              <input id="trip-end-date" name="endDate" type="date" />
+            <div id="trip-member-accounts" class="member-account-list" aria-label="選擇旅程成員">
+              <p class="member-loading">正在載入 Google 帳號…</p>
             </div>
           </div>
           <p id="create-error" class="form-error" role="alert"></p>

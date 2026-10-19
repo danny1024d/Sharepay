@@ -602,7 +602,7 @@ function taipeiDateFromUnix(timestamp) {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
-async function getLatestJpyTwdRate(fetchImpl = fetch) {
+export async function getLatestJpyTwdRate(fetchImpl = fetch) {
   const now = Date.now();
   if (fetchImpl === fetch && cachedJpyTwdRate && cachedJpyTwdRate.expiresAt > now) {
     return cachedJpyTwdRate.value;
@@ -1295,6 +1295,13 @@ export async function handleRequest(request, env, ctx) {
   }
   if (!['parse_receipt', 'analyze_travel_image'].includes(body?.action) && requestBytes > maxRequestBytes) {
     return jsonResponse({ error: "Request is too large." }, 413, origin);
+  }
+  if (body?.action === "jpy_twd_rate") {
+    try {
+      return jsonResponse(await getLatestJpyTwdRate(), 200, origin);
+    } catch {
+      return jsonResponse({ error: "日圓匯率暫時無法取得，請稍後重試。" }, 503, origin);
+    }
   }
   if (body?.action === "parse_receipt") {
     try {

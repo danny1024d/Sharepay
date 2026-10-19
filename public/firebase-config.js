@@ -12,9 +12,6 @@ export const firebaseConfig = {
 export const googleMapsApiKey = "AIzaSyCtXpsFexZWecj3irByRvSC5-l-PAoepCA";
 export const googleMapsMapId = "d8514670f0cf1782b37dad26";
 
-// Only Google accounts listed here can access the shared ledger.
-export const allowedEmails = [
-  "zzdanny781024@gmail.com","ben155373@gmail.com"
-];
+export { allowedEmails } from "./allowed-emails.js";
 
 export const appName = "travel-split-app";
