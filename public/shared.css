@@ -197,8 +197,39 @@ body {
   width: calc(100% - 2rem);
   max-height: 92vh;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 1.5rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Expense split weight rows */
+.split-weight-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: rgb(248 250 252);
+}
+.split-weight-name {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(51 65 85);
+}
+.input-field.split-weight-input {
+  flex: 0 0 4rem;
+  width: 4rem;
+  min-width: 0;
+  height: 2.5rem;
+  padding: 0.25rem;
+  text-align: center;
 }
 
 /* Fix Windows scrollbar breaking the border-radius */

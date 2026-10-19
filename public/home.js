@@ -1708,10 +1708,10 @@ function setupDialogs() {
     selectButton([...payerOptions.querySelectorAll("button")], state.expensePayerId);
   });
   document.getElementById("expense-split-options").innerHTML = members.map(member => `
-    <label class="flex min-w-0 items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
-      ${memberAvatar(member.id, "h-7 w-7 text-[10px]")}
-      <span class="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">${escapeHtml(memberName(member.id))}</span>
-      <input type="number" min="0" step="1" inputmode="numeric" value="1" data-split-member="${escapeHtml(member.id)}" aria-label="${escapeHtml(memberName(member.id))}分攤權重" class="input-field h-10 w-16 shrink-0 text-center tabular-nums" />
+    <label class="split-weight-row">
+      ${memberAvatar(member.id, "h-7 w-7 shrink-0 text-[10px]")}
+      <span class="split-weight-name">${escapeHtml(memberName(member.id))}</span>
+      <input type="number" min="0" step="1" inputmode="numeric" value="1" data-split-member="${escapeHtml(member.id)}" aria-label="${escapeHtml(memberName(member.id))}分攤權重" class="input-field split-weight-input tabular-nums" />
     </label>`).join("");
 
   const paymentPayer = document.getElementById("payment-payer");
