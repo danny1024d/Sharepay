@@ -591,6 +591,155 @@ export async function analyzeProductBarcode(barcode, env, fetchImpl = fetch, exc
   };
 }
 
+const itineraryScheduleStages = new Set(["pre_trip", "new_chitose", "sapporo", "unknown"]);
+const maxItineraryScheduleUpdatesPerDay = 30;
+const scheduleServiceSchema = {
+  type: "object",
+  properties: {
+    departure: { type: "string" },
+    arrival: { type: "string" },
+    trainName: { type: "string" }
+  },
+  required: ["departure", "arrival", "trainName"],
+  additionalProperties: false
+};
+
+export const itineraryScheduleResponseFormat = {
+  type: "json_schema",
+  name: "hokkaido_itinerary_schedule",
+  strict: true,
+  schema: {
+    type: "object",
+    properties: {
+      found: { type: "boolean" },
+      airportTrain: scheduleServiceSchema,
+      limitedExpress: scheduleServiceSchema,
+      alternatives: { type: "array", items: scheduleServiceSchema },
+      notes: { type: "string" }
+    },
+    required: ["found", "airportTrain", "limitedExpress", "alternatives", "notes"],
+    additionalProperties: false
+  }
+};
+
+function tokyoClock(date = new Date()) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(date).map(part => [part.type, part.value]));
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, minutes: Number(parts.hour) * 60 + Number(parts.minute) };
+}
+
+function clockText(minutes) {
+  const value = Math.max(0, Math.min(23 * 60 + 59, minutes));
+  return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
+}
+
+function normalizeScheduleService(service) {
+  const time = value => typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value.trim()) ? value.trim() : "";
+  return {
+    departure: time(service?.departure),
+    arrival: time(service?.arrival),
+    trainName: typeof service?.trainName === "string" ? service.trainName.trim().slice(0, 60) : ""
+  };
+}
+
+export function itineraryScheduleWindow(stage, now = new Date()) {
+  if (!itineraryScheduleStages.has(stage)) throw new Error("invalid_stage");
+  const clock = tokyoClock(now);
+  const nowWithBuffer = clock.minutes + 10;
+  // Outside Hokkaido (or without GPS) the trip is treated as starting at New Chitose right now.
+  const airportEarliest = stage === "sapporo" ? null : nowWithBuffer;
+  return {
+    stage,
+    tokyoDate: clock.date,
+    tokyoTime: clockText(clock.minutes),
+    airportEarliest: airportEarliest == null ? "" : clockText(airportEarliest),
+    sapporoEarliest: stage === "sapporo" ? clockText(nowWithBuffer) : ""
+  };
+}
+
+function buildItinerarySchedulePrompt(window) {
+  const legs = window.stage === "sapporo"
+    ? `旅客目前已在 JR 札幌站。請只查「札幌 → 旭川」的特急（カムイ／ライラック），選出 ${window.sapporoEarliest} 或之後最早出發的一班放入 limitedExpress。airportTrain 的三個欄位一律回傳空字串。`
+    : `1. 查「新千歳空港 → 札幌」JR 快速エアポート（含特別快速），選出 ${window.airportEarliest} 或之後最早出發的一班放入 airportTrain。
+2. 再查「札幌 → 旭川」的特急（カムイ／ライラック），選出在上一班抵達札幌時間加 10 分鐘轉乘後最早出發的一班放入 limitedExpress。`;
+  return `你是北海道 JR 時刻查詢助理。現在日本時間 ${window.tokyoDate} ${window.tokyoTime}。
+請使用網路搜尋 JR 北海道官方時刻表、えきから時刻表、ジョルダン、NAVITIME 等可靠來源，以現行（今天適用的）時刻表為準：
+${legs}
+3. alternatives 列出 limitedExpress 之後的 2 到 3 班札幌 → 旭川特急作為替代班次（不要重複 limitedExpress）。
+規則：
+- 時間一律 24 小時制 HH:MM（日本時間）。trainName 使用日文正式列車名與號數，例如「快速エアポート 71号」「特急カムイ 21号」「特急ライラック 23号」。
+- 只能填入在搜尋來源中確認過的班次；查不到確切時間就把該欄位留空字串，並將 found 設為 false。
+- notes 以繁體中文簡述資料來源、是否為平日/假日時刻、或 12/24 當天可能不同的注意事項，限 120 字。`;
+}
+
+export async function updateItinerarySchedule(stage, env, fetchImpl = fetch, now = new Date()) {
+  const window = itineraryScheduleWindow(stage, now);
+  if (!env.OPENAI_API_KEY) throw new Error("schedule_service_unavailable");
+  let schedule;
+  let sources;
+  try {
+    const response = await fetchImpl("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: env.OPENAI_MODEL || "gpt-4.1-mini",
+        input: buildItinerarySchedulePrompt(window),
+        tools: [{ type: "web_search", search_context_size: "medium" }],
+        tool_choice: "required",
+        text: { format: itineraryScheduleResponseFormat },
+        include: ["web_search_call.action.sources"],
+        max_output_tokens: 1200
+      }),
+      signal: AbortSignal.timeout(45_000)
+    });
+    if (!response.ok) throw new Error(`OpenAI status ${response.status}`);
+    const result = await response.json();
+    const outputText = (result.output || [])
+      .flatMap(item => item.content || [])
+      .filter(part => part.type === "output_text" && typeof part.text === "string")
+      .map(part => part.text)
+      .join("");
+    schedule = JSON.parse(outputText);
+    sources = safeSources((result.output || [])
+      .filter(item => item.type === "web_search_call")
+      .flatMap(item => item.action?.sources || []));
+  } catch (error) {
+    console.error("Itinerary schedule web search failed", { message: error.message });
+    throw new Error("schedule_service_unavailable");
+  }
+  const airportTrain = window.stage === "sapporo"
+    ? { departure: "", arrival: "", trainName: "" }
+    : normalizeScheduleService(schedule.airportTrain);
+  const limitedExpress = normalizeScheduleService(schedule.limitedExpress);
+  const alternatives = (Array.isArray(schedule.alternatives) ? schedule.alternatives : [])
+    .map(normalizeScheduleService)
+    .filter(service => service.departure && service.arrival)
+    .slice(0, 3);
+  if (!limitedExpress.departure || !limitedExpress.arrival
+    || (window.stage !== "sapporo" && (!airportTrain.departure || !airportTrain.arrival))) {
+    throw new Error("schedule_not_found");
+  }
+  return {
+    ...window,
+    airportTrain,
+    limitedExpress,
+    alternatives,
+    notes: typeof schedule.notes === "string" ? schedule.notes.trim().slice(0, 240) : "",
+    sources,
+    checkedAt: now.toISOString()
+  };
+}
+
 function taipeiDateFromUnix(timestamp) {
   const parts = new Intl.DateTimeFormat("en", {
     timeZone: "Asia/Taipei",
@@ -1337,6 +1486,23 @@ export async function handleRequest(request, env, ctx) {
       return jsonResponse(await getLatestJpyTwdRate(), 200, origin);
     } catch {
       return jsonResponse({ error: "日圓匯率暫時無法取得，請稍後重試。" }, 503, origin);
+    }
+  }
+  if (body?.action === "itinerary_schedule") {
+    if (!itineraryScheduleStages.has(body.stage)) {
+      return jsonResponse({ error: "無法判斷目前所在的行程階段。" }, 400, origin);
+    }
+    const quotaResponse = await takeDailyQuota(env, `schedule:${identity.email.toLowerCase()}`, maxItineraryScheduleUpdatesPerDay);
+    if (quotaResponse.status === 429) {
+      return jsonResponse({ error: "今日 AI 班次更新次數已達上限，請明天再試。" }, 429, origin);
+    }
+    try {
+      return jsonResponse(await updateItinerarySchedule(body.stage, env), 200, origin);
+    } catch (error) {
+      const unavailable = error.message === "schedule_service_unavailable";
+      return jsonResponse({
+        error: unavailable ? "AI 班次查詢服務暫時無法使用，請稍後重試。" : "目前查不到可確認的班次，請改用時刻表連結查詢。"
+      }, unavailable ? 502 : 422, origin);
     }
   }
   if (body?.action === "parse_receipt") {

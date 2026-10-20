@@ -137,6 +137,29 @@ export async function requestJpyTwdRate({ user }) {
   return result;
 }
 
+export async function requestItinerarySchedule({ user, stage }) {
+  if (!user || typeof user.getIdToken !== "function") throw new Error("請先登入旅遊分帳後再使用 AI 更新班次。");
+  const token = await user.getIdToken();
+  const response = await fetch(workerUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ action: "itinerary_schedule", stage })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "AI 班次查詢暫時無法使用。");
+  const isTime = value => typeof value === "string" && (value === "" || /^\d{2}:\d{2}$/.test(value));
+  const isService = service => service && isTime(service.departure) && isTime(service.arrival) && typeof service.trainName === "string";
+  if (!isService(result.airportTrain) || !isService(result.limitedExpress)
+    || !Array.isArray(result.alternatives) || !result.alternatives.every(isService)
+    || !Array.isArray(result.sources) || typeof result.tokyoTime !== "string") {
+    throw new Error("班次資料格式錯誤，請重試。");
+  }
+  return result;
+}
+
 export async function requestTravelImageAnalysis({ user, imageDataUrl, analysisType }) {
   if (!user || typeof user.getIdToken !== "function") throw new Error("Sign-in required.");
   if (!["menu", "product"].includes(analysisType)) throw new Error("請選擇菜單或商品辨識。");

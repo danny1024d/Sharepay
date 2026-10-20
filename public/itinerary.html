@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#111827" />
   <meta name="description" content="北海道 12/24 至 12/28 行程、交通班次與訂票提醒。" />
   <title>北海道行程 | 旅遊分帳</title>
-  <link rel="stylesheet" href="itinerary.css?v=journey-shell-v3" />
+  <link rel="stylesheet" href="itinerary.css?v=journey-shell-v4" />
   <script>if (window.self !== window.top) document.documentElement.classList.add("embedded-itinerary");</script>
   <script type="module" src="itinerary.js"></script>
 </head>
@@ -51,6 +51,17 @@
             <p id="agenda-description">依時間查看交通與轉乘</p>
           </div>
           <span class="day-tag" id="day-tag">12/24</span>
+        </div>
+        <div class="ai-update" id="ai-update" hidden>
+          <div class="ai-update-actions">
+            <button class="ai-update-button" id="ai-update-button" type="button">
+              <span class="ai-update-spark" aria-hidden="true"></span>
+              <span id="ai-update-label">AI 更新班次</span>
+            </button>
+            <button class="ai-reset-button" id="ai-reset-button" type="button" hidden>還原原行程</button>
+          </div>
+          <p class="ai-update-status" id="ai-update-status" aria-live="polite">依目前時間與 GPS 位置，查詢可搭乘的 JR 班次。</p>
+          <ul class="ai-update-sources" id="ai-update-sources" hidden></ul>
         </div>
         <ol class="timeline" id="timeline"></ol>
       </section>

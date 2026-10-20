@@ -73,6 +73,29 @@ const timeline = document.getElementById("timeline");
 const taskState = new Map();
 let activeDay = "12-24";
 let storageAvailable = true;
+let aiSchedule = null;
+let authUserPromise = null;
+
+const aiDayKey = "12-24";
+const hokkaidoBounds = { minLat: 41.2, maxLat: 45.7, minLng: 139.2, maxLng: 148.9 };
+const stations = [
+  { id: "taoyuan", name: "桃園國際機場", lat: 25.0797, lng: 121.2342, radiusKm: 5 },
+  { id: "new_chitose", name: "新千歲機場", lat: 42.7752, lng: 141.6923, radiusKm: 3 },
+  { id: "sapporo", name: "札幌站", lat: 43.0687, lng: 141.3508, radiusKm: 2 },
+  { id: "asahikawa", name: "旭川站", lat: 43.7627, lng: 142.3581, radiusKm: 3 }
+];
+// Index of the timeline event that represents "being at" each station on 12/24.
+const stationEventIndex = { taoyuan: 0, new_chitose: 1, airport_start: 3, sapporo: 4, asahikawa: 6 };
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+}
+
+function addMinutes(time, minutes) {
+  const [hours, mins] = time.split(":").map(Number);
+  const total = (hours * 60 + mins + minutes + 24 * 60) % (24 * 60);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
 
 function mapUrl(origin, destination) {
   const query = new URLSearchParams({ api: "1", origin, destination, travelmode: "transit" });
@@ -84,26 +107,31 @@ function searchUrl(query) {
 }
 
 function renderEvents(day) {
-  timeline.innerHTML = day.events.map(event => `
-    <li class="timeline-item${event.key ? " is-key" : ""}">
-      <time class="timeline-time">${event.time}</time>
+  timeline.innerHTML = day.events.map(event => {
+    const classes = ["timeline-item", event.key && "is-key", event.status === "done" && "is-done", event.status === "current" && "is-current"].filter(Boolean).join(" ");
+    return `
+    <li class="${classes}">
+      <time class="timeline-time${event.was ? " is-updated" : ""}">${escapeHtml(event.time)}</time>
       <span class="timeline-marker" aria-hidden="true"></span>
       <div class="timeline-content">
         <div class="event-topline">
-          <span class="event-title">${event.title}</span>
-          ${event.key ? '<span class="event-badge">主要節點</span>' : ""}
+          <span class="event-title">${escapeHtml(event.title)}</span>
+          ${event.status === "current" ? '<span class="event-badge is-current">目前位置</span>' : ""}
+          ${event.was ? `<span class="event-badge is-updated">AI 更新<span class="event-was">${escapeHtml(event.was)}</span></span>` : ""}
+          ${event.key && !event.status ? '<span class="event-badge">主要節點</span>' : ""}
         </div>
-        <p class="event-detail">${event.detail}</p>
+        <p class="event-detail">${escapeHtml(event.detail)}</p>
         ${event.map ? `<a class="event-link" href="${mapUrl(event.map.origin, event.map.destination)}" target="_blank" rel="noopener noreferrer">開啟地圖路線</a>` : ""}
       </div>
-    </li>`).join("");
+    </li>`;
+  }).join("");
 }
 
 function renderTable(day) {
   const headers = day.table.headers.map(header => `<th scope="col">${header}</th>`).join("");
   const rows = day.table.rows.map((row, index) => `
     <tr${index === day.table.selectedRow ? ' class="is-selected"' : ""}>
-      ${row.map((cell, cellIndex) => `<td>${cellIndex === 0 && index === day.table.selectedRow ? `<span class="visually-hidden">原行程班次：</span>` : ""}${cell}</td>`).join("")}
+      ${row.map((cell, cellIndex) => `<td>${cellIndex === 0 && index === day.table.selectedRow ? `<span class="visually-hidden">${day.table.selectedLabel || "原行程班次"}：</span>` : ""}${escapeHtml(cell)}</td>`).join("")}
     </tr>`).join("");
   document.getElementById("options-table").innerHTML = `<table class="service-table"><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
   document.getElementById("options-links").innerHTML = `<a href="${searchUrl(day.table.search)}" target="_blank" rel="noopener noreferrer">搜尋交通資訊</a>`;
@@ -167,8 +195,9 @@ function renderBookings() {
 }
 
 function selectDay(key, moveFocus = false) {
-  const day = days[key];
+  const day = key === aiDayKey && aiSchedule ? aiSchedule.day : days[key];
   activeDay = key;
+  document.getElementById("ai-update").hidden = key !== aiDayKey;
   tabs.forEach(tab => {
     const selected = tab.dataset.day === key;
     tab.setAttribute("aria-selected", String(selected));
@@ -204,6 +233,165 @@ tabs.forEach((tab, index) => {
         : (index + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length;
     selectDay(tabs[nextIndex].dataset.day, true);
   });
+});
+
+function distanceKm(a, b) {
+  const toRad = degrees => degrees * Math.PI / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.sqrt(h));
+}
+
+function locate() {
+  if (!("geolocation" in navigator)) return Promise.resolve(null);
+  return new Promise(resolve => {
+    navigator.geolocation.getCurrentPosition(
+      position => resolve({ lat: position.coords.latitude, lng: position.coords.longitude, accuracy: position.coords.accuracy }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 12_000, maximumAge: 60_000 }
+    );
+  });
+}
+
+function resolveStage(position) {
+  if (!position) return { stage: "unknown", stationId: "airport_start", label: "無法取得 GPS 位置，以新千歲機場為起點、依現在時間查詢" };
+  const ranked = stations
+    .map(station => ({ station, km: distanceKm(position, station) }))
+    .sort((a, b) => a.km - b.km);
+  const inHokkaido = position.lat >= hokkaidoBounds.minLat && position.lat <= hokkaidoBounds.maxLat
+    && position.lng >= hokkaidoBounds.minLng && position.lng <= hokkaidoBounds.maxLng;
+  if (!inHokkaido) {
+    return {
+      stage: "pre_trip",
+      stationId: "airport_start",
+      label: "目前不在北海道，以新千歲機場為起點、依現在時間查詢"
+    };
+  }
+  const nearest = ranked.find(item => item.station.id !== "taoyuan");
+  const within = nearest.km <= nearest.station.radiusKm;
+  const distance = nearest.km < 1 ? `${Math.round(nearest.km * 1000)} 公尺` : `${nearest.km.toFixed(1)} 公里`;
+  return {
+    stage: nearest.station.id,
+    stationId: nearest.station.id,
+    label: within ? `GPS：目前在${nearest.station.name}` : `GPS：最接近${nearest.station.name}（約 ${distance}）`
+  };
+}
+
+async function getSignedInUser() {
+  if (!authUserPromise) {
+    authUserPromise = (async () => {
+      const [{ initializeApp, getApps }, { getAuth, onAuthStateChanged }, { firebaseConfig }] = await Promise.all([
+        import("https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"),
+        import("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"),
+        import("./firebase-config.js")
+      ]);
+      const app = getApps()[0] || initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      return new Promise(resolve => {
+        const unsubscribe = onAuthStateChanged(auth, user => {
+          unsubscribe();
+          resolve(user);
+        });
+      });
+    })().catch(error => {
+      authUserPromise = null;
+      throw error;
+    });
+  }
+  return authUserPromise;
+}
+
+function buildAiDay(result, located) {
+  const base = days[aiDayKey];
+  const events = base.events.map(event => ({ ...event }));
+  const setTime = (index, time) => {
+    if (time && events[index].time !== time) {
+      events[index].was = events[index].time;
+      events[index].time = time;
+    }
+  };
+  const { airportTrain, limitedExpress } = result || {};
+  if (airportTrain?.departure) {
+    const name = airportTrain.trainName || "快速エアポート";
+    setTime(3, airportTrain.departure);
+    events[3].title = `${name} 出發`;
+    setTime(4, airportTrain.arrival);
+    events[4].detail = name;
+  }
+  if (limitedExpress?.departure) {
+    const name = limitedExpress.trainName || "特急";
+    setTime(5, limitedExpress.departure);
+    events[5].title = `${name} 出發`;
+    events[5].detail = "札幌 → 旭川・AI 依目前時間選擇班次";
+    setTime(6, limitedExpress.arrival);
+    setTime(7, `～${addMinutes(limitedExpress.arrival, 15)}`);
+  }
+  const currentIndex = located.stationId ? stationEventIndex[located.stationId] : -1;
+  events.forEach((event, index) => {
+    if (currentIndex >= 0 && index < currentIndex) event.status = "done";
+    if (index === currentIndex) event.status = "current";
+  });
+
+  const day = { ...base, events };
+  if (limitedExpress?.departure) {
+    const services = [limitedExpress, ...(result.alternatives || [])];
+    day.table = {
+      ...base.table,
+      rows: services.map(service => [service.departure, service.arrival, service.trainName]),
+      selectedRow: 0,
+      selectedLabel: "AI 建議班次"
+    };
+    day.optionsDescription = `AI 依日本時間 ${result.tokyoTime} 查詢的建議與替代班次`;
+    day.connection = airportTrain?.departure
+      ? `AI 更新：${airportTrain.trainName || "快速エアポート"} ${airportTrain.departure} 自新千歲出發、${airportTrain.arrival} 抵達札幌；接續 ${limitedExpress.trainName} ${limitedExpress.departure} 前往旭川，${limitedExpress.arrival} 抵達。`
+      : `AI 更新：${limitedExpress.trainName} ${limitedExpress.departure} 自札幌出發，${limitedExpress.arrival} 抵達旭川。`;
+  }
+  return day;
+}
+
+function setAiStatus(message, { loading = false, error = false, sources = [] } = {}) {
+  const panel = document.getElementById("ai-update");
+  panel.classList.toggle("is-loading", loading);
+  panel.classList.toggle("is-error", error);
+  document.getElementById("ai-update-status").textContent = message;
+  document.getElementById("ai-update-button").disabled = loading;
+  document.getElementById("ai-update-label").textContent = loading ? "查詢中…" : aiSchedule ? "重新更新班次" : "AI 更新班次";
+  document.getElementById("ai-reset-button").hidden = loading || !aiSchedule;
+  const list = document.getElementById("ai-update-sources");
+  list.hidden = !sources.length;
+  list.innerHTML = sources.map(source =>
+    `<li><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)}</a></li>`).join("");
+}
+
+async function runAiUpdate() {
+  setAiStatus("正在取得 GPS 位置…", { loading: true });
+  const located = resolveStage(await locate());
+
+  if (located.stage === "asahikawa") {
+    aiSchedule = { day: buildAiDay(null, located) };
+    selectDay(aiDayKey);
+    setAiStatus(`${located.label}。已抵達旭川，不需再查詢 JR 班次。`);
+    return;
+  }
+
+  setAiStatus(`${located.label}。AI 正在搜尋最新時刻表…`, { loading: true });
+  try {
+    const [{ requestItinerarySchedule }, user] = await Promise.all([import("./ai-client.js"), getSignedInUser()]);
+    const result = await requestItinerarySchedule({ user, stage: located.stage });
+    aiSchedule = { day: buildAiDay(result, located) };
+    selectDay(aiDayKey);
+    setAiStatus(`日本時間 ${result.tokyoTime} 查詢・${located.label}。${result.notes || ""}`.trim(), { sources: result.sources });
+  } catch (error) {
+    setAiStatus(error?.message || "AI 班次查詢失敗，請稍後再試。", { error: true });
+  }
+}
+
+document.getElementById("ai-update-button").addEventListener("click", () => void runAiUpdate());
+document.getElementById("ai-reset-button").addEventListener("click", () => {
+  aiSchedule = null;
+  selectDay(aiDayKey);
+  setAiStatus("已還原原行程。依目前時間與 GPS 位置，查詢可搭乘的 JR 班次。");
 });
 
 renderBookings();

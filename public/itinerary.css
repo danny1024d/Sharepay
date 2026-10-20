@@ -426,6 +426,151 @@ h1 {
   font-weight: 600;
 }
 
+.ai-update {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  border: 1px solid #c7d2fe;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--indigo-wash), #f8fafc 70%);
+  padding: 12px 14px;
+}
+
+.ai-update[hidden],
+.ai-update-sources[hidden],
+.ai-reset-button[hidden] {
+  display: none;
+}
+
+.ai-update-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-update-button,
+.ai-reset-button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+  transition: transform 140ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.ai-update-button {
+  border: 0;
+  background: linear-gradient(118deg, var(--indigo-dark), var(--indigo));
+  padding: 0 14px;
+  color: #fff;
+  box-shadow: 0 2px 8px rgb(79 70 229 / 0.28);
+}
+
+.ai-update-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgb(79 70 229 / 0.32);
+}
+
+.ai-update-button:disabled {
+  cursor: progress;
+  opacity: 0.85;
+}
+
+.ai-update-spark {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: #fff;
+  transform: rotate(45deg);
+}
+
+.ai-update.is-loading .ai-update-spark {
+  animation: ai-spark-spin 900ms linear infinite;
+}
+
+@keyframes ai-spark-spin {
+  to { transform: rotate(405deg); }
+}
+
+.ai-reset-button {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 0 12px;
+  color: var(--ink-soft);
+}
+
+.ai-reset-button:hover {
+  background: #f1f5f9;
+}
+
+.ai-update-status {
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.ai-update.is-error .ai-update-status {
+  color: #b42318;
+}
+
+.ai-update-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+}
+
+.ai-update-sources a {
+  font-weight: 600;
+}
+
+.timeline-item.is-done .timeline-time,
+.timeline-item.is-done .event-title {
+  color: #94a3b8;
+}
+
+.timeline-item.is-done .timeline-marker {
+  background: #cbd5e1;
+  box-shadow: 0 0 0 1px #cbd5e1;
+}
+
+.timeline-item.is-current .timeline-marker {
+  background: var(--green);
+  box-shadow: 0 0 0 4px #a7f3d0;
+  animation: current-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes current-pulse {
+  50% { box-shadow: 0 0 0 7px rgb(167 243 208 / 0.35); }
+}
+
+.event-badge.is-current {
+  background: var(--green-wash);
+  color: var(--green);
+}
+
+.event-badge.is-updated {
+  background: var(--amber-wash);
+  color: var(--amber);
+}
+
+.timeline-time.is-updated {
+  color: var(--indigo-dark);
+}
+
+.event-was {
+  margin-left: 4px;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
 .side-stack {
   display: grid;
   gap: 12px;

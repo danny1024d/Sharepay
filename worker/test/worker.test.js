@@ -22,6 +22,8 @@ import {
   serveKamuiMapData,
   translatePlaceIntroduction,
   resolveGoogleMapsShareUrl,
+  itineraryScheduleWindow,
+  updateItinerarySchedule,
   UserDailyRateLimiter
 } from "../src/index.js";
 
@@ -927,4 +929,42 @@ test("getKamuiMapData with 'all' returns all three ski resorts at once", async (
   assert.ok(result.resorts.kamui.features.length > 0);
   assert.ok(result.resorts["santa-present-park"].features.length > 0);
   assert.ok(result.resorts.pippu.features.length > 0);
+});
+
+test("itinerary schedule window uses Tokyo time and the traveler's stage", () => {
+  const now = new Date("2026-12-24T03:30:00Z"); // 12:30 JST
+  assert.deepEqual(itineraryScheduleWindow("pre_trip", now), {
+    stage: "pre_trip", tokyoDate: "2026-12-24", tokyoTime: "12:30", airportEarliest: "12:40", sapporoEarliest: ""
+  });
+  assert.equal(itineraryScheduleWindow("new_chitose", now).airportEarliest, "12:40");
+  assert.equal(itineraryScheduleWindow("unknown", now).airportEarliest, "12:40");
+  assert.equal(itineraryScheduleWindow("sapporo", now).sapporoEarliest, "12:40");
+  assert.equal(itineraryScheduleWindow("sapporo", now).airportEarliest, "");
+  assert.throws(() => itineraryScheduleWindow("asahikawa", now));
+});
+
+test("itinerary schedule update parses web search output and drops invalid times", async () => {
+  let requestBody;
+  const fetchImpl = async (_url, init) => {
+    requestBody = JSON.parse(init.body);
+    return new Response(JSON.stringify({
+      output: [
+        { type: "web_search_call", action: { sources: [{ title: "JR", url: "https://www.jrhokkaido.co.jp/" }] } },
+        { type: "message", content: [{ type: "output_text", text: JSON.stringify({
+          found: true,
+          airportTrain: { departure: "12:42", arrival: "13:19", trainName: "快速エアポート 150号" },
+          limitedExpress: { departure: "14:00", arrival: "15:25", trainName: "特急カムイ 21号" },
+          alternatives: [{ departure: "14:30", arrival: "15:55", trainName: "特急ライラック 23号" }, { departure: "bad", arrival: "", trainName: "x" }],
+          notes: "平日時刻"
+        }) }] }
+      ]
+    }), { status: 200 });
+  };
+  const result = await updateItinerarySchedule("new_chitose", { OPENAI_API_KEY: "key" }, fetchImpl, new Date("2026-12-24T03:30:00Z"));
+  assert.deepEqual(requestBody.tools, [{ type: "web_search", search_context_size: "medium" }]);
+  assert.match(requestBody.input, /12:40/);
+  assert.equal(result.airportTrain.departure, "12:42");
+  assert.equal(result.limitedExpress.trainName, "特急カムイ 21号");
+  assert.equal(result.alternatives.length, 1);
+  assert.equal(result.sources.length, 1);
 });
