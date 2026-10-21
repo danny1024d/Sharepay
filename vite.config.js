@@ -17,7 +17,8 @@ export default defineConfig({
         login: resolve(publicRoot, "login.html"),
         trips: resolve(publicRoot, "trips.html"),
         itinerary: resolve(publicRoot, "itinerary.html"),
-        kamui: resolve(publicRoot, "kamui.html")
+        kamui: resolve(publicRoot, "kamui.html"),
+        snowNotes: resolve(publicRoot, "snow-notes.html")
       },
       external: id => id.startsWith("https://www.gstatic.com/firebasejs/")
     }

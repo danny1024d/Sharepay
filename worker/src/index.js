@@ -211,6 +211,83 @@ export const travelProductResearchResponseFormat = {
   }
 };
 
+export const snowboardAnalysisResponseFormat = {
+  type: "json_schema",
+  name: "snowboard_video_coaching_analysis",
+  strict: true,
+  schema: {
+    type: "object",
+    properties: {
+      category: {
+        type: "string",
+        enum: [
+          "身體姿勢與平衡",
+          "板刃控制與換刃",
+          "轉彎與速度控制",
+          "壓力控制與刻滑進階"
+        ]
+      },
+      technique: { type: "string" },
+      secondaryTags: {
+        type: "array",
+        items: { type: "string" }
+      },
+      coreConcept: { type: "string" },
+      suitability: { type: "string" },
+      suitabilityLevel: {
+        type: "string",
+        enum: ["suitable", "challenging", "too_advanced", "foundational"]
+      },
+      cautions: {
+        type: "array",
+        items: { type: "string" }
+      },
+      commonMistakes: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            mistake: { type: "string" },
+            correction: { type: "string" }
+          },
+          required: ["mistake", "correction"],
+          additionalProperties: false
+        }
+      },
+      practiceDrills: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            step: { type: "string" },
+            detail: { type: "string" }
+          },
+          required: ["step", "detail"],
+          additionalProperties: false
+        }
+      },
+      completionCriteria: { type: "string" },
+      analysisBasis: { type: "string" },
+      formattedText: { type: "string" }
+    },
+    required: [
+      "category",
+      "technique",
+      "secondaryTags",
+      "coreConcept",
+      "suitability",
+      "suitabilityLevel",
+      "cautions",
+      "commonMistakes",
+      "practiceDrills",
+      "completionCriteria",
+      "analysisBasis",
+      "formattedText"
+    ],
+    additionalProperties: false
+  }
+};
+
 function imageDataUrlByteLength(imageDataUrl, maxBytes) {
   const match = typeof imageDataUrl === "string"
     ? imageDataUrl.match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+={0,2})$/i)
@@ -737,6 +814,130 @@ export async function updateItinerarySchedule(stage, env, fetchImpl = fetch, now
     notes: typeof schedule.notes === "string" ? schedule.notes.trim().slice(0, 240) : "",
     sources,
     checkedAt: now.toISOString()
+  };
+}
+
+export function buildSnowboardAnalysisPrompt({ title = "", videoUrl = "", transcript = "" }) {
+  const cleanTranscript = typeof transcript === "string" ? transcript.trim() : "";
+  const cleanTitle = typeof title === "string" ? title.trim() : "";
+  const cleanUrl = typeof videoUrl === "string" ? videoUrl.trim() : "";
+  return `你是一位專業的單板滑雪教練，擅長基礎滑行、換刃、連續轉彎與刻滑教學。
+
+【學員程度】
+- 綠線可以順利滑下。
+- 紅線滑行尚不穩定。
+- 目前目標是建立穩定的前刃、後刃控制，改善換刃與連續 S-turn，逐步學習刻滑。
+
+【影片分類】
+請將影片歸入以下一個主要分類：
+1. 身體姿勢與平衡
+2. 板刃控制與換刃
+3. 轉彎與速度控制
+4. 壓力控制與刻滑進階
+
+【分析規則】
+1. 根據實際可取得的影片內容判斷分類，不可只根據標題猜測。
+2. 區分影片明確教導的技術與 AI 推測的內容。
+3. 若只有標題或簡介，請標記「資訊不足」，不要假裝看過影片。
+4. 若影片包含多種技術，選出最主要的一項，其餘列為次要標籤。
+5. 練習建議須符合學員目前程度，不要直接推薦高速、陡坡或高立刃的高風險練習。
+6. 具體說明動作重點、常見錯誤、修正方式及完成標準。
+7. 不要將特定教學流派的口訣當成所有情境都適用的絕對規則。
+
+【待分析影片資訊】
+影片標題：${cleanTitle || "（未提供）"}
+影片網址：${cleanUrl || "（未提供）"}
+影片字幕檔 / 逐字稿內容：
+${cleanTranscript ? cleanTranscript.slice(0, 30000) : "（無字幕檔內容，僅有標題或網址）"}
+
+請根據上述學員程度與分析規則，完成結構化資料輸出。
+在 formattedText 欄位中，請嚴格按照以下輸出格式排版（包含繁體中文欄位名稱與換行）：
+- 主要分類：
+- 技術項目：
+- 次要標籤：
+- 影片核心觀念：
+- 適合目前程度嗎：
+- 練習注意事項（最多 3 點）：
+- 常見錯誤與修正：
+- 建議練習方式：
+- 完成標準：
+- 分析依據：`;
+}
+
+export async function analyzeSnowboardVideo({ title = "", videoUrl = "", transcript = "" }, env, fetchImpl = fetch) {
+  if (!env.OPENAI_API_KEY) throw new Error("snowboard_service_unavailable");
+  const cleanTranscript = typeof transcript === "string" ? transcript.trim() : "";
+  const cleanTitle = typeof title === "string" ? title.trim() : "";
+  if (!cleanTranscript && !cleanTitle) {
+    throw new Error("請提供影片字幕檔或影片標題以供分析。");
+  }
+
+  let analysis;
+  try {
+    const response = await fetchImpl("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: env.OPENAI_MODEL || "gpt-4.1-mini",
+        input: buildSnowboardAnalysisPrompt({ title: cleanTitle, videoUrl, transcript: cleanTranscript }),
+        text: { format: snowboardAnalysisResponseFormat },
+        max_output_tokens: 2800
+      }),
+      signal: AbortSignal.timeout(45_000)
+    });
+    if (!response.ok) throw new Error(`OpenAI status ${response.status}`);
+    const result = await response.json();
+    const outputText = (result.output || [])
+      .flatMap(item => item.content || [])
+      .filter(part => part.type === "output_text" && typeof part.text === "string")
+      .map(part => part.text)
+      .join("");
+    analysis = JSON.parse(outputText);
+  } catch (error) {
+    console.error("Snowboard video analysis failed", { message: error.message });
+    throw new Error("snowboard_service_unavailable");
+  }
+
+  const validCategories = ["身體姿勢與平衡", "板刃控制與換刃", "轉彎與速度控制", "壓力控制與刻滑進階"];
+  const category = validCategories.includes(analysis.category) ? analysis.category : "身體姿勢與平衡";
+  const suitabilityLevels = ["suitable", "challenging", "too_advanced", "foundational"];
+  const suitabilityLevel = suitabilityLevels.includes(analysis.suitabilityLevel) ? analysis.suitabilityLevel : "suitable";
+
+  return {
+    category,
+    technique: typeof analysis.technique === "string" ? analysis.technique.trim().slice(0, 100) : (cleanTitle || "單板滑雪技術"),
+    secondaryTags: (Array.isArray(analysis.secondaryTags) ? analysis.secondaryTags : [])
+      .filter(tag => typeof tag === "string" && tag.trim())
+      .slice(0, 6)
+      .map(tag => tag.trim().slice(0, 40)),
+    coreConcept: typeof analysis.coreConcept === "string" ? analysis.coreConcept.trim().slice(0, 800) : "",
+    suitability: typeof analysis.suitability === "string" ? analysis.suitability.trim().slice(0, 300) : "",
+    suitabilityLevel,
+    cautions: (Array.isArray(analysis.cautions) ? analysis.cautions : [])
+      .filter(c => typeof c === "string" && c.trim())
+      .slice(0, 3)
+      .map(c => c.trim().slice(0, 200)),
+    commonMistakes: (Array.isArray(analysis.commonMistakes) ? analysis.commonMistakes : [])
+      .filter(m => m && typeof m.mistake === "string" && typeof m.correction === "string")
+      .slice(0, 5)
+      .map(m => ({
+        mistake: m.mistake.trim().slice(0, 200),
+        correction: m.correction.trim().slice(0, 300)
+      })),
+    practiceDrills: (Array.isArray(analysis.practiceDrills) ? analysis.practiceDrills : [])
+      .filter(d => d && typeof d.step === "string" && typeof d.detail === "string")
+      .slice(0, 6)
+      .map(d => ({
+        step: d.step.trim().slice(0, 100),
+        detail: d.detail.trim().slice(0, 300)
+      })),
+    completionCriteria: typeof analysis.completionCriteria === "string" ? analysis.completionCriteria.trim().slice(0, 400) : "",
+    analysisBasis: typeof analysis.analysisBasis === "string" ? analysis.analysisBasis.trim().slice(0, 400) : (cleanTranscript ? "依據提供之影片字幕檔分析" : "僅依據標題分析（資訊不足）"),
+    formattedText: typeof analysis.formattedText === "string" ? analysis.formattedText.trim() : "",
+    analyzedAt: new Date().toISOString()
   };
 }
 
@@ -1478,7 +1679,7 @@ export async function handleRequest(request, env, ctx) {
   } catch {
     return jsonResponse({ error: "Invalid JSON body." }, 400, origin);
   }
-  if (!['parse_receipt', 'analyze_travel_image'].includes(body?.action) && requestBytes > maxRequestBytes) {
+  if (!['parse_receipt', 'analyze_travel_image', 'analyze_snowboard_video'].includes(body?.action) && requestBytes > maxRequestBytes) {
     return jsonResponse({ error: "Request is too large." }, 413, origin);
   }
   if (body?.action === "jpy_twd_rate") {
@@ -1486,6 +1687,24 @@ export async function handleRequest(request, env, ctx) {
       return jsonResponse(await getLatestJpyTwdRate(), 200, origin);
     } catch {
       return jsonResponse({ error: "日圓匯率暫時無法取得，請稍後重試。" }, 503, origin);
+    }
+  }
+  if (body?.action === "analyze_snowboard_video") {
+    const quotaResponse = await takeDailyQuota(env, `snowboard:${identity.email.toLowerCase()}`, 50);
+    if (quotaResponse.status === 429) {
+      return jsonResponse({ error: "今日滑雪筆記 AI 分析次數已達上限（50 次），請明天再試。" }, 429, origin);
+    }
+    try {
+      return jsonResponse(await analyzeSnowboardVideo({
+        title: body.title || "",
+        videoUrl: body.videoUrl || "",
+        transcript: body.transcript || ""
+      }, env), 200, origin);
+    } catch (error) {
+      const unavailable = error.message === "snowboard_service_unavailable";
+      return jsonResponse({
+        error: unavailable ? "AI 滑雪教練分析服務暫時無法使用，請稍後重試。" : (error.message || "分析失敗，請重試。")
+      }, unavailable ? 502 : 422, origin);
     }
   }
   if (body?.action === "itinerary_schedule") {

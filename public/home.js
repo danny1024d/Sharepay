@@ -46,7 +46,17 @@ let placeExpiryTimer;
 let placeDialogTags = [];
 let database;
 let currentUser = null;
-const activeTripId = new URLSearchParams(window.location.search).get("trip");
+let activeTripId = new URLSearchParams(window.location.search).get("trip");
+if (!activeTripId) {
+  activeTripId = localStorage.getItem("active-trip-id");
+  if (activeTripId) {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set("trip", activeTripId);
+    window.history.replaceState({}, "", currentUrl.toString());
+  }
+} else {
+  localStorage.setItem("active-trip-id", activeTripId);
+}
 let pendingTravelImageFile = null;
 let pendingTravelImagePreviewUrl = "";
 let pendingProductBarcode = "";
@@ -2243,6 +2253,8 @@ if (!isConfigured) {
       const tripName = tripSnapshot.data().name || "未命名行程";
       document.getElementById("header-trip-name").textContent = tripName;
       localStorage.setItem("active-trip-name", tripName);
+      const notesLink = document.getElementById("journey-snow-notes-link");
+      if (notesLink) notesLink.href = `snow-notes.html?trip=${encodeURIComponent(activeTripId)}`;
       if (!dialogsReady) {
         setupDialogs();
         dialogsReady = true;

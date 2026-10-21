@@ -142,6 +142,7 @@ function renderTrips(trips) {
   renderIcons(list);
 
   list.querySelectorAll("[data-trip-id]").forEach(link => link.addEventListener("click", () => {
+    localStorage.setItem("active-trip-id", link.dataset.tripId);
     localStorage.setItem("active-trip-name", link.dataset.tripName);
   }));
   list.querySelectorAll("[data-delete-trip]").forEach(button => button.addEventListener("click", () => {
@@ -222,7 +223,10 @@ async function removeTrip(tripId, tripName, button) {
       }
     }
     await deleteDoc(doc(tripsCollection, tripId));
-    if (localStorage.getItem("active-trip-name") === tripName) localStorage.removeItem("active-trip-name");
+    if (localStorage.getItem("active-trip-id") === tripId) {
+      localStorage.removeItem("active-trip-id");
+      localStorage.removeItem("active-trip-name");
+    }
   } catch (error) {
     console.error("Trip deletion failed:", error);
     alert("無法刪除行程，請確認網路連線後再試一次。");
@@ -255,6 +259,7 @@ form.addEventListener("submit", async event => {
       return { id: selectedEmail, name: accountDisplayName(account), email: selectedEmail, photoURL: account?.photoURL || "" };
     });
     const trip = await addDoc(tripsCollection, { name, members, schemaVersion: 2, createdAt: now, updatedAt: now });
+    localStorage.setItem("active-trip-id", trip.id);
     localStorage.setItem("active-trip-name", name);
     window.location.assign(`index.html?trip=${encodeURIComponent(trip.id)}`);
   } catch (error) {

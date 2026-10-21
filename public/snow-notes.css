@@ -1,0 +1,1541 @@
+/* ============================================================
+   snow-notes.css — 滑雪學習筆記
+   與 index.html「旅程」區同一視覺語言：
+   酒紅漸層頁首、圓角卡片、淡玫瑰底色、底部／全螢幕子頁。
+   (class 名稱沿用 mac-* 以維持 snow-notes.js 綁定)
+   ============================================================ */
+
+:root {
+  /* Journey palette (mirrors #journey-app in index.html) */
+  --wine-900: #6e2638;
+  --wine-800: #7d3043;
+  --wine-700: #8f3647;
+  --wine-800-hover: #71293a;
+  --wine-tint: #f3d8d6;
+  --wine-tint-soft: #fbeceb;
+  --rose-bg: #fff7f6;
+  --rose-line: #ead1d1;
+
+  --ink: #0f172a;
+  --ink-2: #475569;
+  --ink-3: #64748b;
+  --line: #e2e8f0;
+  --card: #ffffff;
+
+  --ok-bg: #dcefe3;
+  --ok-ink: #1c6945;
+  --warn-bg: #fdf0d9;
+  --warn-ink: #8a5a12;
+  --danger-bg: #fbe4e6;
+  --danger-ink: #a12a3a;
+  --info-bg: #e3edf5;
+  --info-ink: #1f5a85;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.05), 0 2px 8px rgb(125 48 67 / 0.05);
+  --shadow-head: 0 8px 24px rgb(125 48 67 / 0.24);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --font: ui-sans-serif, system-ui, -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+
+  /* Legacy aliases used by inline strings in snow-notes.js */
+  --mac-text: var(--ink);
+  --mac-text-secondary: var(--ink-3);
+  --mac-text-tertiary: var(--ink-3);
+  --mac-accent: var(--wine-700);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  font-family: var(--font);
+  background: #f4e7e5;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+::selection {
+  background: var(--wine-tint);
+  color: var(--wine-900);
+}
+
+input,
+textarea,
+button {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--wine-700);
+  outline-offset: 2px;
+}
+
+/* Themed scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d9b9b9 transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d9b9b9;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- App shell (matches max-w-lg column) ---------- */
+.mac-app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  width: 100%;
+  max-width: 32rem;
+  margin: 0 auto;
+  background: var(--rose-bg);
+  box-shadow: 0 0 60px rgb(110 38 56 / 0.12);
+  overflow: hidden;
+}
+
+/* ---------- Header ---------- */
+.mac-titlebar {
+  flex-shrink: 0;
+  z-index: 20;
+  padding: 1.25rem 1.25rem 1rem;
+  border-radius: 0 0 1.5rem 1.5rem;
+  background-image: linear-gradient(112deg, #6e2638 0%, #88323f 58%, #9b4547 100%);
+  box-shadow: var(--shadow-head);
+  color: #fffafa;
+}
+
+.mac-titlebar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.mac-titlebar-title h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+.mac-titlebar-title p {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  color: #fff0ef;
+}
+
+.mac-action-btn:focus-visible,
+.mac-mobile-back-btn:focus-visible {
+  outline-color: #fff;
+}
+
+/* ---------- Workspace ---------- */
+.mac-workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Category chips */
+.mac-sidebar {
+  flex-shrink: 0;
+  padding: 0.875rem 0 0.25rem;
+}
+
+.mac-folder-list {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1rem 0.25rem;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.mac-folder-list::-webkit-scrollbar {
+  display: none;
+}
+
+.mac-folder-item {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+  scroll-snap-align: start;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  background: var(--card);
+  color: var(--ink-2);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.mac-folder-item:hover {
+  background: var(--wine-tint-soft);
+}
+
+.mac-folder-item.active {
+  border-color: var(--wine-tint);
+  background: var(--wine-tint);
+  color: var(--wine-800);
+  font-weight: 600;
+}
+
+.mac-folder-info {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.mac-folder-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  color: var(--ink-3);
+}
+
+.mac-folder-item.active .mac-folder-icon {
+  color: var(--wine-700);
+}
+
+.mac-folder-badge {
+  min-width: 1.25rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  color: var(--ink-3);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.mac-folder-item.active .mac-folder-badge {
+  background: rgb(125 48 67 / 0.12);
+  color: var(--wine-800);
+}
+
+/* ---------- List column ---------- */
+.mac-notes-list-col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.mac-list-toolbar {
+  padding: 0.625rem 1rem 0.5rem;
+}
+
+.mac-toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.mac-filter-tabs {
+  display: flex;
+  flex-shrink: 0;
+  padding: 0.1875rem;
+  border-radius: 0.625rem;
+  background: #f3e3e1;
+}
+
+.mac-filter-tab {
+  min-height: 2.375rem;
+  padding: 0 0.625rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.mac-filter-tab.active {
+  background: #fff;
+  color: var(--wine-800);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.1);
+}
+
+.mac-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.mac-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  width: 0.9375rem;
+  height: 0.9375rem;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+.mac-search-input {
+  width: 100%;
+  height: 2.625rem;
+  padding: 0 2rem 0 2.25rem;
+  border: 1px solid var(--line);
+  border-radius: 0.625rem;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 0.8125rem;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.mac-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.mac-search-input:focus {
+  border-color: var(--wine-700);
+  box-shadow: 0 0 0 3px rgb(143 54 71 / 0.15);
+}
+
+.mac-search-clear {
+  position: absolute;
+  right: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+}
+
+.mac-search-clear:hover {
+  color: var(--ink);
+}
+
+/* Floating Action Button (新增筆記 +) */
+.mac-fab-add {
+  position: fixed;
+  bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  right: max(1rem, calc(50% - 16rem + 1rem));
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--wine-700);
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgb(125 48 67 / 0.38);
+  cursor: pointer;
+  transition: background-color 160ms ease, transform 120ms ease, box-shadow 160ms ease;
+}
+
+.mac-fab-add:hover {
+  background: var(--wine-800-hover);
+  box-shadow: 0 12px 28px rgb(125 48 67 / 0.46);
+}
+
+.mac-fab-add:active {
+  transform: scale(0.92);
+}
+
+/* Bottom Navigation Footer (景點 辨識 行程 地圖) */
+.journey-bottom-nav {
+  flex-shrink: 0;
+  z-index: 20;
+  border-top: 1px solid var(--rose-line);
+  background: rgb(255 250 249 / 0.98);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.journey-bottom-nav-inner {
+  display: flex;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.journey-nav-link {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.625rem 0;
+  min-height: 3.5rem;
+  border-radius: 6px;
+  color: #475b51;
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.journey-nav-link:hover {
+  background: var(--wine-tint-soft);
+  color: var(--wine-800);
+}
+
+.journey-nav-link svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #64748b;
+  transition: color 160ms ease;
+}
+
+.journey-nav-link:hover svg {
+  color: var(--wine-700);
+}
+
+/* Notes list */
+.mac-notes-stack {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 0.25rem 1rem calc(5.5rem + env(safe-area-inset-bottom));
+  list-style: none;
+  overflow-y: auto;
+}
+
+.mac-note-card {
+  position: relative;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: transform 140ms var(--ease-out), border-color 160ms ease;
+}
+
+.mac-note-card:hover {
+  border-color: var(--rose-line);
+}
+
+.mac-note-card:active {
+  transform: scale(0.985);
+}
+
+.mac-note-card.active {
+  border-color: var(--wine-700);
+}
+
+.mac-note-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mac-note-card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.mac-status-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  color: var(--ok-ink);
+}
+
+.mac-note-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.mac-note-card-snippet {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.mac-note-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.mac-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  background: #f1f5f9;
+  color: var(--ink-2);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.mac-pill-category-1 {
+  background: var(--danger-bg);
+  color: var(--danger-ink);
+}
+
+.mac-pill-category-2 {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+
+.mac-pill-category-3 {
+  background: var(--ok-bg);
+  color: var(--ok-ink);
+}
+
+.mac-pill-category-4 {
+  background: #ebe5f3;
+  color: #58407f;
+}
+
+.mac-yt-thumb-mini {
+  width: 3.5rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: 0.375rem;
+  object-fit: cover;
+  background: #e2e8f0;
+}
+
+.mac-list-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 12rem;
+  padding: 1.25rem;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* ---------- Detail (full-screen sub page, like #journey-app) ---------- */
+.mac-detail-col {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  flex-direction: column;
+  background: var(--rose-bg);
+  overflow-y: auto;
+}
+
+.mac-detail-col.is-active {
+  display: flex;
+  animation: detail-in 280ms var(--ease-out);
+}
+
+@keyframes detail-in {
+  from {
+    opacity: 0;
+    transform: translateX(1.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.mac-detail-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0 0 1.5rem 1.5rem;
+  background-image: linear-gradient(112deg, #6e2638 0%, #88323f 58%, #9b4547 100%);
+  box-shadow: var(--shadow-head);
+  color: #fff;
+}
+
+.mac-detail-toolbar-left,
+.mac-detail-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.mac-mobile-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  height: 2.5rem;
+  padding: 0 0.625rem 0 0.375rem;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 0.5rem;
+  background: rgb(255 255 255 / 0.1);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 160ms ease;
+}
+
+.mac-mobile-back-btn:hover {
+  background: rgb(255 255 255 / 0.2);
+}
+
+.mac-detail-date {
+  font-size: 0.75rem;
+  color: #ffe3e1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mac-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  padding: 0 0.625rem;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 0.5rem;
+  background: rgb(255 255 255 / 0.1);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 160ms ease;
+}
+
+.mac-action-btn:hover {
+  background: rgb(255 255 255 / 0.2);
+}
+
+.mac-action-btn.is-completed {
+  border-color: #ffffff;
+  background: #ffffff;
+  color: var(--wine-900);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+}
+
+.mac-action-btn.is-completed:hover {
+  background: #fdf2f1;
+  border-color: #fdf2f1;
+}
+
+.mac-action-btn.is-delete:hover {
+  background: rgb(255 120 130 / 0.3);
+}
+
+.mac-detail-canvas {
+  flex: 1;
+  width: 100%;
+  padding: 1.25rem 1rem 3rem;
+}
+
+.mac-empty-selection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 4rem 1.5rem;
+  text-align: center;
+}
+
+.mac-empty-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  color: #d9b9b9;
+}
+
+.mac-empty-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.mac-empty-desc {
+  max-width: 22rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
+/* Note header */
+.mac-note-header {
+  margin-bottom: 1rem;
+}
+
+.mac-note-category-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  margin-bottom: 0.625rem;
+}
+
+.mac-secondary-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.mac-category-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--wine-tint);
+  color: var(--wine-800);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.mac-secondary-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  background: #f1f5f9;
+  color: var(--ink-2);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.mac-note-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+/* YouTube card */
+.mac-yt-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+}
+
+.mac-yt-thumb-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #1e1216;
+}
+
+.mac-yt-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mac-yt-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  cursor: pointer;
+  background: rgb(40 10 18 / 0.25);
+  transition: background-color 160ms ease;
+}
+
+.mac-yt-play-overlay:hover {
+  background: rgb(40 10 18 / 0.42);
+}
+
+.mac-yt-play-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 9999px;
+  background: #fff;
+  color: var(--wine-700);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.3);
+  transition: transform 160ms var(--ease-out);
+}
+
+.mac-yt-play-overlay:hover .mac-yt-play-btn {
+  transform: scale(1.06);
+}
+
+.mac-yt-play-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-left: 0.125rem;
+}
+
+.mac-yt-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.mac-yt-info {
+  padding: 0.875rem 1rem 1rem;
+}
+
+.mac-yt-badge {
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--wine-700);
+}
+
+.mac-yt-video-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  margin-bottom: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.mac-yt-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 2rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--wine-700);
+  text-decoration: none;
+}
+
+.mac-yt-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Analysis sections */
+.mac-analysis-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mac-card-section {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+}
+
+.mac-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.mac-card-title-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  color: var(--wine-700);
+}
+
+/* Core concept: tinted, not boxed-in-a-box */
+.mac-card-concept {
+  border-color: var(--wine-tint);
+  background: var(--wine-tint-soft);
+}
+
+.mac-card-concept .mac-card-title {
+  color: var(--wine-900);
+}
+
+.mac-concept-text {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: #3d1a24;
+}
+
+.mac-card-basis {
+  background: #fbf6f5;
+  box-shadow: none;
+}
+
+.mac-card-basis .mac-card-title {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+.mac-card-basis .mac-card-title-icon {
+  color: var(--ink-3);
+}
+
+.mac-basis-text {
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
+/* Suitability */
+.mac-suitability-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.mac-level-suitable {
+  background: var(--ok-bg);
+  color: var(--ok-ink);
+}
+
+.mac-level-challenging {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+
+.mac-level-too_advanced {
+  background: var(--danger-bg);
+  color: var(--danger-ink);
+}
+
+.mac-level-foundational {
+  background: var(--info-bg);
+  color: var(--info-ink);
+}
+
+.mac-suitability-desc {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--ink-2);
+}
+
+/* Cautions */
+.mac-cautions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  list-style: none;
+}
+
+.mac-caution-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--warn-bg);
+  color: #5e3d0a;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.mac-caution-num {
+  flex-shrink: 0;
+  min-width: 1rem;
+  font-weight: 700;
+  color: var(--warn-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mistakes */
+.mac-mistakes-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.mac-mistake-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: #fbf6f5;
+}
+
+.mac-mistake-bad,
+.mac-mistake-good {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mac-mistake-label,
+.mac-fix-label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.mac-mistake-label {
+  color: var(--danger-ink);
+}
+
+.mac-fix-label {
+  color: var(--ok-ink);
+}
+
+.mac-mistake-text {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+/* Drills */
+.mac-drills-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mac-drill-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.mac-drill-item:first-child {
+  padding-top: 0;
+}
+
+.mac-drill-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.mac-drill-step-badge {
+  flex-shrink: 0;
+  margin-top: 0.0625rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  background: var(--wine-tint);
+  color: var(--wine-800);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mac-drill-text {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+/* Completion criteria */
+.mac-criteria-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--ok-bg);
+  color: #123f2a;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.mac-criteria-box svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  margin-top: 0.1875rem;
+  color: var(--ok-ink);
+}
+
+/* Footer actions */
+.mac-note-foot-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
+
+.mac-btn-toggle-raw {
+  min-height: 2.75rem;
+  padding: 0 0.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.mac-btn-toggle-raw:hover {
+  color: var(--wine-800);
+}
+
+.mac-raw-transcript-box {
+  max-height: 15rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: #fff;
+  color: var(--ink-2);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+/* ---------- Add-note sheet ---------- */
+.mac-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(40 10 18 / 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+.mac-modal-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mac-sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 32rem;
+  max-height: 92dvh;
+  overflow: hidden;
+  border-radius: 1.5rem 1.5rem 0 0;
+  background: #fff;
+  box-shadow: 0 -12px 40px rgb(40 10 18 / 0.25);
+  transform: translateY(2rem);
+  transition: transform 320ms var(--ease-out);
+}
+
+.mac-modal-backdrop.is-open .mac-sheet {
+  transform: translateY(0);
+}
+
+.mac-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1rem 0.5rem 1.25rem;
+}
+
+.mac-sheet-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.mac-sheet-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--ink-3);
+}
+
+.mac-sheet-close:hover {
+  background: #f1f5f9;
+  color: var(--ink);
+}
+
+.mac-sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.5rem 1.25rem 1rem;
+  overflow-y: auto;
+}
+
+.mac-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mac-form-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.mac-form-hint {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+.mac-form-input,
+.mac-form-textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: #fff;
+  color: var(--ink);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.mac-form-input {
+  height: 3rem;
+  padding: 0 0.75rem;
+}
+
+.mac-form-textarea {
+  min-height: 7.5rem;
+  padding: 0.625rem 0.75rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.mac-form-input::placeholder,
+.mac-form-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.mac-form-input:focus,
+.mac-form-textarea:focus {
+  border-color: var(--wine-700);
+  box-shadow: 0 0 0 3px rgb(143 54 71 / 0.15);
+}
+
+.mac-yt-modal-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  background: var(--wine-tint-soft);
+}
+
+.mac-yt-modal-preview.hidden {
+  display: none;
+}
+
+.mac-yt-modal-thumb {
+  width: 5rem;
+  height: 2.8125rem;
+  flex-shrink: 0;
+  border-radius: 0.5rem;
+  object-fit: cover;
+  background: #1e1216;
+}
+
+.mac-yt-modal-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mac-yt-modal-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.mac-yt-modal-ready {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  color: var(--wine-700);
+}
+
+.mac-file-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.mac-upload-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: #fff;
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.mac-upload-btn:hover {
+  background: #f8fafc;
+}
+
+.mac-demo-srt-btn {
+  min-height: 2rem;
+  padding: 0 0.25rem;
+  border: 0;
+  background: transparent;
+  color: var(--wine-700);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.mac-coach-note {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--warn-bg);
+  color: #5e3d0a;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.mac-coach-note strong {
+  display: block;
+  margin-bottom: 0.125rem;
+  font-weight: 600;
+}
+
+.mac-sheet-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom));
+  border-top: 1px solid #f1f5f9;
+}
+
+.mac-btn-cancel {
+  min-height: 3rem;
+  padding: 0 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: #fff;
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 160ms ease;
+}
+
+.mac-btn-cancel:hover {
+  background: #f8fafc;
+}
+
+.mac-btn-submit {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0 1.25rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--wine-700);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 10px 24px rgb(125 48 67 / 0.24);
+  transition: background-color 160ms ease, opacity 160ms ease;
+}
+
+.mac-btn-submit:hover:not(:disabled) {
+  background: var(--wine-800-hover);
+}
+
+.mac-btn-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.mac-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgb(255 255 255 / 0.4);
+  border-top-color: #fff;
+  border-radius: 9999px;
+  animation: mac-spin 0.8s linear infinite;
+}
+
+@keyframes mac-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Toast */
+.mac-toast {
+  position: fixed;
+  bottom: max(1.5rem, env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 200;
+  padding: 0.625rem 1.125rem;
+  border-radius: 9999px;
+  background: rgb(60 18 30 / 0.95);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgb(40 10 18 / 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 1.25rem);
+  transition: opacity 200ms ease, transform 280ms var(--ease-out);
+}
+
+.mac-toast.is-show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 26rem) {
+  .mac-mobile-back-btn span {
+    display: none;
+  }
+
+}
+
+@media (min-width: 33rem) {
+  .mac-modal-backdrop {
+    align-items: center;
+  }
+
+  .mac-sheet {
+    max-height: 88dvh;
+    border-radius: 1.5rem;
+    transform: translateY(1rem) scale(0.98);
+  }
+
+  .mac-modal-backdrop.is-open .mac-sheet {
+    transform: none;
+  }
+
+  .mac-btn-submit {
+    flex: none;
+  }
+
+  .mac-mistake-row {
+    flex-direction: row;
+  }
+
+  .mac-mistake-row>* {
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mac-detail-col.is-active {
+    animation: none;
+  }
+
+  .mac-sheet,
+  .mac-toast,
+  .mac-note-card,
+  .mac-yt-play-btn {
+    transition: none;
+  }
+}

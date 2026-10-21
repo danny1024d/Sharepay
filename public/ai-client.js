@@ -209,3 +209,64 @@ export async function requestProductBarcodeAnalysis({ user, barcode }) {
   validateProductResearchResult(result);
   return result;
 }
+
+export function extractYouTubeId(url) {
+  if (!url || typeof url !== "string") return null;
+  const match = url.trim().match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/i);
+  return match ? match[1] : null;
+}
+
+export function getYouTubeThumbnailUrl(videoId, quality = "hq") {
+  if (!videoId) return "";
+  if (quality === "max") return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  if (quality === "mq") return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+  return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+}
+
+export async function fetchYouTubeOEmbed(url) {
+  const videoId = extractYouTubeId(url);
+  if (!videoId) return null;
+  try {
+    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}&format=json`;
+    const response = await fetch(oembedUrl, { signal: AbortSignal.timeout(6000) });
+    if (!response.ok) return { videoId, title: "", author: "", thumbnailUrl: getYouTubeThumbnailUrl(videoId) };
+    const data = await response.json();
+    return {
+      videoId,
+      title: typeof data.title === "string" ? data.title : "",
+      author: typeof data.author_name === "string" ? data.author_name : "",
+      thumbnailUrl: data.thumbnail_url || getYouTubeThumbnailUrl(videoId)
+    };
+  } catch {
+    return { videoId, title: "", author: "", thumbnailUrl: getYouTubeThumbnailUrl(videoId) };
+  }
+}
+
+export async function requestSnowboardAnalysis({ user, videoUrl, title, transcript }) {
+  if (!user || typeof user.getIdToken !== "function") throw new Error("請先登入旅遊分帳後再使用 AI 教練分析。");
+  const cleanTranscript = (transcript || "").trim();
+  const cleanTitle = (title || "").trim();
+  if (!cleanTranscript && !cleanTitle) {
+    throw new Error("請填寫影片字幕檔或影片標題。");
+  }
+  const token = await user.getIdToken();
+  const response = await fetch(workerUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      action: "analyze_snowboard_video",
+      videoUrl: videoUrl || "",
+      title: cleanTitle,
+      transcript: cleanTranscript
+    })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "AI 滑雪教練分析暫時無法使用。");
+  if (!result || typeof result.category !== "string" || !Array.isArray(result.cautions)) {
+    throw new Error("AI 回傳格式不正確，請稍後重試。");
+  }
+  return result;
+}

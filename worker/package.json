@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "npx --yes node@22 ./node_modules/wrangler/bin/wrangler.js deploy",
     "test": "node --test"
   },
   "dependencies": {

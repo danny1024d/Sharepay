@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#6e2638" />
+  <meta name="description" content="單板滑雪學習筆記：記錄並分類滑雪技術影片，由 AI 教練依學員程度深度分析。" />
+  <title>滑雪學習筆記 | 旅遊分帳</title>
+  <link rel="stylesheet" href="snow-notes.css?v=journey-v1" />
+  <script>if (window.self !== window.top) document.documentElement.classList.add("embedded-notes");</script>
+</head>
+
+<body>
+  <div class="mac-app" id="snow-notes-app" style="visibility:hidden;">
+    <!-- Header -->
+    <header class="mac-titlebar">
+      <div class="mac-titlebar-row">
+        <div class="mac-titlebar-title">
+          <h1>滑雪學習筆記</h1>
+          <p>單板影片重點，AI 教練幫你整理</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="mac-workspace">
+      <!-- Categories -->
+      <aside class="mac-sidebar" aria-label="分類目錄">
+        <ul class="mac-folder-list" id="category-folder-list">
+          <li class="mac-folder-item active" data-category="all">
+            <div class="mac-folder-info">
+              <svg class="mac-folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span>全部筆記</span>
+            </div>
+            <span class="mac-folder-badge" id="badge-all">0</span>
+          </li>
+          <li class="mac-folder-item" data-category="身體姿勢與平衡">
+            <div class="mac-folder-info">
+              <svg class="mac-folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="5" r="3"></circle>
+                <path d="m9 20 3-6 3 6"></path>
+                <path d="m6 8 6 2 6-2"></path>
+                <path d="M12 10v4"></path>
+              </svg>
+              <span>身體姿勢與平衡</span>
+            </div>
+            <span class="mac-folder-badge" id="badge-cat-1">0</span>
+          </li>
+          <li class="mac-folder-item" data-category="板刃控制與換刃">
+            <div class="mac-folder-info">
+              <svg class="mac-folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m3 16 7-7 4 4 7-7"></path>
+                <path d="M17 6h4v4"></path>
+              </svg>
+              <span>板刃控制與換刃</span>
+            </div>
+            <span class="mac-folder-badge" id="badge-cat-2">0</span>
+          </li>
+          <li class="mac-folder-item" data-category="轉彎與速度控制">
+            <div class="mac-folder-info">
+              <svg class="mac-folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 2v4"></path>
+                <path d="m4.93 4.93 2.83 2.83"></path>
+                <path d="M2 12h4"></path>
+                <path d="m4.93 19.07 2.83-2.83"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="m19.07 4.93-2.83 2.83"></path>
+                <path d="M22 12h-4"></path>
+                <path d="m19.07 19.07-2.83-2.83"></path>
+              </svg>
+              <span>轉彎與速度控制</span>
+            </div>
+            <span class="mac-folder-badge" id="badge-cat-3">0</span>
+          </li>
+          <li class="mac-folder-item" data-category="壓力控制與刻滑進階">
+            <div class="mac-folder-info">
+              <svg class="mac-folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              <span>壓力控制與刻滑進階</span>
+            </div>
+            <span class="mac-folder-badge" id="badge-cat-4">0</span>
+          </li>
+          <li class="mac-folder-item" data-category="completed">
+            <div class="mac-folder-info">
+              <svg class="mac-folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <span>已標註完成</span>
+            </div>
+            <span class="mac-folder-badge" id="badge-completed">0</span>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- Notes list -->
+      <section class="mac-notes-list-col" aria-label="筆記列表">
+        <div class="mac-list-toolbar">
+          <div class="mac-toolbar-row">
+            <div class="mac-filter-tabs" role="tablist">
+              <button class="mac-filter-tab active" data-filter="all" type="button">全部</button>
+              <button class="mac-filter-tab" data-filter="pending" type="button">練習中</button>
+              <button class="mac-filter-tab" data-filter="done" type="button">已完成</button>
+            </div>
+
+            <div class="mac-search-wrap">
+              <svg class="mac-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" class="mac-search-input" id="search-input" placeholder="搜尋筆記…" aria-label="搜尋筆記" />
+              <button class="mac-search-clear" id="search-clear-btn" type="button" aria-label="清除搜尋"
+                style="display:none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                  stroke-linecap="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <ul class="mac-notes-stack" id="notes-stack" role="listbox" aria-label="滑雪筆記">
+          <!-- Dynamically populated note cards -->
+        </ul>
+      </section>
+
+      <!-- Detail -->
+      <main class="mac-detail-col" id="mac-detail-col" aria-label="筆記內容檢視">
+        <div class="mac-detail-toolbar" id="detail-toolbar" style="display:none;">
+          <div class="mac-detail-toolbar-left">
+            <button class="mac-mobile-back-btn" id="mobile-back-btn" type="button">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              <span>列表</span>
+            </button>
+            <span class="mac-detail-date" id="detail-date">—</span>
+          </div>
+
+          <div class="mac-detail-toolbar-right">
+            <button class="mac-action-btn" id="btn-toggle-complete" type="button">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span id="complete-btn-label">標註完成</span>
+            </button>
+
+            <button class="mac-action-btn is-delete" id="btn-delete-note" type="button" title="刪除筆記" aria-label="刪除筆記">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="mac-detail-canvas" id="detail-canvas">
+          <div class="mac-empty-selection" id="empty-selection-view">
+            <svg class="mac-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <p class="mac-empty-title">還沒有筆記</p>
+            <p class="mac-empty-desc">貼上 YouTube 網址與字幕，AI 會依你的程度整理技術重點。</p>
+            <button class="mac-btn-add" id="btn-empty-add" type="button">新增第一則筆記</button>
+          </div>
+
+          <article class="mac-note-article" id="note-article" style="display:none;">
+            <header class="mac-note-header">
+              <div class="mac-note-category-bar">
+                <span class="mac-category-tag" id="detail-category-tag">主要分類</span>
+                <div class="mac-secondary-tags" id="detail-secondary-tags"></div>
+              </div>
+              <h2 class="mac-note-title" id="detail-title">—</h2>
+            </header>
+
+            <div class="mac-yt-card" id="detail-yt-card">
+              <div class="mac-yt-thumb-wrap">
+                <img class="mac-yt-thumb" id="detail-yt-thumb" src="" alt="YouTube 影片縮圖" />
+                <button class="mac-yt-play-overlay" id="detail-yt-play-link" type="button" aria-label="播放影片">
+                  <span class="mac-yt-play-btn">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                  </span>
+                </button>
+              </div>
+              <div class="mac-yt-info">
+                <div class="mac-yt-badge">YouTube 影片教材</div>
+                <div class="mac-yt-video-title" id="detail-yt-title">—</div>
+                <a class="mac-yt-link" id="detail-yt-url-link" href="#" target="_blank" rel="noopener noreferrer">
+                  <span>開啟原始影片</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                </a>
+              </div>
+            </div>
+
+            <div class="mac-analysis-grid">
+              <section class="mac-card-section mac-card-concept">
+                <h3 class="mac-card-title">
+                  <svg class="mac-card-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <circle cx="12" cy="12" r="6"></circle>
+                    <circle cx="12" cy="12" r="2"></circle>
+                  </svg>
+                  <span>影片核心觀念</span>
+                </h3>
+                <p class="mac-concept-text" id="detail-core-concept">—</p>
+              </section>
+
+              <section class="mac-card-section">
+                <h3 class="mac-card-title">
+                  <svg class="mac-card-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 20v-6"></path>
+                    <path d="M6 20V10"></path>
+                    <path d="M18 20V4"></path>
+                  </svg>
+                  <span>適合目前程度嗎</span>
+                </h3>
+                <div>
+                  <span class="mac-suitability-badge" id="detail-suitability-badge">評估中</span>
+                  <p class="mac-suitability-desc" id="detail-suitability-desc">—</p>
+                </div>
+              </section>
+
+              <section class="mac-card-section">
+                <h3 class="mac-card-title">
+                  <svg class="mac-card-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                  <span>練習注意事項</span>
+                </h3>
+                <ul class="mac-cautions-list" id="detail-cautions-list"></ul>
+              </section>
+
+              <section class="mac-card-section">
+                <h3 class="mac-card-title">
+                  <svg class="mac-card-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                    <path d="M21 3v5h-5"></path>
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                    <path d="M8 16H3v5"></path>
+                  </svg>
+                  <span>常見錯誤與修正</span>
+                </h3>
+                <div class="mac-mistakes-table" id="detail-mistakes-table"></div>
+              </section>
+
+              <section class="mac-card-section">
+                <h3 class="mac-card-title">
+                  <svg class="mac-card-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="8" y1="6" x2="21" y2="6"></line>
+                    <line x1="8" y1="12" x2="21" y2="12"></line>
+                    <line x1="8" y1="18" x2="21" y2="18"></line>
+                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                  </svg>
+                  <span>建議練習方式</span>
+                </h3>
+                <div class="mac-drills-list" id="detail-drills-list"></div>
+              </section>
+
+              <section class="mac-card-section">
+                <h3 class="mac-card-title">
+                  <svg class="mac-card-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                    <line x1="4" y1="22" x2="4" y2="15"></line>
+                  </svg>
+                  <span>完成標準</span>
+                </h3>
+                <div class="mac-criteria-box">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" aria-hidden="true">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <span id="detail-completion-criteria">—</span>
+                </div>
+              </section>
+
+              <section class="mac-card-section mac-card-basis">
+                <h3 class="mac-card-title">
+                  <svg class="mac-card-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <span>分析依據</span>
+                </h3>
+                <p class="mac-basis-text" id="detail-analysis-basis">—</p>
+              </section>
+            </div>
+
+            <div class="mac-note-foot-actions">
+              <button class="mac-btn-toggle-raw" id="btn-toggle-raw" type="button">檢視原文字幕逐字稿 ▾</button>
+            </div>
+
+            <div class="mac-raw-transcript-box" id="raw-transcript-box" style="display:none;"></div>
+          </article>
+        </div>
+      </main>
+    </div>
+
+    <!-- Floating Action Button (新增筆記) -->
+    <button class="mac-fab-add" id="btn-open-add-modal" type="button" aria-label="新增筆記" title="新增筆記">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+        stroke-linecap="round" aria-hidden="true">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+    </button>
+
+    <!-- Bottom Navigation Footer (景點 辨識 行程 地圖) -->
+    <nav class="journey-bottom-nav" aria-label="旅程導覽">
+      <div class="journey-bottom-nav-inner">
+        <a href="index.html?app=journey&tab=places" class="journey-nav-link" aria-label="景點">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <span>景點</span>
+        </a>
+        <a href="index.html?app=journey&tab=image-analysis" class="journey-nav-link" aria-label="辨識">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+            <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+            <line x1="7" y1="12" x2="17" y2="12"></line>
+          </svg>
+          <span>辨識</span>
+        </a>
+        <a href="index.html?app=journey&tab=itinerary" class="journey-nav-link" aria-label="行程">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
+            <line x1="16" x2="16" y1="2" y2="6"></line>
+            <line x1="8" x2="8" y1="2" y2="6"></line>
+            <line x1="3" x2="21" y1="10" y2="10"></line>
+          </svg>
+          <span>行程</span>
+        </a>
+        <a href="index.html?app=journey&tab=map" class="journey-nav-link" aria-label="地圖">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m8 3 4 8 5-5 5 15H2L8 3z"></path>
+            <path d="M4.14 15.08c2.62-1.57 5.24-1.43 7.86.42 2.74 1.94 5.49 2 8.23.19"></path>
+          </svg>
+          <span>地圖</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- Add note sheet -->
+    <div class="mac-modal-backdrop" id="add-modal" role="dialog" aria-modal="true" aria-labelledby="add-modal-title">
+      <div class="mac-sheet">
+        <header class="mac-sheet-header">
+          <h2 class="mac-sheet-title" id="add-modal-title">新增滑雪學習筆記</h2>
+          <button class="mac-sheet-close" id="btn-close-modal" type="button" aria-label="關閉對話框">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </header>
+
+        <form id="add-note-form" class="mac-sheet-body">
+          <div class="mac-form-group">
+            <label class="mac-form-label" for="input-yt-url">
+              <span>YouTube 影片網址</span>
+              <span class="mac-form-hint">自動解析縮圖與標題</span>
+            </label>
+            <input class="mac-form-input" id="input-yt-url" type="url" placeholder="https://www.youtube.com/watch?v=…"
+              required />
+          </div>
+
+          <div class="mac-yt-modal-preview hidden" id="yt-modal-preview">
+            <img class="mac-yt-modal-thumb" id="yt-modal-thumb" src="" alt="縮圖預覽" />
+            <div class="mac-yt-modal-info">
+              <div class="mac-yt-modal-title" id="yt-modal-title-preview">正在解析 YouTube 影片資訊…</div>
+              <div class="mac-yt-modal-ready">影片已就緒</div>
+            </div>
+          </div>
+
+          <div class="mac-form-group">
+            <label class="mac-form-label" for="input-title">
+              <span>筆記／影片標題</span>
+            </label>
+            <input class="mac-form-input" id="input-title" type="text" placeholder="貼上網址後自動帶入，也可自訂" />
+          </div>
+
+          <div class="mac-form-group">
+            <div class="mac-form-label">
+              <label for="input-transcript">影片字幕檔／逐字稿</label>
+              <button class="mac-demo-srt-btn" id="btn-fill-demo-srt" type="button">填入示範字幕</button>
+            </div>
+            <textarea class="mac-form-textarea" id="input-transcript"
+              placeholder="貼上字幕檔（SRT、VTT）或逐字稿。AI 只依實際內容分析，不會憑空臆測。" rows="6"></textarea>
+
+            <div class="mac-file-upload-row">
+              <label class="mac-upload-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <span>上傳字幕檔</span>
+                <input type="file" id="input-srt-file" accept=".srt,.vtt,.txt" style="display:none;" />
+              </label>
+              <span id="file-upload-hint" class="mac-form-hint">支援 .srt / .vtt / .txt，自動濾除時間碼</span>
+            </div>
+          </div>
+
+          <div class="mac-coach-note">
+            <strong>單板教練分析設定</strong>
+            <p>AI 會歸入四大技術項目之一，並評估練習方法。</p>
+          </div>
+        </form>
+
+        <footer class="mac-sheet-footer">
+          <button class="mac-btn-cancel" id="btn-cancel-modal" type="button">取消</button>
+          <button class="mac-btn-submit" id="btn-submit-note" type="button">
+            <span class="mac-spinner" id="submit-spinner" style="display:none;"></span>
+            <span id="submit-label">AI 教練分析並儲存</span>
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <div class="mac-toast" id="mac-toast" role="status" aria-live="polite">已複製到剪貼簿</div>
+  </div>
+
+  <script type="module" src="snow-notes.js"></script>
+</body>
+
+</html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -11,91 +12,114 @@
     .dialog-header {
       margin-bottom: 1.5rem;
     }
+
     .dialog-title {
       font-size: 1.125rem;
       font-weight: 600;
       line-height: 1;
       letter-spacing: -0.025em;
     }
+
     .dialog-footer {
       display: flex;
       justify-content: flex-end;
       gap: 0.5rem;
       margin-top: 1.5rem;
     }
+
     body {
       background-color: #eaf3ed !important;
     }
+
     #ledger-app {
       background: #f2f8f3;
     }
-    #ledger-app > header {
+
+    #ledger-app>header {
       background-image: linear-gradient(118deg, #075568 0%, #09645d 58%, #245c3c 100%) !important;
       box-shadow: 0 10px 28px rgb(7 91 82 / 0.24);
     }
-    #ledger-app > header h1 {
+
+    #ledger-app>header h1 {
       color: #ffffff;
     }
-    #ledger-app > header p {
+
+    #ledger-app>header p {
       color: #f0fff5;
     }
+
     #ledger-app #header-settlement-summary {
       background: rgb(255 255 255 / 0.13);
     }
+
     #ledger-app .nav-btn {
       min-height: 56px;
       border-radius: 6px;
       transition: background-color 160ms ease, color 160ms ease;
     }
+
     #ledger-app .nav-btn[aria-current="page"] {
       background: #dfeee1;
       color: #1c6945 !important;
     }
+
     #ledger-app .nav-btn[aria-current="page"] svg {
       stroke: #1c6945;
     }
+
     #ledger-app .bg-indigo-600 {
       background-color: #1c6945 !important;
       box-shadow: 0 10px 24px rgb(28 105 69 / 0.28) !important;
     }
+
     #ledger-app .bg-indigo-600:hover {
       background-color: #145137 !important;
     }
+
     #journey-app {
       background: #fff7f6;
     }
-    #journey-app > header {
+
+    #journey-app>header {
       background-image: linear-gradient(112deg, #6e2638 0%, #88323f 58%, #9b4547 100%) !important;
       box-shadow: 0 8px 24px rgb(125 48 67 / 0.24);
       color: #fffafa;
     }
-    #journey-app > header h1,
-    #journey-app > header button {
+
+    #journey-app>header h1,
+    #journey-app>header button {
       color: #ffffff !important;
     }
-    #journey-app > header p {
+
+    #journey-app>header p {
       color: #fff0ef !important;
     }
-    #journey-app.journey-map-active > header {
+
+    #journey-app.journey-map-active>header {
       display: none;
     }
-    #journey-app > nav {
+
+    #journey-app>nav {
       border-color: #ead1d1 !important;
       background-color: rgb(255 250 249 / 0.98) !important;
     }
+
     #journey-app .journey-nav-btn {
       min-height: 56px;
       border-radius: 6px;
       color: #475b51 !important;
       transition: background-color 160ms ease, color 160ms ease;
     }
+
     #journey-app .journey-nav-btn[aria-current="page"] {
       background: #f3d8d6;
       color: #7d3043 !important;
     }
+
     #journey-app .journey-nav-btn[aria-current="page"] svg {
       stroke: #9b3b49;
     }
+
     #journey-app .image-analysis-sticky {
       position: sticky;
       top: 0;
@@ -105,14 +129,17 @@
       border-bottom: 1px solid #ead1d1;
       background: #fff7f6;
     }
+
     #journey-app .image-analysis-mode[aria-selected="true"] {
       background: #f3d8d6;
       color: #7d3043;
     }
+
     #journey-app .image-analysis-mode:focus-visible {
       outline: 2px solid #9b3b49;
       outline-offset: 2px;
     }
+
     #journey-app .image-analysis-count {
       min-width: 1.25rem;
       padding: 0.125rem 0.375rem;
@@ -124,6 +151,7 @@
       text-align: center;
       font-variant-numeric: tabular-nums;
     }
+
     #journey-app .image-analysis-primary {
       display: inline-flex;
       align-items: center;
@@ -136,24 +164,30 @@
       font-weight: 500;
       transition: background-color 160ms ease, opacity 160ms ease;
     }
+
     #journey-app .image-analysis-primary:hover:not(:disabled) {
       background: #71293a;
     }
+
     #journey-app .image-analysis-primary:disabled {
       cursor: not-allowed;
       opacity: 0.55;
     }
+
     #journey-app .text-indigo-600 {
       color: #8f3647 !important;
     }
+
     #journey-app .hover\:text-indigo-600:hover,
     #journey-app .hover\:text-indigo-800:hover {
       color: #71293a !important;
     }
+
     #journey-app .bg-indigo-600 {
       background-color: #8f3647 !important;
       box-shadow: 0 10px 24px rgb(125 48 67 / 0.24) !important;
     }
+
     .barcode-scanner-dialog {
       width: 100vw;
       max-width: none;
@@ -167,13 +201,16 @@
       padding: 0;
       color: #ffffff;
     }
+
     .barcode-scanner-dialog[open] {
       display: flex;
       flex-direction: column;
     }
+
     .barcode-scanner-dialog::backdrop {
       background: rgb(2 15 12 / 0.82);
     }
+
     .barcode-scanner-viewport {
       position: relative;
       min-height: 0;
@@ -181,11 +218,13 @@
       overflow: hidden;
       background: #071b17;
     }
+
     .barcode-scanner-viewport video {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
+
     .barcode-scanner-frame {
       position: absolute;
       top: 50%;
@@ -198,6 +237,7 @@
       transform: translate(-50%, -50%);
       pointer-events: none;
     }
+
     @media (min-width: 640px) {
       .dialog-footer {
         flex-direction: row;
@@ -206,21 +246,27 @@
     }
   </style>
 </head>
+
 <body class="bg-slate-50 min-h-screen">
 
   <div id="ledger-app" class="flex flex-col max-w-lg mx-auto relative min-h-screen">
     <!-- Header -->
-    <header class="sticky top-0 z-20 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white px-5 pt-7 pb-5 rounded-b-3xl shadow-lg shrink-0">
+    <header
+      class="sticky top-0 z-20 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white px-5 pt-7 pb-5 rounded-b-3xl shadow-lg shrink-0">
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-xl font-bold tracking-tight">旅遊分帳</h1>
           <p id="header-trip-name" class="text-xs text-slate-300 mt-0.5">正在載入行程…</p>
         </div>
         <div class="flex items-center gap-2">
-          <button id="currency-calculator-open" type="button" class="grid h-9 w-9 place-items-center rounded-lg border border-white/20 text-white hover:bg-white/10" aria-label="日圓換算台幣" title="日圓換算台幣">
+          <button id="currency-calculator-open" type="button"
+            class="grid h-9 w-9 place-items-center rounded-lg border border-white/20 text-white hover:bg-white/10"
+            aria-label="日圓換算台幣" title="日圓換算台幣">
             <i data-lucide="circle-dollar-sign" class="h-4 w-4"></i>
           </button>
-          <a href="trips.html" class="flex h-9 items-center gap-1.5 rounded-lg border border-white/20 px-2.5 text-xs font-medium text-white hover:bg-white/10" aria-label="切換行程">
+          <a href="trips.html"
+            class="flex h-9 items-center gap-1.5 rounded-lg border border-white/20 px-2.5 text-xs font-medium text-white hover:bg-white/10"
+            aria-label="切換行程">
             <i data-lucide="arrow-left-right" class="h-4 w-4"></i>
             <span>行程</span>
           </a>
@@ -251,7 +297,8 @@
             <div class="flex justify-between items-end">
               <div>
                 <p class="text-xs text-slate-500">總支出</p>
-                <p class="text-2xl font-bold text-slate-900 mt-0.5">0 <span class="text-sm font-normal text-slate-400">元</span></p>
+                <p class="text-2xl font-bold text-slate-900 mt-0.5">0 <span
+                    class="text-sm font-normal text-slate-400">元</span></p>
               </div>
               <div class="text-right">
                 <p class="text-xs text-slate-500">筆數</p>
@@ -264,7 +311,9 @@
         <!-- List -->
         <div class="px-4 space-y-2.5">
           <!-- Item Example -->
-          <button class="w-full text-left bg-white rounded-2xl border border-slate-200 p-4 shadow-sm active:scale-[0.98] transition-transform" onclick="openExpenseDialog(true)">
+          <button
+            class="w-full text-left bg-white rounded-2xl border border-slate-200 p-4 shadow-sm active:scale-[0.98] transition-transform"
+            onclick="openExpenseDialog(true)">
             <div class="flex items-center justify-between mb-2.5">
               <span class="text-sm font-medium text-slate-500">12/24</span>
               <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-600">
@@ -300,7 +349,9 @@
         </div>
 
         <!-- FAB (Expense) -->
-        <button onclick="openExpenseDialog(false)" class="fixed bottom-20 right-4 z-20 w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 flex items-center justify-center active:scale-95 transition-transform" style="right: max(1rem, calc(50% - 18rem + 1rem))">
+        <button onclick="openExpenseDialog(false)"
+          class="fixed bottom-20 right-4 z-20 w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 flex items-center justify-center active:scale-95 transition-transform"
+          style="right: max(1rem, calc(50% - 18rem + 1rem))">
           <i data-lucide="plus" class="w-6 h-6"></i>
         </button>
       </div>
@@ -313,7 +364,8 @@
             <div class="flex justify-between items-end">
               <div>
                 <p class="text-xs text-slate-500">代付總額</p>
-                <p class="text-2xl font-bold text-slate-900 mt-0.5">0 <span class="text-sm font-normal text-slate-400">元</span></p>
+                <p class="text-2xl font-bold text-slate-900 mt-0.5">0 <span
+                    class="text-sm font-normal text-slate-400">元</span></p>
               </div>
               <div class="text-right">
                 <p class="text-xs text-slate-500">筆數</p>
@@ -326,7 +378,9 @@
         <!-- List -->
         <div class="px-4 space-y-2.5">
           <!-- Item Example -->
-          <button class="w-full text-left bg-white rounded-2xl border border-slate-200 p-4 shadow-sm active:scale-[0.98] transition-transform" onclick="openPaymentDialog(true)">
+          <button
+            class="w-full text-left bg-white rounded-2xl border border-slate-200 p-4 shadow-sm active:scale-[0.98] transition-transform"
+            onclick="openPaymentDialog(true)">
             <div class="flex items-center justify-between">
               <div class="min-w-0 flex-1">
                 <span class="text-sm font-medium text-slate-500">12/24</span>
@@ -355,7 +409,9 @@
         </div>
 
         <!-- FAB (Payment) -->
-        <button onclick="openPaymentDialog(false)" class="fixed bottom-20 right-4 z-20 w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 flex items-center justify-center active:scale-95 transition-transform" style="right: max(1rem, calc(50% - 18rem + 1rem))">
+        <button onclick="openPaymentDialog(false)"
+          class="fixed bottom-20 right-4 z-20 w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 flex items-center justify-center active:scale-95 transition-transform"
+          style="right: max(1rem, calc(50% - 18rem + 1rem))">
           <i data-lucide="plus" class="w-6 h-6"></i>
         </button>
       </div>
@@ -363,174 +419,195 @@
       <!-- ================= Settlement Tab ================= -->
       <div id="tab-settlement" class="tab-content hidden"></div>
       <template id="legacy-settlement-demo">
-                <span class="text-xl font-bold text-white">10,774</span>
-                <span class="text-xs text-emerald-100 ml-1">元</span>
-              </div>
-            </div>
-            <div class="p-4">
-              <div class="grid grid-cols-[1.1fr_1fr_1fr_1.1fr] gap-1 pb-2 border-b border-slate-200 text-xs font-medium text-slate-400">
-        <div class="space-y-2">
-          <label class="label" for="place-tag-input">標籤</label>
-          <div id="place-tags-selected" class="flex flex-wrap gap-1.5"></div>
-          <div class="flex gap-2">
-            <input type="text" class="input-field min-w-0 flex-1" id="place-tag-input" placeholder="輸入新標籤，例如：拉麵" maxlength="20" />
-            <button type="button" id="place-tag-add" class="btn-outline btn-flex shrink-0">新增</button>
-          </div>
-          <div id="place-tags-existing" class="flex flex-wrap gap-1.5"></div>
+        <span class="text-xl font-bold text-white">10,774</span>
+        <span class="text-xs text-emerald-100 ml-1">元</span>
+  </div>
+  </div>
+  <div class="p-4">
+    <div
+      class="grid grid-cols-[1.1fr_1fr_1fr_1.1fr] gap-1 pb-2 border-b border-slate-200 text-xs font-medium text-slate-400">
+      <div class="space-y-2">
+        <label class="label" for="place-tag-input">標籤</label>
+        <div id="place-tags-selected" class="flex flex-wrap gap-1.5"></div>
+        <div class="flex gap-2">
+          <input type="text" class="input-field min-w-0 flex-1" id="place-tag-input" placeholder="輸入新標籤，例如：拉麵"
+            maxlength="20" />
+          <button type="button" id="place-tag-add" class="btn-outline btn-flex shrink-0">新增</button>
         </div>
-                <span>類別</span><span class="text-right text-blue-500">高</span><span class="text-right text-amber-500">n</span><span class="text-right">合計</span>
-              </div>
-              <div class="grid grid-cols-[1.1fr_1fr_1fr_1.1fr] gap-1 py-2.5 border-b border-slate-50 text-sm">
-                <span class="text-slate-700 font-medium">住宿</span>
-                <span class="text-right tabular-nums text-slate-600">5,387</span>
-                <span class="text-right tabular-nums text-slate-600">5,387</span>
-                <span class="text-right tabular-nums font-semibold text-slate-900">10,774</span>
-              </div>
-              <div class="grid grid-cols-[1.1fr_1fr_1fr_1.1fr] gap-1 pt-3 text-sm font-bold">
-                <span class="text-slate-900">合計</span><span class="text-right tabular-nums text-blue-600">5,387</span><span class="text-right tabular-nums text-amber-600">5,387</span><span class="text-right tabular-nums text-slate-900">10,774</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Expenditure Stats -->
-          <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-            <div class="bg-blue-600 px-4 py-2.5 flex items-center justify-between">
-              <h3 class="text-sm font-semibold text-white">支出統計</h3>
-              <span class="text-xs text-blue-100">
-                總支出 10,774 元
-              </span>
-            </div>
-            <div class="p-4 space-y-3">
-              <!-- Split bar -->
-              <div class="flex h-2 rounded-full overflow-hidden bg-slate-100">
-                <div class="bg-blue-500 transition-all" style="width: 100%"></div>
-                <div class="bg-amber-500 transition-all" style="width: 0%"></div>
-              </div>
-
-              <!-- 高 row -->
-              <div class="space-y-1">
-                <div class="flex items-center justify-between">
-                  <span class="flex items-center gap-1.5 text-sm font-semibold text-blue-600">
-                    <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                    高
-                  </span>
-                  <span class="text-sm text-slate-500">
-                    應收回 <b class="text-slate-900">5,387</b> 元
-                  </span>
-                </div>
-                <div class="flex justify-between text-xs text-slate-400 pl-3.5">
-                  <span>代墊 10,774</span>
-                  <span>負擔 5,387</span>
-                </div>
-              </div>
-
-              <!-- n row -->
-              <div class="space-y-1">
-                <div class="flex items-center justify-between">
-                  <span class="flex items-center gap-1.5 text-sm font-semibold text-amber-600">
-                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                    n
-                  </span>
-                  <span class="text-sm text-slate-500">
-                    應支付 <b class="text-slate-900">5,387</b> 元
-                  </span>
-                </div>
-                <div class="flex justify-between text-xs text-slate-400 pl-3.5">
-                  <span>代墊 0</span>
-                  <span>負擔 5,387</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Payment Stats -->
-          <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-            <div class="bg-orange-500 px-4 py-2.5">
-              <h3 class="text-sm font-semibold text-white">代付統計</h3>
-            </div>
-            <div class="p-4 space-y-2.5">
-              <div class="flex justify-between text-sm">
-                <span class="text-slate-600">高 代墊總額</span>
-                <span class="font-semibold text-slate-900">
-                  1,180 元
-                </span>
-              </div>
-              <div class="flex justify-between text-sm">
-                <span class="text-slate-600">n 代墊總額</span>
-                <span class="font-semibold text-slate-900">
-                  0 元
-                </span>
-              </div>
-              <div class="flex justify-between text-sm pt-2.5 border-t border-slate-100">
-                <span class="text-slate-600">代付結算</span>
-                <span class="font-semibold text-orange-600">
-                  n 需支付 高 1,180 元
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Total Summary -->
-          <div class="bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl overflow-hidden shadow-lg shadow-purple-600/20">
-            <div class="px-4 py-2.5 bg-white/10">
-              <h3 class="text-sm font-semibold text-white">總結餘</h3>
-            </div>
-            <div class="p-5">
-              <div class="flex justify-between items-center">
-                <span class="text-sm text-purple-200">高的總結餘</span>
-                <span class="text-2xl font-bold text-white">
-                  6,567 <span class="text-sm font-normal text-purple-200">元</span>
-                </span>
-              </div>
-              <div class="mt-4 pt-4 border-t border-white/20 text-center">
-                <p class="text-lg font-bold text-white">
-                  n 需支付 高 6,567 元
-                </p>
-              </div>
-            </div>
-          </div>
-
-        </div>
+        <div id="place-tags-existing" class="flex flex-wrap gap-1.5"></div>
       </div>
-      </template>
-
-    </main>
-
-    <!-- Bottom Nav -->
-    <nav class="fixed bottom-0 left-0 right-0 z-30">
-      <div class="max-w-lg mx-auto bg-white/95 backdrop-blur border-t border-slate-200">
-        <div class="flex" style="padding-bottom: env(safe-area-inset-bottom)">
-          <button data-tab="expenses" class="nav-btn flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors text-indigo-600">
-            <i data-lucide="receipt" class="w-5 h-5 stroke-[2.5]"></i>
-            <span class="text-xs font-medium">各類支出</span>
-          </button>
-          <button data-tab="payments" class="nav-btn flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors text-slate-400">
-            <i data-lucide="repeat" class="w-5 h-5 stroke-2"></i>
-            <span class="text-xs font-medium">代付</span>
-          </button>
-          <button data-tab="settlement" class="nav-btn flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors text-slate-400">
-            <i data-lucide="calculator" class="w-5 h-5 stroke-2"></i>
-            <span class="text-xs font-medium">結算</span>
-          </button>
-          <button data-tab="journey" class="nav-btn flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors text-slate-400">
-            <i data-lucide="mountain-snow" class="w-5 h-5 stroke-2"></i>
-            <span class="text-xs font-medium">旅程</span>
-          </button>
-        </div>
-      </div>
-    </nav>
+      <span>類別</span><span class="text-right text-blue-500">高</span><span
+        class="text-right text-amber-500">n</span><span class="text-right">合計</span>
+    </div>
+    <div class="grid grid-cols-[1.1fr_1fr_1fr_1.1fr] gap-1 py-2.5 border-b border-slate-50 text-sm">
+      <span class="text-slate-700 font-medium">住宿</span>
+      <span class="text-right tabular-nums text-slate-600">5,387</span>
+      <span class="text-right tabular-nums text-slate-600">5,387</span>
+      <span class="text-right tabular-nums font-semibold text-slate-900">10,774</span>
+    </div>
+    <div class="grid grid-cols-[1.1fr_1fr_1fr_1.1fr] gap-1 pt-3 text-sm font-bold">
+      <span class="text-slate-900">合計</span><span class="text-right tabular-nums text-blue-600">5,387</span><span
+        class="text-right tabular-nums text-amber-600">5,387</span><span
+        class="text-right tabular-nums text-slate-900">10,774</span>
+    </div>
+  </div>
   </div>
 
-  <section id="journey-app" class="fixed inset-0 z-40 mx-auto hidden w-full max-w-lg flex-col bg-slate-50" aria-label="旅程 App">
-    <header class="z-20 shrink-0 rounded-b-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 px-5 pb-4 pt-5 text-white shadow-lg">
+  <!-- Expenditure Stats -->
+  <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+    <div class="bg-blue-600 px-4 py-2.5 flex items-center justify-between">
+      <h3 class="text-sm font-semibold text-white">支出統計</h3>
+      <span class="text-xs text-blue-100">
+        總支出 10,774 元
+      </span>
+    </div>
+    <div class="p-4 space-y-3">
+      <!-- Split bar -->
+      <div class="flex h-2 rounded-full overflow-hidden bg-slate-100">
+        <div class="bg-blue-500 transition-all" style="width: 100%"></div>
+        <div class="bg-amber-500 transition-all" style="width: 0%"></div>
+      </div>
+
+      <!-- 高 row -->
+      <div class="space-y-1">
+        <div class="flex items-center justify-between">
+          <span class="flex items-center gap-1.5 text-sm font-semibold text-blue-600">
+            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+            高
+          </span>
+          <span class="text-sm text-slate-500">
+            應收回 <b class="text-slate-900">5,387</b> 元
+          </span>
+        </div>
+        <div class="flex justify-between text-xs text-slate-400 pl-3.5">
+          <span>代墊 10,774</span>
+          <span>負擔 5,387</span>
+        </div>
+      </div>
+
+      <!-- n row -->
+      <div class="space-y-1">
+        <div class="flex items-center justify-between">
+          <span class="flex items-center gap-1.5 text-sm font-semibold text-amber-600">
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            n
+          </span>
+          <span class="text-sm text-slate-500">
+            應支付 <b class="text-slate-900">5,387</b> 元
+          </span>
+        </div>
+        <div class="flex justify-between text-xs text-slate-400 pl-3.5">
+          <span>代墊 0</span>
+          <span>負擔 5,387</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Stats -->
+  <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+    <div class="bg-orange-500 px-4 py-2.5">
+      <h3 class="text-sm font-semibold text-white">代付統計</h3>
+    </div>
+    <div class="p-4 space-y-2.5">
+      <div class="flex justify-between text-sm">
+        <span class="text-slate-600">高 代墊總額</span>
+        <span class="font-semibold text-slate-900">
+          1,180 元
+        </span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span class="text-slate-600">n 代墊總額</span>
+        <span class="font-semibold text-slate-900">
+          0 元
+        </span>
+      </div>
+      <div class="flex justify-between text-sm pt-2.5 border-t border-slate-100">
+        <span class="text-slate-600">代付結算</span>
+        <span class="font-semibold text-orange-600">
+          n 需支付 高 1,180 元
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Summary -->
+  <div
+    class="bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl overflow-hidden shadow-lg shadow-purple-600/20">
+    <div class="px-4 py-2.5 bg-white/10">
+      <h3 class="text-sm font-semibold text-white">總結餘</h3>
+    </div>
+    <div class="p-5">
+      <div class="flex justify-between items-center">
+        <span class="text-sm text-purple-200">高的總結餘</span>
+        <span class="text-2xl font-bold text-white">
+          6,567 <span class="text-sm font-normal text-purple-200">元</span>
+        </span>
+      </div>
+      <div class="mt-4 pt-4 border-t border-white/20 text-center">
+        <p class="text-lg font-bold text-white">
+          n 需支付 高 6,567 元
+        </p>
+      </div>
+    </div>
+  </div>
+
+  </div>
+  </div>
+  </template>
+
+  </main>
+
+  <!-- Bottom Nav -->
+  <nav class="fixed bottom-0 left-0 right-0 z-30">
+    <div class="max-w-lg mx-auto bg-white/95 backdrop-blur border-t border-slate-200">
+      <div class="flex" style="padding-bottom: env(safe-area-inset-bottom)">
+        <button data-tab="expenses"
+          class="nav-btn flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors text-indigo-600">
+          <i data-lucide="receipt" class="w-5 h-5 stroke-[2.5]"></i>
+          <span class="text-xs font-medium">各類支出</span>
+        </button>
+        <button data-tab="payments"
+          class="nav-btn flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors text-slate-400">
+          <i data-lucide="repeat" class="w-5 h-5 stroke-2"></i>
+          <span class="text-xs font-medium">代付</span>
+        </button>
+        <button data-tab="settlement"
+          class="nav-btn flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors text-slate-400">
+          <i data-lucide="calculator" class="w-5 h-5 stroke-2"></i>
+          <span class="text-xs font-medium">結算</span>
+        </button>
+        <button data-tab="journey"
+          class="nav-btn flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors text-slate-400">
+          <i data-lucide="mountain-snow" class="w-5 h-5 stroke-2"></i>
+          <span class="text-xs font-medium">旅程</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+  </div>
+
+  <section id="journey-app" class="fixed inset-0 z-40 mx-auto hidden w-full max-w-lg flex-col bg-slate-50"
+    aria-label="旅程 App">
+    <header
+      class="z-20 shrink-0 rounded-b-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 px-5 pb-4 pt-5 text-white shadow-lg">
       <div class="flex items-center justify-between gap-4">
         <div>
           <h1 id="journey-shell-title" class="text-xl font-bold">景點收藏</h1>
           <p id="journey-shell-subtitle" class="mt-0.5 text-xs text-slate-300">旅途中想去的店家與地點</p>
         </div>
-        <button id="journey-home-switch" type="button" class="flex h-10 items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 text-sm font-medium text-white hover:bg-white/20" aria-label="切回分帳首頁">
-          <i data-lucide="arrow-left-right" class="h-4 w-4"></i><span>帳本</span>
-        </button>
+        <div class="flex items-center gap-2">
+          <a id="journey-snow-notes-link" href="snow-notes.html"
+            class="flex h-10 items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 text-sm font-medium text-white hover:bg-white/20"
+            title="開啟滑雪學習筆記">
+            <i data-lucide="book-open" class="h-4 w-4"></i><span>筆記</span>
+          </a>
+          <button id="journey-home-switch" type="button"
+            class="flex h-10 items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 text-sm font-medium text-white hover:bg-white/20"
+            aria-label="切回分帳首頁">
+            <i data-lucide="arrow-left-right" class="h-4 w-4"></i><span>帳本</span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -538,25 +615,32 @@
       <section id="journey-panel-places" class="journey-panel h-full overflow-y-auto pb-24" data-journey-panel="places">
         <div id="tab-places"></div>
       </section>
-      <section id="journey-panel-image-analysis" class="journey-panel hidden h-full overflow-y-auto pb-24" data-journey-panel="image-analysis">
+      <section id="journey-panel-image-analysis" class="journey-panel hidden h-full overflow-y-auto pb-24"
+        data-journey-panel="image-analysis">
         <div id="tab-image-analysis"></div>
       </section>
-      <iframe id="journey-itinerary-frame" class="journey-panel hidden h-full w-full border-0" data-journey-panel="itinerary" data-src="itinerary.html?embedded=1" title="北海道行程" loading="lazy"></iframe>
-      <iframe id="journey-map-frame" class="journey-panel hidden h-full w-full border-0" data-journey-panel="map" data-src="kamui.html?embedded=1" title="滑雪場地圖" loading="lazy" allow="geolocation"></iframe>
+      <iframe id="journey-itinerary-frame" class="journey-panel hidden h-full w-full border-0"
+        data-journey-panel="itinerary" data-src="itinerary.html?embedded=1" title="北海道行程" loading="lazy"></iframe>
+      <iframe id="journey-map-frame" class="journey-panel hidden h-full w-full border-0" data-journey-panel="map"
+        data-src="kamui.html?embedded=1" title="滑雪場地圖" loading="lazy" allow="geolocation"></iframe>
     </main>
 
     <nav class="z-30 shrink-0 border-t border-slate-200 bg-white/95 backdrop-blur" aria-label="旅程導覽">
       <div class="flex" style="padding-bottom: env(safe-area-inset-bottom)">
-        <button data-journey-tab="places" class="journey-nav-btn flex flex-1 flex-col items-center gap-1 py-2.5 text-indigo-600" aria-current="page">
+        <button data-journey-tab="places"
+          class="journey-nav-btn flex flex-1 flex-col items-center gap-1 py-2.5 text-indigo-600" aria-current="page">
           <i data-lucide="map-pin" class="h-5 w-5 stroke-[2.5]"></i><span class="text-xs font-medium">景點</span>
         </button>
-        <button data-journey-tab="image-analysis" class="journey-nav-btn flex flex-1 flex-col items-center gap-1 py-2.5 text-slate-400">
+        <button data-journey-tab="image-analysis"
+          class="journey-nav-btn flex flex-1 flex-col items-center gap-1 py-2.5 text-slate-400">
           <i data-lucide="scan-line" class="h-5 w-5 stroke-2"></i><span class="text-xs font-medium">辨識</span>
         </button>
-        <button data-journey-tab="itinerary" class="journey-nav-btn flex flex-1 flex-col items-center gap-1 py-2.5 text-slate-400">
+        <button data-journey-tab="itinerary"
+          class="journey-nav-btn flex flex-1 flex-col items-center gap-1 py-2.5 text-slate-400">
           <i data-lucide="calendar-days" class="h-5 w-5 stroke-2"></i><span class="text-xs font-medium">行程</span>
         </button>
-        <button data-journey-tab="map" class="journey-nav-btn flex flex-1 flex-col items-center gap-1 py-2.5 text-slate-400">
+        <button data-journey-tab="map"
+          class="journey-nav-btn flex flex-1 flex-col items-center gap-1 py-2.5 text-slate-400">
           <i data-lucide="mountain-snow" class="h-5 w-5 stroke-2"></i><span class="text-xs font-medium">地圖</span>
         </button>
       </div>
@@ -574,7 +658,8 @@
       <div class="space-y-4">
         <section class="space-y-2 border-b border-slate-100 pb-4" aria-labelledby="expense-receipt-heading">
           <h3 id="expense-receipt-heading" class="text-sm font-semibold text-slate-800">用收據建立草稿</h3>
-          <input id="expense-receipt-image" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" class="sr-only" aria-label="選擇或拍攝收據" />
+          <input id="expense-receipt-image" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"
+            class="sr-only" aria-label="選擇或拍攝收據" />
           <button id="expense-receipt-scan" type="button" class="btn-outline btn-flex">
             <i data-lucide="scan-line" class="mr-1 h-4 w-4"></i>拍攝／選擇收據
           </button>
@@ -585,7 +670,7 @@
           <label class="label">日期</label>
           <input type="date" class="input-field" id="expense-date" />
         </div>
-        
+
         <div class="space-y-2">
           <label class="label">支出項目</label>
           <div class="grid grid-cols-2 gap-2.5">
@@ -638,10 +723,11 @@
 
       <div class="dialog-footer">
         <!-- Show only when editing -->
-        <button id="expense-delete-btn" class="btn-outline btn-flex text-rose-600 border-rose-200 hover:bg-rose-50 hidden">
+        <button id="expense-delete-btn"
+          class="btn-outline btn-flex text-rose-600 border-rose-200 hover:bg-rose-50 hidden">
           <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i>刪除
         </button>
-        
+
         <div class="flex gap-2 flex-1 justify-end">
           <button class="btn-outline btn-flex" onclick="closeDialog('expense-dialog')">取消</button>
           <button class="btn-primary btn-flex" onclick="closeDialog('expense-dialog')">儲存</button>
@@ -656,7 +742,7 @@
       <div class="dialog-header">
         <h2 class="dialog-title" id="payment-dialog-title">新增代付</h2>
       </div>
-      
+
       <div class="space-y-4">
         <div class="space-y-1.5">
           <label class="label">日期</label>
@@ -670,7 +756,8 @@
 
         <div class="space-y-1.5">
           <label class="label">金額</label>
-          <input type="number" inputmode="numeric" placeholder="0" class="input-field text-right text-lg font-semibold tabular-nums" />
+          <input type="number" inputmode="numeric" placeholder="0"
+            class="input-field text-right text-lg font-semibold tabular-nums" />
         </div>
 
         <div class="space-y-2">
@@ -686,15 +773,17 @@
               <select id="payment-debtor" class="input-field"></select>
             </div>
           </div>
-          <div id="payment-direction-summary" class="flex flex-wrap items-center gap-2 text-xs text-slate-500" aria-live="polite"></div>
+          <div id="payment-direction-summary" class="flex flex-wrap items-center gap-2 text-xs text-slate-500"
+            aria-live="polite"></div>
         </div>
       </div>
 
       <div class="dialog-footer">
-        <button id="payment-delete-btn" class="btn-outline btn-flex text-rose-600 border-rose-200 hover:bg-rose-50 hidden">
+        <button id="payment-delete-btn"
+          class="btn-outline btn-flex text-rose-600 border-rose-200 hover:bg-rose-50 hidden">
           <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i>刪除
         </button>
-        
+
         <div class="flex gap-2 flex-1 justify-end">
           <button class="btn-outline btn-flex" onclick="closeDialog('payment-dialog')">取消</button>
           <button class="btn-primary btn-flex" onclick="closeDialog('payment-dialog')">儲存</button>
@@ -708,7 +797,8 @@
     <div class="dialog-content">
       <div class="dialog-header flex items-center justify-between">
         <h2 class="dialog-title" id="place-dialog-title">新增地點</h2>
-        <button type="button" onclick="closeDialog('place-dialog')" class="p-1 text-slate-400 hover:text-slate-700" aria-label="關閉"><i data-lucide="x" class="h-5 w-5"></i></button>
+        <button type="button" onclick="closeDialog('place-dialog')" class="p-1 text-slate-400 hover:text-slate-700"
+          aria-label="關閉"><i data-lucide="x" class="h-5 w-5"></i></button>
       </div>
       <div class="space-y-4">
         <div id="place-name-display" class="hidden rounded-lg bg-slate-50 px-3 py-2.5">
@@ -717,36 +807,43 @@
         </div>
         <div id="place-ai-introduction-panel" class="hidden">
           <div id="place-ai-introduction-content"></div>
-          <p id="place-ai-introduction-empty" class="hidden rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500">儲存時自動查詢繁體中文介紹。</p>
+          <p id="place-ai-introduction-empty"
+            class="hidden rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500">儲存時自動查詢繁體中文介紹。</p>
         </div>
-      
+
         <div class="space-y-1.5">
           <label class="label" for="place-maps-link">Google Maps 分享連結 <span class="text-rose-600">必填</span></label>
-          <input type="url" class="input-field" id="place-maps-link" placeholder="貼上 maps.app.goo.gl 或 Google Maps 網址" maxlength="2000" required />
+          <input type="url" class="input-field" id="place-maps-link" placeholder="貼上 maps.app.goo.gl 或 Google Maps 網址"
+            maxlength="2000" required />
           <p class="text-xs leading-5 text-slate-500">貼上連結，自動辨識名稱與座標。</p>
         </div>
         <div id="place-coordinates-field" class="hidden space-y-1.5">
           <label class="label" for="place-coordinates">經緯度（人工覆寫）</label>
-          <input type="text" class="input-field" id="place-coordinates" placeholder="例：43.7706, 142.3650；留空則由 AI 重新定位" maxlength="500" />
+          <input type="text" class="input-field" id="place-coordinates" placeholder="例：43.7706, 142.3650；留空則由 AI 重新定位"
+            maxlength="500" />
           <p class="text-xs leading-5 text-slate-500">留空時會重新定位，搜尋範圍限北海道。</p>
           <div id="place-coordinate-sources" class="flex flex-wrap gap-x-3 gap-y-1 text-xs"></div>
         </div>
-          <div class="space-y-2">
+        <div class="space-y-2">
           <label class="label" for="place-tag-input">標籤</label>
           <div id="place-tags-selected" class="flex flex-wrap gap-1.5"></div>
           <div class="flex gap-2">
-            <input type="text" class="input-field min-w-0 flex-1" id="place-tag-input" placeholder="輸入新標籤，例如：拉麵" maxlength="20" />
+            <input type="text" class="input-field min-w-0 flex-1" id="place-tag-input" placeholder="輸入新標籤，例如：拉麵"
+              maxlength="20" />
             <button type="button" id="place-tag-add" class="btn-outline btn-flex shrink-0">新增</button>
           </div>
           <div id="place-tags-existing" class="flex flex-wrap gap-1.5"></div>
         </div>
         <div class="space-y-1.5">
           <label class="label" for="place-note">備註</label>
-          <textarea class="textarea-field" id="place-note" rows="2" placeholder="例如：需預約、週一公休" maxlength="500"></textarea>
+          <textarea class="textarea-field" id="place-note" rows="2" placeholder="例如：需預約、週一公休"
+            maxlength="500"></textarea>
         </div>
       </div>
       <div class="dialog-footer">
-        <button id="place-delete-btn" type="button" class="btn-outline btn-flex text-rose-600 border-rose-200 hover:bg-rose-50 hidden"><i data-lucide="trash-2" class="mr-1 h-4 w-4"></i>刪除</button>
+        <button id="place-delete-btn" type="button"
+          class="btn-outline btn-flex text-rose-600 border-rose-200 hover:bg-rose-50 hidden"><i data-lucide="trash-2"
+            class="mr-1 h-4 w-4"></i>刪除</button>
         <div class="flex flex-1 justify-end gap-2">
           <button type="button" class="btn-outline btn-flex" onclick="closeDialog('place-dialog')">取消</button>
           <button type="button" class="btn-primary btn-flex">儲存</button>
@@ -757,35 +854,43 @@
 
   <dialog id="image-viewer-dialog" class="image-viewer-dialog" aria-label="圖片放大檢視">
     <form method="dialog" class="image-viewer-close-form">
-      <button type="submit" class="image-viewer-close" aria-label="關閉圖片"><i data-lucide="x" class="h-6 w-6"></i></button>
+      <button type="submit" class="image-viewer-close" aria-label="關閉圖片"><i data-lucide="x"
+          class="h-6 w-6"></i></button>
     </form>
     <div id="image-viewer-stage" class="image-viewer-stage"></div>
     <div class="image-viewer-controls" aria-label="圖片縮放控制">
-      <button id="image-viewer-zoom-out" type="button" class="image-viewer-control" data-image-viewer-zoom-out aria-label="縮小圖片" title="縮小"><i data-lucide="minus" class="h-5 w-5"></i></button>
+      <button id="image-viewer-zoom-out" type="button" class="image-viewer-control" data-image-viewer-zoom-out
+        aria-label="縮小圖片" title="縮小"><i data-lucide="minus" class="h-5 w-5"></i></button>
       <output id="image-viewer-zoom" class="image-viewer-zoom" aria-live="polite">100%</output>
-      <button id="image-viewer-zoom-in" type="button" class="image-viewer-control" data-image-viewer-zoom-in aria-label="放大圖片" title="放大"><i data-lucide="plus" class="h-5 w-5"></i></button>
-      <button id="image-viewer-zoom-reset" type="button" class="image-viewer-control" data-image-viewer-zoom-reset aria-label="重設縮放" title="符合畫面"><i data-lucide="scan" class="h-5 w-5"></i></button>
+      <button id="image-viewer-zoom-in" type="button" class="image-viewer-control" data-image-viewer-zoom-in
+        aria-label="放大圖片" title="放大"><i data-lucide="plus" class="h-5 w-5"></i></button>
+      <button id="image-viewer-zoom-reset" type="button" class="image-viewer-control" data-image-viewer-zoom-reset
+        aria-label="重設縮放" title="符合畫面"><i data-lucide="scan" class="h-5 w-5"></i></button>
     </div>
   </dialog>
 
   <dialog id="barcode-scanner-dialog" class="barcode-scanner-dialog" aria-labelledby="barcode-scanner-title">
-    <div class="flex shrink-0 items-center justify-between px-4 py-3" style="padding-top:max(0.75rem, env(safe-area-inset-top))">
+    <div class="flex shrink-0 items-center justify-between px-4 py-3"
+      style="padding-top:max(0.75rem, env(safe-area-inset-top))">
       <div>
         <h2 id="barcode-scanner-title" class="text-base font-semibold">掃描商品條碼</h2>
         <p class="mt-0.5 text-xs text-emerald-100">支援 JAN／EAN／UPC 商品條碼</p>
       </div>
       <form method="dialog">
-        <button type="submit" class="grid h-11 w-11 place-items-center rounded-md text-white hover:bg-white/10" aria-label="關閉條碼掃描"><i data-lucide="x" class="h-5 w-5"></i></button>
+        <button type="submit" class="grid h-11 w-11 place-items-center rounded-md text-white hover:bg-white/10"
+          aria-label="關閉條碼掃描"><i data-lucide="x" class="h-5 w-5"></i></button>
       </form>
     </div>
     <div class="barcode-scanner-viewport">
       <video id="barcode-scanner-video" playsinline muted aria-label="條碼掃描相機畫面"></video>
       <div class="barcode-scanner-frame" aria-hidden="true"></div>
     </div>
-    <p id="barcode-scanner-status" class="min-h-12 shrink-0 px-4 py-3 text-center text-sm text-emerald-50" style="padding-bottom:max(0.75rem, env(safe-area-inset-bottom))" role="status" aria-live="polite">正在開啟相機…</p>
+    <p id="barcode-scanner-status" class="min-h-12 shrink-0 px-4 py-3 text-center text-sm text-emerald-50"
+      style="padding-bottom:max(0.75rem, env(safe-area-inset-bottom))" role="status" aria-live="polite">正在開啟相機…</p>
   </dialog>
 
-  <dialog id="currency-calculator-dialog" class="currency-calculator-dialog" aria-labelledby="currency-calculator-title">
+  <dialog id="currency-calculator-dialog" class="currency-calculator-dialog"
+    aria-labelledby="currency-calculator-title">
     <div class="currency-calculator-shell">
       <header class="currency-calculator-header">
         <div>
@@ -802,7 +907,8 @@
           <span class="currency-code">JPY</span>
           <output id="currency-jpy-amount" class="currency-amount" data-digits="1">0</output>
         </div>
-        <div class="currency-conversion-rule" aria-hidden="true"><span></span><i data-lucide="arrow-down"></i><span></span></div>
+        <div class="currency-conversion-rule" aria-hidden="true"><span></span><i
+            data-lucide="arrow-down"></i><span></span></div>
         <div class="currency-amount-row currency-amount-result">
           <span class="currency-code">TWD</span>
           <output id="currency-twd-amount" class="currency-amount" data-digits="1" aria-live="polite">—</output>
@@ -819,11 +925,13 @@
         <button type="button" data-currency-key data-action="append" data-value="7">7</button>
         <button type="button" data-currency-key data-action="append" data-value="8">8</button>
         <button type="button" data-currency-key data-action="append" data-value="9">9</button>
-        <button type="button" class="currency-key-action" data-currency-key data-action="backspace" aria-label="刪除一位數" title="刪除一位數"><i data-lucide="delete" aria-hidden="true"></i></button>
+        <button type="button" class="currency-key-action" data-currency-key data-action="backspace" aria-label="刪除一位數"
+          title="刪除一位數"><i data-lucide="delete" aria-hidden="true"></i></button>
         <button type="button" data-currency-key data-action="append" data-value="4">4</button>
         <button type="button" data-currency-key data-action="append" data-value="5">5</button>
         <button type="button" data-currency-key data-action="append" data-value="6">6</button>
-        <button type="button" class="currency-key-action currency-key-clear" data-currency-key data-action="clear">AC</button>
+        <button type="button" class="currency-key-action currency-key-clear" data-currency-key
+          data-action="clear">AC</button>
         <button type="button" data-currency-key data-action="append" data-value="1">1</button>
         <button type="button" data-currency-key data-action="append" data-value="2">2</button>
         <button type="button" data-currency-key data-action="append" data-value="3">3</button>
@@ -940,8 +1048,15 @@
     document.getElementById('journey-home-switch').addEventListener('click', showLedgerApp);
 
     const initialView = new URLSearchParams(window.location.search);
-    if (initialView.get('app') === 'journey' || initialView.get('tab') === 'tools') showJourneyApp();
-    else showLedgerTab('expenses');
+    const requestedTab = initialView.get('tab');
+    if (initialView.get('app') === 'journey' || requestedTab === 'tools') {
+      if (requestedTab && ['places', 'image-analysis', 'itinerary', 'map'].includes(requestedTab)) {
+        currentJourneyTab = requestedTab;
+      }
+      showJourneyApp();
+    } else {
+      showLedgerTab('expenses');
+    }
 
     // Dialog logic
     function openExpenseDialog(isEdit) {
@@ -952,12 +1067,12 @@
       } else {
         deleteBtn.classList.add('hidden');
       }
-      
+
       // Auto-set today if adding
       if (!isEdit) {
         document.getElementById('expense-date').value = new Date().toISOString().split('T')[0];
       }
-      
+
       document.getElementById('expense-dialog').classList.add('open');
     }
 
@@ -969,11 +1084,11 @@
       } else {
         deleteBtn.classList.add('hidden');
       }
-      
+
       if (!isEdit) {
         document.getElementById('payment-date').value = new Date().toISOString().split('T')[0];
       }
-      
+
       document.getElementById('payment-dialog').classList.add('open');
     }
 
@@ -983,4 +1098,5 @@
   </script>
   <script type="module" src="./home.js"></script>
 </body>
+
 </html>
