@@ -48,8 +48,29 @@ const DEFAULT_SAMPLE_NOTES = [
     technique: "基本滑行站姿與重心居中",
     secondaryTags: ["中性站姿", "膝蓋微蹲", "視線水平"],
     coreConcept: "滑雪的核心在於重心始終維持在雪板有效邊刃正上方。上半身放鬆對齊雪板軸心，避免過早傾斜或骨盆後坐。",
-    suitability: "非常符合目前程度。穩固的基本站姿是改善紅線滑行不穩的最關鍵基石。",
-    suitabilityLevel: "suitable",
+    actionSteps: [
+      {
+        stepName: "靜態中性站姿設定",
+        movement: "雙腳微屈，脛骨微靠雪鞋鞋舌，胸椎自然挺直，骨盆微收不後坐，雙手自然環抱兩側。",
+        bodyAndBoardChange: "雪板平貼雪面無立刃，重心平均落於兩腳足弓中心，板頭板尾壓力比 50:50。",
+        purpose: "建立不耗力的關節緩衝支撐，使雪板在全平狀態下能維持穩定直線滑行。",
+        mistakesAndCorrections: "彎腰低頭且屁股往後坐；修正為直立胸腔，透過腳踝微屈輕壓鞋舌。"
+      },
+      {
+        stepName: "垂直微彈跳重心檢核",
+        movement: "在平地或極緩坡進行 5-10 次小幅度垂直蹲起彈跳，確認落地時由踝、膝、髖關節協同吸收震動。",
+        bodyAndBoardChange: "垂直方向微動，雪板仍保持平貼，重心不左右偏移。",
+        purpose: "確認全身關節處於放鬆有彈性的動態平衡狀態，非僵硬鎖死。",
+        mistakesAndCorrections: "落地時後腳單側受力；修正為雙腳同時著地，眼睛看向水平前方。"
+      },
+      {
+        stepName: "動態緩坡直滑降滑行",
+        movement: "放開邊刃讓板子沿滾落線自然加速，維持中性站姿滑行 15 秒，不主動轉向或左右換刃。",
+        bodyAndBoardChange: "板底全平高速滑行，視線看遠，感受兩腳受雪面反饋力量一致。",
+        purpose: "建立對速度與板底滑動的穩定感，避免速度微增時驚慌後仰。",
+        mistakesAndCorrections: "因恐懼導致身體轉向面對山下；修正為雙肩保持與雪板長軸平行。"
+      }
+    ],
     cautions: [
       "不可養成彎腰後坐（蹲馬桶式）的壞習慣，應是踝關節與膝關節協同微曲。",
       "雙肩自然平行於雪板行進軸線，避免盲目旋轉上半身。",
@@ -71,7 +92,7 @@ const DEFAULT_SAMPLE_NOTES = [
     ],
     completionCriteria: "在綠線緩坡直滑降及斜滑降時，能在無多餘上半身晃動下平穩維持 15 秒以上。",
     analysisBasis: "依據影片逐字稿中教練示範之靜態站姿與動態滑降要點整理。",
-    formattedText: `- 主要分類：身體姿勢與平衡\n- 技術項目：基本滑行站姿與重心居中\n- 次要標籤：中性站姿、膝蓋微蹲、視線水平\n- 影片核心觀念：滑雪的核心在於重心始終維持在雪板有效邊刃正上方。上半身放鬆對齊雪板軸心，避免過早傾斜或骨盆後坐。\n- 適合目前程度嗎：非常符合目前程度。穩固的基本站姿是改善紅線滑行不穩的最關鍵基石。\n- 練習注意事項（最多 3 點）：1. 不可蹲馬桶式後坐 2. 雙肩自然平行板身 3. 視線看向前進遠方\n- 常見錯誤與修正：彎腰後坐修正為脛骨輕壓鞋舌、重心均勻分布於兩腳足弓。\n- 建議練習方式：平地站姿微彈跳、綠線直滑降感受中性平衡。\n- 完成標準：在綠線緩坡直滑降及斜滑降時平穩維持 15 秒以上。\n- 分析依據：依據影片教學內容分析。`,
+    formattedText: `- 主要分類：身體姿勢與平衡\n- 技術項目：基本滑行站姿與重心居中\n- 次要標籤：中性站姿、膝蓋微蹲、視線水平\n- 影片核心觀念：滑雪的核心在於重心始終維持在雪板有效邊刃正上方。上半身放鬆對齊雪板軸心，避免過早傾斜或骨盆後坐。\n- 動作分解步驟：\n  1. 【靜態中性站姿設定】\n     - 具體動作：雙腳微屈，脛骨微靠雪鞋鞋舌，胸椎挺直，雙手環抱。\n     - 身體與雪板的變化：板面全平無立刃，重心平均落於兩腳足弓中心。\n     - 動作目的：建立不耗力的關節緩衝支撐，平穩滑行。\n     - 常見錯誤與修正：彎腰低頭屁股後坐；修正為直立胸腔輕壓鞋舌。\n  2. 【動態緩坡直滑降】\n     - 具體動作：放開邊刃讓板子沿滾落線加速，維持站姿滑行 15 秒。\n     - 身體與雪板的變化：板底全平高速滑行，視線看遠。\n     - 動作目的：建立對速度與板底滑動的穩定感。\n     - 常見錯誤與修正：恐懼後仰；修正為雙肩平行雪板長軸。\n- 練習注意事項（最多 3 點）：1. 不可蹲馬桶式後坐 2. 雙肩自然平行板身 3. 視線看向前進遠方\n- 常見錯誤與修正：彎腰後坐修正為脛骨輕壓鞋舌、重心均勻分布於兩腳足弓。\n- 建議練習方式：平地站姿微彈跳、綠線直滑降感受中性平衡。\n- 完成標準：在綠線緩坡直滑降及斜滑降時平穩維持 15 秒以上。\n- 分析依據：依據影片教學內容分析。`,
     rawTranscript: "示範中性站姿：雙腳微曲，脛骨輕微靠在雪鞋前面，肩膀放鬆，視線往前看，感受板底與雪面的接觸..."
   },
   {
@@ -86,8 +107,29 @@ const DEFAULT_SAMPLE_NOTES = [
     technique: "後刃轉前刃的重心引導與滾邊過渡",
     secondaryTags: ["Toe-side 換刃", "視線引導", "落葉飄進階"],
     coreConcept: "換前刃不是硬用後腳踢板或猛轉肩膀，而是在板頭指向滾落線的瞬間，將重心藉由視線與膝蓋順暢地從後刃滾至前刃。",
-    suitability: "正是學員目前核心攻克目標！能直接解決紅線容易卡後刃（Catch Edge）摔倒的痛點。",
-    suitabilityLevel: "suitable",
+    actionSteps: [
+      {
+        stepName: "後刃穩定橫越與降速",
+        movement: "在後刃橫越坡道滑行中微屈雙膝，重心在前腳 55-60%，視線穩定看向斜前方。",
+        bodyAndBoardChange: "雪板維持後刃咬雪滑行，速度受控在舒適範圍。",
+        purpose: "為換刃累積足夠的穩定速度與平衡，避免失速或失控勉強換刃。",
+        mistakesAndCorrections: "重心全部留在後腳；修正為肩膀平行雪板，前膝微收。"
+      },
+      {
+        stepName: "板底放平與過渡滾落線",
+        movement: "逐漸放鬆腳踝將後刃放平，視線轉向山下並讓前腳膝蓋順著板頭方向自然前推。",
+        bodyAndBoardChange: "雪板邊刃完全放平，板頭受重力帶動順暢旋轉指向滾落線（Fall line）。",
+        purpose: "完成邊刃釋放，讓雪板零阻力順暢通過滾落線。",
+        mistakesAndCorrections: "害怕面對山下而過早把身體往後仰；修正為給予雪板 0.5 秒板底全平滑向滾落線的時間。"
+      },
+      {
+        stepName: "前刃切入與視線出彎",
+        movement: "板頭通過滾落線瞬間，雙膝向前下方微推，小腿脛骨輕壓前鞋舌，腳尖與腳掌球部溫和下壓前刃。",
+        bodyAndBoardChange: "前刃溫和切入雪面，雪板從滾落線轉向橫越坡道，形成圓弧 Toe-side 彎道。",
+        purpose: "安全順暢建立前刃支撐，完成換刃弧線。",
+        mistakesAndCorrections: "急躁用後腳向外猛踢板尾甩尾；修正為由前膝推進引導，讓前刃自然刻入雪面帶動轉向。"
+      }
+    ],
     cautions: [
       "換刃關鍵期千萬不可提早後仰或急著煞車，要給板子 0.5 秒通過滾落線的時間。",
       "先在綠線將換刃半徑放大（大 S-turn），切忌急躁追求小半徑快速轉彎。",
@@ -110,7 +152,7 @@ const DEFAULT_SAMPLE_NOTES = [
     ],
     completionCriteria: "在綠線至紅線交界坡，能連續完成 5 次平穩順暢的後刃切換前刃，沒有卡刃驚慌感。",
     analysisBasis: "依據教練逐字稿之換刃力學示範解析。",
-    formattedText: `- 主要分類：板刃控制與換刃\n- 技術項目：後刃轉前刃的重心引導與滾邊過渡\n- 次要標籤：Toe-side 換刃、視線引導、落葉飄進階\n- 影片核心觀念：換前刃不是硬用後腳踢板，而是在板頭通過滾落線瞬間，透過膝蓋微蹲推進將邊刃順利翻轉。\n- 適合目前程度嗎：正是目前核心突破目標，能解決紅線換刃卡刃恐懼。\n- 練習注意事項（最多 3 點）：1. 不可提早後仰急煞 2. 先放大轉彎半徑 3. 前膝往前推壓前刃\n- 常見錯誤與修正：重心後退導致卡刃，應維持前腳 60% 重心與視線帶動。\n- 建議練習方式：落葉飄過渡、單次 C-turn 練習、再串連大 S-turn。\n- 完成標準：連續完成 5 次平順換刃無卡刃。\n- 分析依據：依據影片逐字稿動作示範分析。`,
+    formattedText: `- 主要分類：板刃控制與換刃\n- 技術項目：後刃轉前刃的重心引導與滾邊過渡\n- 次要標籤：Toe-side 換刃、視線引導、落葉飄進階\n- 影片核心觀念：換前刃不是硬用後腳踢板，而是在板頭通過滾落線瞬間，透過膝蓋微蹲推進將邊刃順利翻轉。\n- 動作分解步驟：\n  1. 【後刃穩定橫越與降速】\n     - 具體動作：微屈雙膝，重心前腳 60%，視線看斜前方。\n     - 身體與雪板的變化：雪板維持後刃咬雪滑行，速度受控。\n     - 動作目的：累積足夠穩定速度與平衡。\n     - 常見錯誤與修正：重心退到後腳；修正為前膝微收。\n  2. 【板底放平與過渡滾落線】\n     - 具體動作：放平腳踝，視線轉山下，前膝順板頭前推。\n     - 身體與雪板的變化：邊刃完全放平，板頭順重力轉向滾落線。\n     - 動作目的：邊刃釋放，零阻力通過滾落線。\n     - 常見錯誤與修正：害怕山下過早後仰；修正為給板子 0.5 秒全平時間。\n  3. 【前刃切入與視線出彎】\n     - 具體動作：雙膝向前下微推，小腿輕壓鞋舌，腳尖溫和下壓前刃。\n     - 身體與雪板的變化：前刃溫和切入雪面，轉向橫越坡道形成圓弧。\n     - 動作目的：安全順暢建立前刃支撐，完成換刃。\n     - 常見錯誤與修正：後腳甩尾；修正為前膝推進引導前刃切入。\n- 練習注意事項（最多 3 點）：1. 不可提早後仰急煞 2. 先放大轉彎半徑 3. 前膝往前推壓前刃\n- 常見錯誤與修正：重心後退導致卡刃，應維持前腳 60% 重心與視線帶動。\n- 建議練習方式：落葉飄過渡、單次 C-turn 練習、再串連大 S-turn。\n- 完成標準：連續完成 5 次平順換刃無卡刃。\n- 分析依據：依據影片逐字稿動作示範分析。`,
     rawTranscript: "後刃切換到前刃是很多初學者在紅線的惡夢。記住口訣：重心先過渡到板底中央，視線看向出口，前膝往前下壓..."
   }
 ];
@@ -169,13 +211,21 @@ function startInlinePlayer() {
   detailYtWrapEl.appendChild(frame);
 }
 const detailCoreConceptEl = document.getElementById("detail-core-concept");
+const detailActionStepsSectionEl = document.getElementById("detail-action-steps-section");
+const detailActionStepsListEl = document.getElementById("detail-action-steps-list");
+const detailSuitabilitySectionEl = document.getElementById("detail-suitability-section");
 const detailSuitabilityBadgeEl = document.getElementById("detail-suitability-badge");
 const detailSuitabilityDescEl = document.getElementById("detail-suitability-desc");
+const detailCautionsSectionEl = document.getElementById("detail-cautions-section");
 const detailCautionsListEl = document.getElementById("detail-cautions-list");
 const detailMistakesTableEl = document.getElementById("detail-mistakes-table");
+const detailDrillsSectionEl = document.getElementById("detail-drills-section");
 const detailDrillsListEl = document.getElementById("detail-drills-list");
 const detailCompletionCriteriaEl = document.getElementById("detail-completion-criteria");
 const detailAnalysisBasisEl = document.getElementById("detail-analysis-basis");
+const btnReEvaluateEl = document.getElementById("btn-re-evaluate");
+const reEvaluateBtnLabelEl = document.getElementById("re-evaluate-btn-label");
+const reEvaluateIconEl = document.getElementById("re-evaluate-icon");
 const btnToggleCompleteEl = document.getElementById("btn-toggle-complete");
 const completeBtnLabelEl = document.getElementById("complete-btn-label");
 const btnDeleteNoteEl = document.getElementById("btn-delete-note");
@@ -222,6 +272,29 @@ function showToast(msg) {
   toastEl.textContent = msg;
   toastEl.classList.add("is-show");
   setTimeout(() => toastEl.classList.remove("is-show"), 2600);
+}
+
+function parseActionStepsFromText(text) {
+  if (!text || typeof text !== "string") return [];
+  const match = text.match(/動作分解步驟[：:]([\s\S]*?)(?=\n- [^\n]+[：:]|$)/);
+  if (!match) return [];
+  const block = match[1];
+  const items = block.split(/\n\s*\d+\.\s*/).filter(item => item.trim());
+  return items.map(item => {
+    const titleMatch = item.match(/^(?:【([^】]+)】|([^\n]+))/);
+    const stepName = titleMatch ? (titleMatch[1] || titleMatch[2]).trim() : "動作步驟";
+    const movementMatch = item.match(/(?:具體動作|動作)[：:]\s*([^\n]+)/);
+    const changeMatch = item.match(/(?:身體與雪板的變化|身體與雪板變化|身體變化|雪板變化)[：:]\s*([^\n]+)/);
+    const purposeMatch = item.match(/(?:動作目的|目的)[：:]\s*([^\n]+)/);
+    const fixMatch = item.match(/(?:常見錯誤與修正|錯誤與修正)[：:]\s*([^\n]+)/);
+    return {
+      stepName,
+      movement: movementMatch ? movementMatch[1].trim() : "",
+      bodyAndBoardChange: changeMatch ? changeMatch[1].trim() : "",
+      purpose: purposeMatch ? purposeMatch[1].trim() : "",
+      mistakesAndCorrections: fixMatch ? fixMatch[1].trim() : ""
+    };
+  });
 }
 
 // Local Storage Loading / Saving
@@ -432,18 +505,96 @@ function selectNote(noteId, open = false) {
   // AI Coaching Sections
   detailCoreConceptEl.textContent = note.coreConcept || "暫無影片核心觀念說明。";
 
-  detailSuitabilityBadgeEl.textContent = getSuitabilityName(note.suitabilityLevel);
-  detailSuitabilityBadgeEl.className = `mac-suitability-badge ${getSuitabilityClass(note.suitabilityLevel)}`;
-  detailSuitabilityDescEl.textContent = note.suitability || "符合目前程度。";
+  // Action Steps
+  let steps = Array.isArray(note.actionSteps) ? note.actionSteps : [];
+  if (!steps.length && note.formattedText) {
+    steps = parseActionStepsFromText(note.formattedText);
+  }
+
+  detailActionStepsSectionEl.style.display = "block";
+
+  if (steps.length) {
+    detailActionStepsListEl.innerHTML = steps.map((step, idx) => `
+      <div class="mac-step-card">
+        <div class="mac-step-header">
+          <span class="mac-step-badge">步驟 ${idx + 1}</span>
+          <h4 class="mac-step-name">${escapeHtml(step.stepName || `步驟 ${idx + 1}`)}</h4>
+        </div>
+        <div class="mac-step-body">
+          ${step.movement ? `
+          <div class="mac-step-row">
+            <span class="mac-step-label">具體動作</span>
+            <p class="mac-step-text">${escapeHtml(step.movement)}</p>
+          </div>` : ""}
+          ${step.bodyAndBoardChange ? `
+          <div class="mac-step-row">
+            <span class="mac-step-label">身體與雪板變化</span>
+            <p class="mac-step-text">${escapeHtml(step.bodyAndBoardChange)}</p>
+          </div>` : ""}
+          ${step.purpose ? `
+          <div class="mac-step-row">
+            <span class="mac-step-label">動作目的</span>
+            <p class="mac-step-text">${escapeHtml(step.purpose)}</p>
+          </div>` : ""}
+          ${step.mistakesAndCorrections ? `
+          <div class="mac-step-row is-mistake">
+            <span class="mac-step-label">注意事項</span>
+            <p class="mac-step-text">${escapeHtml(step.mistakesAndCorrections)}</p>
+          </div>` : ""}
+        </div>
+      </div>
+    `).join("");
+  } else {
+    detailActionStepsListEl.innerHTML = `
+      <div class="mac-legacy-upgrade-banner">
+        <div class="mac-legacy-banner-content">
+          <div class="mac-legacy-banner-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>此筆記尚未產生動作分解步驟</span>
+          </div>
+          <p class="mac-legacy-banner-desc">這是舊版分析所建立的筆記。點擊「重新評估」即可透過新版 AI 教練，根據影片字幕重新拆解出具體執行步驟、身體板刃變化與動作目的！</p>
+        </div>
+        <button class="mac-btn-re-eval-action btn-inline-re-evaluate" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+          </svg>
+          <span>立即重新評估</span>
+        </button>
+      </div>
+    `;
+    const inlineBtn = detailActionStepsListEl.querySelector(".btn-inline-re-evaluate");
+    if (inlineBtn) {
+      inlineBtn.addEventListener("click", reEvaluateCurrentNote);
+    }
+  }
+
+  // Suitability (Show only if present in note data)
+  if (note.suitability) {
+    detailSuitabilitySectionEl.style.display = "block";
+    detailSuitabilityBadgeEl.textContent = getSuitabilityName(note.suitabilityLevel);
+    detailSuitabilityBadgeEl.className = `mac-suitability-badge ${getSuitabilityClass(note.suitabilityLevel)}`;
+    detailSuitabilityDescEl.textContent = note.suitability;
+  } else {
+    detailSuitabilitySectionEl.style.display = "none";
+  }
 
   // Cautions
-  const cautions = Array.isArray(note.cautions) && note.cautions.length ? note.cautions : ["練習時注意保持平衡與膝蓋彈性。"];
-  detailCautionsListEl.innerHTML = cautions.map((c, idx) => `
-    <li class="mac-caution-item">
-      <span class="mac-caution-num">${idx + 1}.</span>
-      <span>${escapeHtml(c)}</span>
-    </li>
-  `).join("");
+  const cautions = Array.isArray(note.cautions) ? note.cautions : [];
+  if (cautions.length && detailCautionsSectionEl) {
+    detailCautionsSectionEl.style.display = "block";
+    detailCautionsListEl.innerHTML = cautions.map((c, idx) => `
+      <li class="mac-caution-item">
+        <span class="mac-caution-num">${idx + 1}.</span>
+        <span>${escapeHtml(c)}</span>
+      </li>
+    `).join("");
+  } else if (detailCautionsSectionEl) {
+    detailCautionsSectionEl.style.display = "none";
+  }
 
   // Common Mistakes & Corrections
   const mistakes = Array.isArray(note.commonMistakes) ? note.commonMistakes : [];
@@ -467,20 +618,21 @@ function selectNote(noteId, open = false) {
       </div>
     `).join("");
   } else {
-    detailMistakesTableEl.innerHTML = `<p style="font-size:13px; color:var(--mac-text-secondary);">影片中未特別指出常見錯誤。</p>`;
+    detailMistakesTableEl.innerHTML = `<p style="font-size:13px; color:var(--mac-text-secondary);">已整合至各動作步驟注意事項中。</p>`;
   }
 
   // Drills
   const drills = Array.isArray(note.practiceDrills) ? note.practiceDrills : [];
-  if (drills.length) {
+  if (drills.length && detailDrillsSectionEl) {
+    detailDrillsSectionEl.style.display = "block";
     detailDrillsListEl.innerHTML = drills.map(d => `
       <div class="mac-drill-item">
         <span class="mac-drill-step-badge">${escapeHtml(d.step || "步驟")}</span>
         <span class="mac-drill-text">${escapeHtml(d.detail)}</span>
       </div>
     `).join("");
-  } else {
-    detailDrillsListEl.innerHTML = `<p style="font-size:13px; color:var(--mac-text-secondary);">依循影片動作逐步平順練習。</p>`;
+  } else if (detailDrillsSectionEl) {
+    detailDrillsSectionEl.style.display = "none";
   }
 
   // Completion Criteria
@@ -514,6 +666,121 @@ function updateCompleteButtonState(isCompleted) {
     if (iconSvg) {
       iconSvg.innerHTML = '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>';
     }
+  }
+}
+
+// Re-evaluate Note with new AI prompt
+function setReEvaluatingState(isLoading) {
+  if (btnReEvaluateEl) {
+    btnReEvaluateEl.disabled = isLoading;
+    btnReEvaluateEl.classList.toggle("is-loading", isLoading);
+  }
+  if (reEvaluateBtnLabelEl) {
+    reEvaluateBtnLabelEl.textContent = isLoading ? "評估中…" : "重新評估";
+  }
+  if (reEvaluateIconEl) {
+    reEvaluateIconEl.classList.toggle("mac-spin", isLoading);
+  }
+  const inlineReEvalBtn = document.querySelector(".btn-inline-re-evaluate");
+  if (inlineReEvalBtn) {
+    inlineReEvalBtn.disabled = isLoading;
+    inlineReEvalBtn.textContent = isLoading ? "AI 深入評估中…" : "立即重新評估";
+  }
+}
+
+async function reEvaluateCurrentNote() {
+  if (!activeNoteId) return;
+  const note = notes.find(n => n.id === activeNoteId);
+  if (!note) return;
+
+  if (!currentUser) {
+    alert("請先登入後再進行 AI 重新評估。");
+    return;
+  }
+
+  let transcript = (note.rawTranscript || "").trim();
+  const title = (note.videoTitle || note.technique || "").trim();
+  const videoUrl = note.youtubeUrl || (note.videoId ? `https://www.youtube.com/watch?v=${note.videoId}` : "");
+
+  if (!transcript) {
+    const entered = window.prompt(
+      "此筆記尚未記錄原始字幕檔。為獲得最準確的動作分解步驟，請貼上字幕/逐字稿（若直接點確定，將僅依標題分析）：",
+      ""
+    );
+    if (entered === null) {
+      return;
+    }
+    transcript = (entered || "").trim();
+    if (transcript) {
+      note.rawTranscript = transcript;
+    }
+  } else {
+    const confirmed = window.confirm(
+      `確定要使用新版 AI 教練重新分析「${title || "這部影片"}」嗎？\n\n系統將依照最新 Prompt 規範，重新拆解動作執行順序、身體與雪板變化、目的與修正方式。`
+    );
+    if (!confirmed) return;
+  }
+
+  setReEvaluatingState(true);
+
+  try {
+    const analysisResult = await requestSnowboardAnalysis({
+      user: currentUser,
+      videoUrl,
+      title,
+      transcript
+    });
+
+    note.category = analysisResult.category || note.category;
+    note.technique = analysisResult.technique || note.technique;
+    note.secondaryTags = analysisResult.secondaryTags || note.secondaryTags;
+    note.coreConcept = analysisResult.coreConcept || note.coreConcept;
+    note.actionSteps = analysisResult.actionSteps || [];
+    note.suitability = analysisResult.suitability || "";
+    note.suitabilityLevel = analysisResult.suitabilityLevel || "suitable";
+    note.cautions = analysisResult.cautions || note.cautions;
+    note.commonMistakes = analysisResult.commonMistakes || note.commonMistakes;
+    note.practiceDrills = analysisResult.practiceDrills || note.practiceDrills;
+    note.completionCriteria = analysisResult.completionCriteria || note.completionCriteria;
+    note.analysisBasis = analysisResult.analysisBasis || note.analysisBasis;
+    note.formattedText = analysisResult.formattedText || note.formattedText;
+    note.updatedAt = new Date().toISOString();
+
+    saveLocalNotes(notes);
+
+    if (firestoreDb && currentUser && !note.id.startsWith("sample-")) {
+      try {
+        const noteDocRef = doc(firestoreDb, "ledgers", appName, "snowNotes", note.id);
+        await updateDoc(noteDocRef, {
+          category: note.category,
+          technique: note.technique,
+          secondaryTags: note.secondaryTags,
+          coreConcept: note.coreConcept,
+          actionSteps: note.actionSteps,
+          suitability: note.suitability,
+          suitabilityLevel: note.suitabilityLevel,
+          cautions: note.cautions,
+          commonMistakes: note.commonMistakes,
+          practiceDrills: note.practiceDrills,
+          completionCriteria: note.completionCriteria,
+          analysisBasis: note.analysisBasis,
+          formattedText: note.formattedText,
+          rawTranscript: note.rawTranscript || "",
+          updatedAt: note.updatedAt
+        });
+      } catch (err) {
+        console.warn("Error updating re-evaluated note in Firestore", err);
+      }
+    }
+
+    renderNotesList();
+    selectNote(note.id);
+    showToast("重新評估完成！已拆解最新動作步驟 🎉");
+  } catch (error) {
+    console.error("Re-evaluation failed", error);
+    alert(error.message || "重新評估失敗，請稍後重試。");
+  } finally {
+    setReEvaluatingState(false);
   }
 }
 
@@ -715,7 +982,7 @@ function initModalHandlers() {
     // Set loading UI
     btnSubmitNoteEl.disabled = true;
     submitSpinnerEl.style.display = "inline-block";
-    submitLabelEl.textContent = "AI 教練正在依學員程度深入分析…";
+    submitLabelEl.textContent = "AI 教練正在分析影片動作並拆解步驟…";
 
     try {
       const analysisResult = await requestSnowboardAnalysis({
@@ -737,6 +1004,7 @@ function initModalHandlers() {
         technique: analysisResult.technique || title,
         secondaryTags: analysisResult.secondaryTags || [],
         coreConcept: analysisResult.coreConcept || "",
+        actionSteps: analysisResult.actionSteps || [],
         suitability: analysisResult.suitability || "",
         suitabilityLevel: analysisResult.suitabilityLevel || "suitable",
         cautions: analysisResult.cautions || [],
@@ -820,7 +1088,8 @@ function initEventListeners() {
     });
   });
 
-  // Complete & Delete Buttons
+  // Re-evaluate, Complete & Delete Buttons
+  if (btnReEvaluateEl) btnReEvaluateEl.addEventListener("click", reEvaluateCurrentNote);
   btnToggleCompleteEl.addEventListener("click", toggleNoteComplete);
   btnDeleteNoteEl.addEventListener("click", deleteCurrentNote);
 

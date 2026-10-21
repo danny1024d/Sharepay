@@ -33,7 +33,7 @@
                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
               </svg>
-              <span>全部筆記</span>
+              <span>全部</span>
             </div>
             <span class="mac-folder-badge" id="badge-all">0</span>
           </li>
@@ -151,6 +151,14 @@
           </div>
 
           <div class="mac-detail-toolbar-right">
+            <button class="mac-action-btn is-re-eval" id="btn-re-evaluate" type="button" title="使用新版 AI 教練重新拆解動作步驟" aria-label="重新評估">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" id="re-evaluate-icon">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+              </svg>
+              <span id="re-evaluate-btn-label">重新評估</span>
+            </button>
+
             <button class="mac-action-btn" id="btn-toggle-complete" type="button">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -233,7 +241,20 @@
                 <p class="mac-concept-text" id="detail-core-concept">—</p>
               </section>
 
-              <section class="mac-card-section">
+              <!-- 動作分解步驟 -->
+              <section class="mac-card-section mac-card-action-steps" id="detail-action-steps-section">
+                <h3 class="mac-card-title">
+                  <svg class="mac-card-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="9 11 12 14 22 4"></polyline>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                  </svg>
+                  <span>動作分解步驟</span>
+                </h3>
+                <div class="mac-steps-timeline" id="detail-action-steps-list"></div>
+              </section>
+
+              <section class="mac-card-section" id="detail-suitability-section">
                 <h3 class="mac-card-title">
                   <svg class="mac-card-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -249,7 +270,7 @@
                 </div>
               </section>
 
-              <section class="mac-card-section">
+              <section class="mac-card-section" id="detail-cautions-section">
                 <h3 class="mac-card-title">
                   <svg class="mac-card-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -276,7 +297,7 @@
                 <div class="mac-mistakes-table" id="detail-mistakes-table"></div>
               </section>
 
-              <section class="mac-card-section">
+              <section class="mac-card-section" id="detail-drills-section">
                 <h3 class="mac-card-title">
                   <svg class="mac-card-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

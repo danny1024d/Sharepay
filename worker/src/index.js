@@ -218,29 +218,33 @@ export const snowboardAnalysisResponseFormat = {
   schema: {
     type: "object",
     properties: {
-      category: {
-        type: "string",
-        enum: [
-          "身體姿勢與平衡",
-          "板刃控制與換刃",
-          "轉彎與速度控制",
-          "壓力控制與刻滑進階"
-        ]
-      },
+      category: { type: "string" },
       technique: { type: "string" },
       secondaryTags: {
         type: "array",
         items: { type: "string" }
       },
       coreConcept: { type: "string" },
-      suitability: { type: "string" },
-      suitabilityLevel: {
-        type: "string",
-        enum: ["suitable", "challenging", "too_advanced", "foundational"]
-      },
-      cautions: {
+      actionSteps: {
         type: "array",
-        items: { type: "string" }
+        items: {
+          type: "object",
+          properties: {
+            stepName: { type: "string" },
+            movement: { type: "string" },
+            bodyAndBoardChange: { type: "string" },
+            purpose: { type: "string" },
+            mistakesAndCorrections: { type: "string" }
+          },
+          required: [
+            "stepName",
+            "movement",
+            "bodyAndBoardChange",
+            "purpose",
+            "mistakesAndCorrections"
+          ],
+          additionalProperties: false
+        }
       },
       commonMistakes: {
         type: "array",
@@ -254,18 +258,6 @@ export const snowboardAnalysisResponseFormat = {
           additionalProperties: false
         }
       },
-      practiceDrills: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            step: { type: "string" },
-            detail: { type: "string" }
-          },
-          required: ["step", "detail"],
-          additionalProperties: false
-        }
-      },
       completionCriteria: { type: "string" },
       analysisBasis: { type: "string" },
       formattedText: { type: "string" }
@@ -275,11 +267,8 @@ export const snowboardAnalysisResponseFormat = {
       "technique",
       "secondaryTags",
       "coreConcept",
-      "suitability",
-      "suitabilityLevel",
-      "cautions",
+      "actionSteps",
       "commonMistakes",
-      "practiceDrills",
       "completionCriteria",
       "analysisBasis",
       "formattedText"
@@ -821,47 +810,113 @@ export function buildSnowboardAnalysisPrompt({ title = "", videoUrl = "", transc
   const cleanTranscript = typeof transcript === "string" ? transcript.trim() : "";
   const cleanTitle = typeof title === "string" ? title.trim() : "";
   const cleanUrl = typeof videoUrl === "string" ? videoUrl.trim() : "";
-  return `你是一位專業的單板滑雪教練，擅長基礎滑行、換刃、連續轉彎與刻滑教學。
+  return `你是一位專業的單板滑雪教練，擅長基礎滑行、換刃、連續轉彎與刻滑教學。請根據實際可取得的影片內容，分析影片教導的滑雪技術，將動作拆解成清楚、具體、可以理解與實際練習的步驟。
 
-【學員程度】
-- 綠線可以順利滑下。
-- 紅線滑行尚不穩定。
-- 目前目標是建立穩定的前刃、後刃控制，改善換刃與連續 S-turn，逐步學習刻滑。
+## 【影片分類】
 
-【影片分類】
 請將影片歸入以下一個主要分類：
+
 1. 身體姿勢與平衡
 2. 板刃控制與換刃
 3. 轉彎與速度控制
 4. 壓力控制與刻滑進階
 
-【分析規則】
-1. 根據實際可取得的影片內容判斷分類，不可只根據標題猜測。
-2. 區分影片明確教導的技術與 AI 推測的內容。
-3. 若只有標題或簡介，請標記「資訊不足」，不要假裝看過影片。
-4. 若影片包含多種技術，選出最主要的一項，其餘列為次要標籤。
-5. 練習建議須符合學員目前程度，不要直接推薦高速、陡坡或高立刃的高風險練習。
-6. 具體說明動作重點、常見錯誤、修正方式及完成標準。
-7. 不要將特定教學流派的口訣當成所有情境都適用的絕對規則。
+## 【分析規則】
 
-【待分析影片資訊】
+1. 根據實際可取得的影片內容判斷分類，不可只根據標題猜測。
+2. 區分影片明確教導的技術、根據字幕推論的內容，以及 AI 額外提供的教練建議。
+3. 若只有標題或簡介，請標記「資訊不足」，不可假裝看過影片。
+4. 若只有字幕或逐字稿，應根據文字實際提供的資訊分析，不可將未描述的示範動作當成已確認事實。
+5. 若影片包含多種技術，選出最主要的一項，其餘列為次要標籤。
+6. 必須說明學員實際需要做什麼動作，不可只描述原理、觀念或學習目標。
+7. 動作分解必須按照實際執行順序，以 1、2、3……編號，讓讀者能依序理解整個動作流程。
+8. 每個步驟應盡可能說明具體動作、身體與雪板的預期變化、動作目的，以及需要注意的事項。
+9. 若影片未說明某個動作細節，不可自行認定該細節就是影片的教學內容。合理的額外建議須標記為「教練補充建議」。
+10. 不可為了湊足步驟而虛構動作。若資訊不足以還原完整流程，應明確指出。
+11. 不要將特定教學流派的口訣當成所有情境都適用的絕對規則。
+12. 練習建議應與影片的技術直接相關，避免重複描述動作分解步驟。若影片內容不足以支持具體練習安排，不要自行編造影片中的練習方式。
+13. 注意必要的滑雪安全事項，不要無依據地推薦高速、陡坡或高風險練習。
+14. 完成標準應具體、可觀察、可判斷，避免只寫「感覺更好」或「姿勢更正確」等模糊描述。
+15. 若有可靠的影片時間戳記，請標註對應時間；若無法確認，不可自行編造。
+
+## 【待分析影片資訊】
+
 影片標題：${cleanTitle || "（未提供）"}
+
 影片網址：${cleanUrl || "（未提供）"}
+
 影片字幕檔 / 逐字稿內容：
 ${cleanTranscript ? cleanTranscript.slice(0, 30000) : "（無字幕檔內容，僅有標題或網址）"}
 
-請根據上述學員程度與分析規則，完成結構化資料輸出。
-在 formattedText 欄位中，請嚴格按照以下輸出格式排版（包含繁體中文欄位名稱與換行）：
+## 【輸出格式】
+
+請將分析結果填入 formattedText 欄位，嚴格按照以下格式輸出，包含繁體中文欄位名稱、編號與換行，不可任意更改欄位名稱或省略欄位。
+
 - 主要分類：
+  從指定的四個主要分類中選擇一項。
+
 - 技術項目：
+  填寫影片實際教導的具體技術，例如前刃落葉飄、後刃換刃、連續 S-turn、板刃角度控制或壓力控制。若無法確認，請標記「資訊不足」。
+
 - 次要標籤：
+  列出影片涉及的其他相關技術。沒有則填寫「無」。
+
 - 影片核心觀念：
-- 適合目前程度嗎：
-- 練習注意事項（最多 3 點）：
+  說明影片最重要的技術原理，以及學習這個動作的目的。應簡潔明確，不要直接重複後續的動作分解內容。
+
+- 動作分解步驟：
+  1. 【步驟名稱】
+     - 具體動作：說明學員實際應該怎麼做，包含必要的身體部位、姿勢或操作方式。
+     - 身體與雪板的變化：說明重心、身體姿勢、雪板方向或板刃的預期變化；無法確認時應註明。
+     - 動作目的：說明這一步要達成什麼效果。
+     - 注意事項：指出此步驟容易出現的錯誤，以及應避免的動作。
+
+  2. 【步驟名稱】
+     - 具體動作：
+     - 身體與雪板的變化：
+     - 動作目的：
+     - 注意事項：
+
+  3. 【依實際影片內容繼續增加步驟，不限三步】
+     - 具體動作：
+     - 身體與雪板的變化：
+     - 動作目的：
+     - 注意事項：
+
+  動作分解補充規則：
+  - 步驟數量依影片實際動作流程決定，不限三步，也不可強制湊足步驟。
+  - 每一步都要回答「具體要怎麼做」，避免只寫「保持平衡」「控制重心」「正確換刃」等抽象指令。
+  - 若影片教導連續轉彎或換刃，請依實際動作順序拆解，例如準備姿勢、動作啟動、板刃轉換、方向改變及動作銜接；只有影片內容支持時才採用這些步驟。
+  - 若影片教導的是單一姿勢或靜態練習，請依照實際內容拆解為準備姿勢、執行方式與檢查方式，不要強行編造動作。
+  - 若影片本身包含練習方法，可將練習方法整合到對應步驟中，說明如何執行。
+  - 若有必要提供影片未提及的練習方式，應另外標記「教練補充建議」，且只在確實有幫助時提供，不必每部影片都額外設計練習計畫。
+  - 若資訊不足，請明確標示「影片資訊不足，無法確認實際動作順序」，不可自行編造完整的動作流程。
+
 - 常見錯誤與修正：
-- 建議練習方式：
+  以「常見錯誤 → 可能原因 → 修正方式」呈現，優先列出與影片技術直接相關的錯誤。
+  區分影片明確指出的錯誤與教練補充建議；沒有充分依據時，不可宣稱影片有提到該錯誤。
+
 - 完成標準：
-- 分析依據：`;
+  列出 2 至 4 個可觀察、可判斷的條件，說明如何確認動作達到預期效果。
+  應根據影片教學目標訂定；若影片資訊不足，請標示「無法根據現有資料確定」，必要時再提供標記為「教練補充建議」的觀察指標。
+
+- 分析依據：
+  說明本次分析實際使用的資料，並區分：
+  1. 影片明確教導：可由實際影片內容或明確字幕確認。
+  2. 根據字幕推論：根據逐字稿推導，但無法由現有資料直接確認的內容。
+  3. 教練補充建議：為幫助理解或練習而額外提供的建議。
+
+  若有可靠時間戳記，盡可能標註對應影片時間；沒有可靠時間資訊時，不可自行編造。
+
+## 【輸出品質要求】
+
+請以「讀者看完分析後，能理解影片教什麼、每個動作怎麼做、容易在哪裡做錯，以及如何判斷動作是否完成」為目標。
+
+優先提供具體動作、執行順序、身體與雪板的變化、錯誤修正及可觀察的完成標準。
+
+動作分解步驟是本次分析的核心。練習方式應整合到對應步驟，避免重複建立獨立的練習計畫。只有在確實有額外價值時，才提供教練補充建議。
+
+不可只提供影片摘要、一般性滑雪知識或缺乏實際操作細節的描述。`;
 }
 
 export async function analyzeSnowboardVideo({ title = "", videoUrl = "", transcript = "" }, env, fetchImpl = fetch) {
@@ -884,11 +939,18 @@ export async function analyzeSnowboardVideo({ title = "", videoUrl = "", transcr
         model: env.OPENAI_MODEL || "gpt-4.1-mini",
         input: buildSnowboardAnalysisPrompt({ title: cleanTitle, videoUrl, transcript: cleanTranscript }),
         text: { format: snowboardAnalysisResponseFormat },
-        max_output_tokens: 2800
+        max_output_tokens: 3500
       }),
-      signal: AbortSignal.timeout(45_000)
+      signal: AbortSignal.timeout(60_000)
     });
-    if (!response.ok) throw new Error(`OpenAI status ${response.status}`);
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      console.error("OpenAI snowboard analysis call failed", { status: response.status, body: errText });
+      if (response.status === 429) {
+        throw new Error("openai_quota_exceeded");
+      }
+      throw new Error(`OpenAI 錯誤 (${response.status}): ${errText.slice(0, 200)}`);
+    }
     const result = await response.json();
     const outputText = (result.output || [])
       .flatMap(item => item.content || [])
@@ -898,13 +960,30 @@ export async function analyzeSnowboardVideo({ title = "", videoUrl = "", transcr
     analysis = JSON.parse(outputText);
   } catch (error) {
     console.error("Snowboard video analysis failed", { message: error.message });
+    if (error.message === "openai_quota_exceeded") {
+      throw error;
+    }
+    if (error.name === "AbortError" || error.name === "TimeoutError") {
+      throw new Error("analysis_timeout");
+    }
+    if (error.message && error.message.startsWith("OpenAI 錯誤")) {
+      throw error;
+    }
     throw new Error("snowboard_service_unavailable");
   }
 
   const validCategories = ["身體姿勢與平衡", "板刃控制與換刃", "轉彎與速度控制", "壓力控制與刻滑進階"];
   const category = validCategories.includes(analysis.category) ? analysis.category : "身體姿勢與平衡";
-  const suitabilityLevels = ["suitable", "challenging", "too_advanced", "foundational"];
-  const suitabilityLevel = suitabilityLevels.includes(analysis.suitabilityLevel) ? analysis.suitabilityLevel : "suitable";
+
+  const actionSteps = (Array.isArray(analysis.actionSteps) ? analysis.actionSteps : [])
+    .filter(s => s && typeof s.stepName === "string")
+    .map(s => ({
+      stepName: String(s.stepName || "").trim().slice(0, 120),
+      movement: String(s.movement || "").trim().slice(0, 500),
+      bodyAndBoardChange: String(s.bodyAndBoardChange || "").trim().slice(0, 500),
+      purpose: String(s.purpose || "").trim().slice(0, 400),
+      mistakesAndCorrections: String(s.mistakesAndCorrections || "").trim().slice(0, 500)
+    }));
 
   return {
     category,
@@ -914,8 +993,9 @@ export async function analyzeSnowboardVideo({ title = "", videoUrl = "", transcr
       .slice(0, 6)
       .map(tag => tag.trim().slice(0, 40)),
     coreConcept: typeof analysis.coreConcept === "string" ? analysis.coreConcept.trim().slice(0, 800) : "",
+    actionSteps,
     suitability: typeof analysis.suitability === "string" ? analysis.suitability.trim().slice(0, 300) : "",
-    suitabilityLevel,
+    suitabilityLevel: analysis.suitabilityLevel || "suitable",
     cautions: (Array.isArray(analysis.cautions) ? analysis.cautions : [])
       .filter(c => typeof c === "string" && c.trim())
       .slice(0, 3)
@@ -1701,6 +1781,16 @@ export async function handleRequest(request, env, ctx) {
         transcript: body.transcript || ""
       }, env), 200, origin);
     } catch (error) {
+      if (error.message === "openai_quota_exceeded") {
+        return jsonResponse({
+          error: "OpenAI API 額度已用完或呼叫頻率過高（429），請檢查 OpenAI 帳戶扣款與配額。"
+        }, 503, origin);
+      }
+      if (error.message === "analysis_timeout") {
+        return jsonResponse({
+          error: "AI 教練分析處理超時（超過 60 秒），影片字幕內容較長，請稍後重試。"
+        }, 504, origin);
+      }
       const unavailable = error.message === "snowboard_service_unavailable";
       return jsonResponse({
         error: unavailable ? "AI 滑雪教練分析服務暫時無法使用，請稍後重試。" : (error.message || "分析失敗，請重試。")

@@ -978,7 +978,7 @@ test("buildSnowboardAnalysisPrompt formats coaching prompt with rules and transc
     transcript: "大家在換前刃時重心要慢慢往前移，視線看轉彎圓心..."
   });
   assert.match(prompt, /你是一位專業的單板滑雪教練/);
-  assert.match(prompt, /綠線可以順利滑下/);
+  assert.match(prompt, /動作分解步驟/);
   assert.match(prompt, /單板後刃換前刃教學/);
   assert.match(prompt, /視線看轉彎圓心/);
   assert.match(prompt, /身體姿勢與平衡/);
@@ -1000,8 +1000,15 @@ test("analyzeSnowboardVideo parses structured coaching response", async () => {
                 technique: "後刃轉前刃重心引導",
                 secondaryTags: ["視線帶動", "換刃時機"],
                 coreConcept: "利用中性站姿過渡，避免過早傾倒上半身。",
-                suitability: "非常適合目前程度，能改善紅線換刃卡刃問題。",
-                suitabilityLevel: "suitable",
+                actionSteps: [
+                  {
+                    stepName: "後刃出彎與準備",
+                    movement: "膝蓋微屈，視線朝向行進方向，保持後刃平穩滑行。",
+                    bodyAndBoardChange: "板刃保持後刃接觸，重心在中央偏前腳。",
+                    purpose: "穩定滑行速度並準備啟動過渡。",
+                    mistakesAndCorrections: "過早後坐；應保持脛骨輕壓鞋舌。"
+                  }
+                ],
                 cautions: ["先在平緩坡度練習", "注意膝蓋微蹲保持彈性", "視線保持水平"],
                 commonMistakes: [{ mistake: "後腳過度推板", correction: "利用前腳重心引導板頭自然入彎" }],
                 practiceDrills: [{ step: "步驟一", detail: "平緩坡落葉飄練習" }],
@@ -1024,7 +1031,8 @@ test("analyzeSnowboardVideo parses structured coaching response", async () => {
 
   assert.equal(result.category, "板刃控制與換刃");
   assert.equal(result.technique, "後刃轉前刃重心引導");
+  assert.equal(result.actionSteps.length, 1);
+  assert.equal(result.actionSteps[0].stepName, "後刃出彎與準備");
   assert.equal(result.cautions.length, 3);
   assert.equal(result.commonMistakes[0].mistake, "後腳過度推板");
-  assert.equal(result.suitabilityLevel, "suitable");
 });
