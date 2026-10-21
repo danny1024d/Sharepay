@@ -276,7 +276,7 @@ function showToast(msg) {
 
 function parseActionStepsFromText(text) {
   if (!text || typeof text !== "string") return [];
-  const match = text.match(/動作分解步驟[：:]([\s\S]*?)(?=\n- [^\n]+[：:]|$)/);
+  const match = text.match(/動作分解步驟[：:]([\s\S]*?)(?=\n- (?:常見錯誤與修正|常見錯誤|完成標準|分析依據|練習注意事項|建議練習方式)[：:]|$)/);
   if (!match) return [];
   const block = match[1];
   const items = block.split(/\n\s*\d+\.\s*/).filter(item => item.trim());
@@ -286,7 +286,7 @@ function parseActionStepsFromText(text) {
     const movementMatch = item.match(/(?:具體動作|動作)[：:]\s*([^\n]+)/);
     const changeMatch = item.match(/(?:身體與雪板的變化|身體與雪板變化|身體變化|雪板變化)[：:]\s*([^\n]+)/);
     const purposeMatch = item.match(/(?:動作目的|目的)[：:]\s*([^\n]+)/);
-    const fixMatch = item.match(/(?:常見錯誤與修正|錯誤與修正)[：:]\s*([^\n]+)/);
+    const fixMatch = item.match(/(?:常見錯誤與修正|錯誤與修正|注意事項)[：:]\s*([^\n]+)/);
     return {
       stepName,
       movement: movementMatch ? movementMatch[1].trim() : "",
@@ -506,9 +506,13 @@ function selectNote(noteId, open = false) {
   detailCoreConceptEl.textContent = note.coreConcept || "暫無影片核心觀念說明。";
 
   // Action Steps
-  let steps = Array.isArray(note.actionSteps) ? note.actionSteps : [];
+  let steps = Array.isArray(note.actionSteps) && note.actionSteps.length > 0 ? note.actionSteps : [];
   if (!steps.length && note.formattedText) {
     steps = parseActionStepsFromText(note.formattedText);
+    if (steps.length) {
+      note.actionSteps = steps;
+      saveLocalNotes(notes);
+    }
   }
 
   detailActionStepsSectionEl.style.display = "block";
@@ -735,39 +739,51 @@ async function reEvaluateCurrentNote() {
     note.technique = analysisResult.technique || note.technique;
     note.secondaryTags = analysisResult.secondaryTags || note.secondaryTags;
     note.coreConcept = analysisResult.coreConcept || note.coreConcept;
-    note.actionSteps = analysisResult.actionSteps || [];
+    const parsedSteps = parseActionStepsFromText(analysisResult.formattedText || "");
+    note.actionSteps = (Array.isArray(analysisResult.actionSteps) && analysisResult.actionSteps.length > 0)
+      ? analysisResult.actionSteps
+      : parsedSteps;
     note.suitability = analysisResult.suitability || "";
     note.suitabilityLevel = analysisResult.suitabilityLevel || "suitable";
-    note.cautions = analysisResult.cautions || note.cautions;
-    note.commonMistakes = analysisResult.commonMistakes || note.commonMistakes;
-    note.practiceDrills = analysisResult.practiceDrills || note.practiceDrills;
-    note.completionCriteria = analysisResult.completionCriteria || note.completionCriteria;
-    note.analysisBasis = analysisResult.analysisBasis || note.analysisBasis;
-    note.formattedText = analysisResult.formattedText || note.formattedText;
+    note.cautions = analysisResult.cautions || note.cautions || [];
+    note.commonMistakes = analysisResult.commonMistakes || note.commonMistakes || [];
+    note.practiceDrills = analysisResult.practiceDrills || note.practiceDrills || [];
+    note.completionCriteria = analysisResult.completionCriteria || note.completionCriteria || "";
+    note.analysisBasis = analysisResult.analysisBasis || note.analysisBasis || "";
+    note.formattedText = analysisResult.formattedText || note.formattedText || "";
     note.updatedAt = new Date().toISOString();
 
     saveLocalNotes(notes);
 
-    if (firestoreDb && currentUser && !note.id.startsWith("sample-")) {
+    if (firestoreDb && currentUser) {
       try {
-        const noteDocRef = doc(firestoreDb, "ledgers", appName, "snowNotes", note.id);
-        await updateDoc(noteDocRef, {
-          category: note.category,
-          technique: note.technique,
-          secondaryTags: note.secondaryTags,
-          coreConcept: note.coreConcept,
-          actionSteps: note.actionSteps,
-          suitability: note.suitability,
-          suitabilityLevel: note.suitabilityLevel,
-          cautions: note.cautions,
-          commonMistakes: note.commonMistakes,
-          practiceDrills: note.practiceDrills,
-          completionCriteria: note.completionCriteria,
-          analysisBasis: note.analysisBasis,
-          formattedText: note.formattedText,
-          rawTranscript: note.rawTranscript || "",
-          updatedAt: note.updatedAt
-        });
+        if (note.id.startsWith("sample-")) {
+          // If this was a sample note, convert to a real user document in Firestore so it persists
+          const colRef = collection(firestoreDb, "ledgers", appName, "snowNotes");
+          const { id: _ignoreId, ...dataToSave } = note;
+          const docRef = await addDoc(colRef, dataToSave);
+          note.id = docRef.id;
+          saveLocalNotes(notes);
+        } else {
+          const noteDocRef = doc(firestoreDb, "ledgers", appName, "snowNotes", note.id);
+          await updateDoc(noteDocRef, {
+            category: note.category,
+            technique: note.technique,
+            secondaryTags: note.secondaryTags,
+            coreConcept: note.coreConcept,
+            actionSteps: note.actionSteps,
+            suitability: note.suitability,
+            suitabilityLevel: note.suitabilityLevel,
+            cautions: note.cautions,
+            commonMistakes: note.commonMistakes,
+            practiceDrills: note.practiceDrills,
+            completionCriteria: note.completionCriteria,
+            analysisBasis: note.analysisBasis,
+            formattedText: note.formattedText,
+            rawTranscript: note.rawTranscript || "",
+            updatedAt: note.updatedAt
+          });
+        }
       } catch (err) {
         console.warn("Error updating re-evaluated note in Firestore", err);
       }
@@ -1024,7 +1040,8 @@ function initModalHandlers() {
       if (firestoreDb && currentUser) {
         try {
           const colRef = collection(firestoreDb, "ledgers", appName, "snowNotes");
-          const docRef = await addDoc(colRef, newNote);
+          const { id: _tempId, ...dataToSave } = newNote;
+          const docRef = await addDoc(colRef, dataToSave);
           newNote.id = docRef.id;
           saveLocalNotes(notes);
         } catch (e) {
@@ -1161,12 +1178,20 @@ function initFirestoreSync() {
         if (!snapshot.empty) {
           const firestoreNotes = [];
           snapshot.forEach(docSnap => {
-            firestoreNotes.push({ id: docSnap.id, ...docSnap.data() });
+            const data = docSnap.data();
+            // Ensure docSnap.id ALWAYS takes precedence over any internal id field in document data
+            firestoreNotes.push({ ...data, id: docSnap.id });
           });
+          // Stable sort descending by creation date
+          firestoreNotes.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
           notes = firestoreNotes;
           saveLocalNotes(notes);
           renderNotesList();
-          if (activeNoteId) selectNote(activeNoteId);
+          if (activeNoteId && notes.some(n => n.id === activeNoteId)) {
+            selectNote(activeNoteId);
+          } else if (notes.length > 0) {
+            selectNote(notes[0].id);
+          }
           if (syncStatusEl) syncStatusEl.textContent = "雲端即時同步";
         }
       }, err => {
@@ -1183,6 +1208,7 @@ function initFirestoreSync() {
 // App Initialization
 function initApp() {
   notes = loadLocalNotes();
+  notes.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   initModalHandlers();
   initEventListeners();
   renderNotesList();

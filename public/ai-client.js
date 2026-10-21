@@ -265,7 +265,7 @@ export async function requestSnowboardAnalysis({ user, videoUrl, title, transcri
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.error || "AI 滑雪教練分析暫時無法使用。");
-  if (!result || typeof result.category !== "string" || !Array.isArray(result.cautions)) {
+  if (!result || typeof result.category !== "string") {
     throw new Error("AI 回傳格式不正確，請稍後重試。");
   }
   return result;
