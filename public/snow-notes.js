@@ -20,7 +20,8 @@ import {
   extractYouTubeId,
   getYouTubeThumbnailUrl,
   fetchYouTubeOEmbed,
-  requestSnowboardAnalysis
+  requestSnowboardAnalysis,
+  requestYouTubeTranscript
 } from "./ai-client.js";
 
 // Storage Keys
@@ -303,7 +304,655 @@ function loadLocalNotes() {
     const data = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (data) {
       const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const skqmTranscript = `嗨大家好我是黃嘉藍那今天我們五步教會你陡坡小回轉陡坡搓雪小回轉好嗎
+
+那我們第一步要做什麼呢今天是第一步重心與身體姿態首先我們小破的陡坡搓雪小回轉就有一個非常小的錢
+
+中後這樣一個變化每一個彎入彎的手在前彎的側面的手在中間就彎的中間在中間嘛彎的最後是偏後面一點點但是我們這前中後不是通過這樣來完成的
+
+是通過我們的髖關節原來是停在一個位置的是通過我們膝蓋跟腳這樣前後把板子帶來帶去了完成了我們人上半身是部參與的一旦參與就歪了OK嗎
+
+那具體我們一邊滑一邊說該怎麼練今天練習非常簡單來一來找一個藍道差不多25度或者25度以上30度以下的波來練習會最好
+
+然後試一下把一個彎想成三個等分嘛對不對
+
+每一個彎每一個等分要做不一樣的重心那我們要怎麼練呢首先我們試一下在中間滑對我們人在中間換刃什麼各方面跟這個
+
+青銅變王者那個三部曲是一模一樣的還不熟悉的各位可以回去看一下至少得在藍道甚至是比較緩的黑道能做得到那三部的各位再來練這個好現在在中間滑了一段的對不對
+
+這一下一樣的坡度我們壓在前腳滑看到嗎
+
+從頭到尾都壓在前面一點但是不是我們人這樣去是我們通過腳跟膝蓋把那個板子拉回來一點然後再這樣滑一直壓在前面滑
+
+試試看一直壓在前面滑大家看到嗎
+
+一直壓在前面滑好然後這樣滑兩個彎之後試一下一直壓在後腳滑看到嗎
+
+一直壓在後腳滑一直壓在後腳對吧
+
+換刃都不回來好前週後我們的試過對不對
+
+關鍵是我們身體學會怎麼樣髖骨往上的不參與看髖部以下膝蓋跟腳這樣前後倒板子而且還能在滑的圖中來做OK嗎
+
+確實不行到回去去綠道去緩一點的坡線這三個動作做出來了壓著前面滑壓著中間滑
+
+壓著後面滑學好了以後很簡單把它直接趕回我們今天來滑行禮看
+
+入彎的時候前前面中最後後對吧
+
+前週後看到嗎
+
+我會做得比較誇張要不看不清所以現在是做順的看到嗎
+
+陡坡滑起來就是像我現在滑了這樣非常的輕鬆看到嗎
+
+但每一個彎其實大家看得出來有一個前週後的變化了看到嗎
+
+前週後前週一下都有了好來那第一步就到這裡了
+
+現在是第二步就是怎麼樣立刃立刃我們該怎麼練呢首先我們得把刃立起來
+
+然後再練怎麼樣把刃放下去OK嗎
+
+在我們整個彎的過程中他沒有說哪個點任要多少什麼一切如是看例行但是有個普遍
+
+遵循的原則上刃要上的找但是上完之後要慢慢隨這個彎的結束來把刃加大所以今天我們後
+
+兩個練習內容OK嗎
+
+首先第一個階梯式轉彎之前其實我們做過了我們是重新回應一下好嗎
+
+怎麼做呢階梯式轉彎是通過我們的髖關節跟膝蓋在我們換刃橫切坡的時候來回打有點像我們橫切坡的時候再來回換刃這種感覺
+
+好我們來下去看一下好我們要用盡整個坡的寬度來好
+
+過來到前刃了左右左右左
+
+右左好換到這邊來好等一下
+
+我們的攝影師一直在這個側面要不看不到這個動作了好來左
+
+右右左好我用手在比給他右
+
+左右左好橫切坡的時候做沒換完任別著急
+
+對吧
+
+這樣看到嗎
+
+這通過我們髖關節跟膝蓋來完成的看到嗎
+
+我猜我在這邊來回換刃看到嗎
+
+前後刃都得做劃對了的話出來的痕跡怎麼樣呢出來的痕跡大概會像一個下樓梯這樣這樣出來了
+
+因為我們前後刃一直在換對吧
+
+這個為什麼要這樣練你看我們橫切坡的時候你這樣換刃都能換得過來往往下滑你怎麼樣換不過來你怎麼樣的話
+
+而且兩邊是圓的對上的你上刃非常早我們現在練的是什麼早入任把任把彎轉圓
+
+第一步就是要早入任好嗎
+
+那首先好第一我們知道怎麼樣提早入任結梯是轉嗎慢慢練然後這是25度的一個藍道的波
+
+上面半端25度以上了然後幾兩也要早最低25度的波最高不要超過30然後第二個練習呢
+
+練怎麼樣把任力的更高那首先我們會做一個練習就是打直的往前衝平板不能再任何任集停集停下來之後往上跳三下後刃
+
+好嗎
+
+具體這樣子的1 2 3集停迷上車然後往三上這樣
+
+跳幾下不能摔我們具體人趴的點腳跌力起來
+
+腳跌而估起來這樣認起來了我們才有一個可以推的地方你才能往上跳得了的後刃是這樣
+
+越平的波越簡單越抖的波越難五步小回轉的第三步今天練的是壓力
+
+怎麼樣的壓力呢壓力大家知道嗎去推他去蹲他對沒錯但是記得
+
+要用力一樣才行啊對吧
+
+他們兩前後是有一個很小的一個前後差距就是感覺是一大將不是兩個一起推
+
+是一大將的OK嗎
+
+這是第一點用力大家都知道推但不知道什麼時候推不知道怎麼推對不對
+
+好這樣告訴大家要推的話兩個腿都要用一樣的力氣但是是前腳先推後腳再推
+
+OK嗎
+
+然後也不要推太猛了推過頭了人其實就歪了就不對了對不對
+
+然後具體壓力就蹲腳這一下怎麼推啊對吧
+
+是在哪兒推啊一個彎如果是一個一個這樣C彎（C-turn）固定氣鬆了
+
+然後一個C彎（C-turn）的話把他分成三段中間這一段的時候去推是OK的別到底了
+
+再推為什麼到底一推就出土了對吧
+
+因為你是重力加速度把你人往下啦你再衡過本來去推這個重力加速度那你兩不是力氣太大
+
+把你衝不住就這樣就出來了所以也要再側邊推而且這側邊推才是均勻的在控制速度
+
+OK嗎
+
+要推早推別到最後再推從側面開始推推到最後是可以的從側面都不推前面也不推
+
+到最後才推一腳下去是不行的肯定土土OK嗎
+
+記得兩邊都是要推的話再側表推來再這就推了
+
+看到嗎
+
+我有手臂給大家看再這就推了可以做花章一點多起來推推看到嗎
+
+學術網側面盆出去想看到自己有沒有做對著朋友看到嗎
+
+學術網側面推想看到自己有沒有動作做對的朋友們可以拍攝小影片對吧
+
+拍影片看學術從哪裡盆出來就行了第四步那還是一樣的坡度藍道藍道
+
+25度到30度之間的坡度然後我們今天來練習一下我們的導向能力因為每一個彎其實我們理論上去
+
+上刃給壓力然後剩下有需要的時候我們再給導向我們覺得我需要這個彎更小我再給導向
+
+OK嗎
+
+那這個導向我們具體用什麼來練我們之前已經練過了嗎打方向用哪裡打膝蓋髖關節
+
+監督要參與之前很多影片都有然後可以看一下這些令然後可以翻到前面的影片就想更詳細解說今天我們來看看
+
+到底這個順擰全身順的一塊轉彎跟反擰轉彎到底有什麼區別他們優勢各自在哪而且怎麼樣方到
+
+我們這個陡坡搓雪小回轉因為陡坡搓雪小回轉裡面大家發現看我影片平時比較多的朋友都會發現
+
+它不是說你全身能這樣愛愛這樣一起很僵硬的不行對吧
+
+你現在配合了全身的關節是要靈活的配合著去做髖關節膝蓋肩、架是有個順序
+
+你得站滑的時候能靈活調配他們每一個平時順擰反擰都能做得到的時候你對身體才有控制能力你才能在需要的時候
+
+給對的導向OK嗎
+
+那今天我們兩個都來練練兩個都學會了我們看情況往後再用OK嗎
+
+好那我們首先是順擰全身一起轉它有什麼優勢呢它是最穩的看到嗎
+
+它是最穩的大家看到因為為什麼我們全身看監髖關節膝蓋腳全部都均勻的壓到我們的板頭
+
+跟板尾我們兩個固定器上面還有很穩這裡大家可能看得看不出來攝像機往下壓
+
+你就知道這次濕濕的那些黏的奶吸血攝影師下面那是冰這雪非常非常難滑然後在這裡面
+
+大家看到順著走的話其實是非常穩的但是大家看到轉完頻率它就那麼個頻率了它不能再快了
+
+它最穩的它不能更快就正常滑的話當然我可以有辦法讓它更快但是目前我們練習圖
+
+中沒辦法一下做那麼快那怎麼樣最快呢反應上下身反應是我們轉完
+
+改變方向殺車最快的方法所以在公園樹林裡面用的非常非常多
+
+突然減速或者突然要改變方向什麼的但是它不是最穩的為什麼因為你看我上下身領發的
+
+所以它不穩它已經過這些東西一點我就很容易前後翻對吧
+
+剛才是穩這個濕轉的快所以我調配現在我們是一家在華星廚中做兩個凡領
+
+對吧
+
+凡領對吧
+
+凡領大家看到嗎
+
+我的速度控制非常的有效凡領對吧
+
+來這邊凡領我不想去我本來這個玩笑往這兒去的我不想去
+
+我凡領一下回來了對吧
+
+我本來這個玩過去我裝的攝影師了凡領一下停下來往這邊回來了對吧
+
+當我們做了這些東西的時候看到嗎
+
+我的畫膝蓋今天都在做的不一樣的事情參與著不一樣的內容
+
+OK嗎
+
+這樣的話在我們往後躲破出去小回轉的時候需要這個配合的時候才有東西要我們用我們身體是在華的圖中
+
+是能動隨時能調配的我們才有機會能學的會這個內容要不然的話那可以回到我們之前
+
+親同別王者那個三部曲如果這兩個內容沒有完全說一看一練就能做出來了那就說
+
+前面的內容三部曲沒練好不能直接跳到這一步練不出來了躲破出去小回轉最後一步是什麼呢
+
+時機動作的時機和配合是我們全身關係前面練到的所有東西的一個配合理論上我們不是學了
+
+身體姿態對吧
+
+上刃壓力導向對吧
+
+我們每一個彎動作是怎麼做的呢我們每一個彎其實要先幹嘛我們一邊走一邊說
+
+每一個彎都是要先上刃上刃了給壓力轉過來了我還要彎再小一點
+
+再導向然後結束這個彎看到嗎
+
+所以是上刃給壓力導向上刃給壓力
+
+導向上刃給壓力導向大家看到嗎
+
+不就是之前的內容嗎是串起來了對吧
+
+上升序的然而為什麼我們要有這個第五步就是有了這個模板之後大家知道
+
+原來要動的時候是怎麼動是髖關節膝蓋前一位髖關節從板子立後
+
+現在後刃上嘛從後刃一移到前刃去了我就怎麼樣另外一邊認一個板子這樣
+
+前刃跟後刃我髖關節在這邊我立在那邊認我髖關節移過去了呢把這另外一邊認
+
+對不對
+
+先上刃吧然後呢給壓力愛腿輕輕的順著這個對
+
+之前練了第二步往側面推雪對不對
+
+推完之後發現不行我這個玩還想再快一點怎麼樣順擰髖關節
+
+膝蓋肩嘛膝蓋跟肩再順著再打方向再讓這個玩更快一點
+
+對吧
+
+這個配合是邏輯理論上每一次都要做到的每一個玩都要做到但是總有你看
+
+這雪亂七八糟的今天對吧
+
+大雪包連了奶昔雪什麼的冰的地方完全是沒有雪的這種情況下不可能說
+
+上刃壓力導向做不到的這種時候我們叫靈活配打時機非常重要
+
+什麼時候上刃上刃多快壓力給多少還有這個最後的導向給不給都有區別
+
+看到嗎
+
+靈活調配怎麼樣練這個內容呢多滑不一樣的地形挑爛的雪來滑但量力而為一定要看自己的程度
+
+不要挑超過自己水平太多的OK嗎
+
+找不一樣的地形找爛的雪它會迫使你去做不一樣的調配因為
+
+零件我們都有了現在就是拚在一起讓身體學會怎麼樣配合來
+
+我們一定要看有沒有人對吧
+
+好寫上它走吧好我們現在好換人壓力
+
+看到嗎
+
+我導向都沒倒看到嗎
+
+大家我這幾個玩是沒有給導向的是否反邊是不是圓的上刃壓力
+
+反之變圓了它自己就走出一個圓來了所以為什麼人家滑得那麼輕鬆因為是反之再把我們滑
+
+不是我們我們再自己滑看到嗎
+
+看到嗎
+
+我這邊沒有去打導向的我就是這樣順的兩邊對吧
+
+但如果我現在想要把玩給的更小滑得更小怎麼樣那就在上刃壓力
+
+再給個導向看到嗎
+
+最後我就不安置不回來了對吧
+
+再來上刃壓力導向以下就回來了看到嗎
+
+好那我現在給了座順了上刃壓力導向看到最後這一架嗎
+
+最後這一架是不是有平時像小海純跳一樣的感覺因為反之掉回來了一給導向的話
+
+剩餘的壓力全部會把你以往前進方向吹一架了對吧
+
+這就是自然中後不是我們故意去這樣弄的OK嗎
+
+好再來我們現在滑斷的懶車再給大家多做一點示範一直在側面就夠了OK
+
+不用滑太某如果滑對了的話其實是非常的多苦靈活的大家看到不用很
+
+不用很使勁的不用特別的使勁的對吧
+
+那好前面的內容練習各位好好反覆著去真主每一次再練你都會有新的體會了OK嗎
+
+那總體流程親同到往者那個三部曲做好了以後沿了這個
+
+腐步交會你躲破小回轉離步一步練內容體五步差不多應該出來是這個樣子了
+
+OK嗎
+
+加油各位有什麼問題留言請問我謝謝掰掰`;
+
+        const pressureTranscript = `Oh my goodness,同學們好歡迎來到今天的Snow Sensei今天呢,我們要講如何減壓跟加壓Woo!Alright,我們在減壓呢主要有兩大不同的 style
+
+兩大不同的 style呢分作為 extend to release另外一個叫做 flex to release兩個都是減壓之後再加壓或加壓之後再減壓的方式如果我們講 extend to release的話
+
+它比較偏向我會先加壓對地板上面加壓力以後再達到我的減壓的效果比如說是這樣子我蹲在板子上模擬我自己蹲在板子上
+
+我忽然腿往下面伸直會發生什麼事Woo!我會先給地板鴨力地板呢會給我一個反作用力幫我往上推來達到減壓的效果
+
+所以看喔,所以看我鞋子And extendExtendExtendOK
+
+所以這個叫 extend to release用伸直的方式來達到加壓之後減壓的效果OK
+
+那現在呢我們要講到另外一個也是屬於非常喜歡的一個減壓的方式它叫做 flex to releaseflex to release呢是什麼概念呢
+
+兩種做法怎麼做法呢大概是這樣子我們的身體維持一個高的站姿然後呢瞬間的
+
+把我的身體很像是往下蹲你又發現什麼事情往下蹲的那一個差呢我的腳我的鞋子是不是有離開雪面了
+
+好這個動作呢變成是先減壓再達到加壓的一個效果所以它呢
+
+對我來說這是一個比較有效率而且更快速能幫助我們達到減壓效果的一個動作身體往下快速的蹲下的時候
+
+注意看喔注意看我的腳同樣的減壓方式呢我們有另外一個方式來解釋它你也可以想像自己維持身體的重心
+
+我們的身體的重心呢差不多在我們肚臍下方兩指的地方差不多是我們丹田丹田的這個地方維持這個高度
+
+但是把我的腳往上的收看被發生什麼事情有沒有發現我也是很類似的把我的腳會忽然騰空了以後
+
+所說發現這個方式呢會更快速哦比我所謂的身體往下墜這種方式其實來的更快速可以來達到所謂的減壓
+
+發生的一個更有效率的一個方式OK
+
+所以我們有兩種哦兩種OK
+
+主要是我們的extend to releaseextend to release還有我們的flexflex to release
+
+現在呢我們就把板子穿起來叔叔來示範一下如何用這兩個方式來幫助我們達到更有效率的換刃
+
+跟換刃了以後如何更穩定的來達到我們滑行的動作哦Check it out
+
+首先呢我們要先講到 extend to release現在呢所謂站在板子上其實是有給他滿多的壓力我才有辦法
+
+在這個斜坡上面停住哦那我如何讓我自己開始有辦法做一個彎呢其實這個時候如果我在原地有沒有
+
+蹲下來給他壓力然後呢我順便往上 extendrelease然後再慢慢地蹲回來OK
+
+在Toe-side（前刃）也是一樣哦所以我們從一個低的動作一個低的姿勢and extend to releaseand back
+
+有沒有發現非常順暢非常容易的這個地形呢地形引力呢只要我又 release我的重量他就會把我拉進一個
+
+Fall line（滾落線）朝向Fall line（滾落線）走而幫助我更容易的達到我的換刃而另外一個方式呢則是 flex to release
+
+也是陪著叔叔比較喜歡的減壓的方式哦到底是一樣的只是做法剛好是反過來在 flex to release的時候我們會先給自己往下蹲
+
+或者是把腿往上收的這個力量來幫助我達到減壓的動作之後呢再慢慢地站起加壓OK
+
+so如果我來再做一次從Toe-side（前刃）開始做我會忽然瞬間的把我的腿收起來有沒有發現我一收起來
+
+哇我的板子基本上自動的就會被這個地形引力往下牽引而達到了一個怎麼轉板頭轉下去
+
+然後達到了一個 Fall line（滾落線）再加上我們本來就有個技巧不管是我們旋轉 of hips還是我的 twist來自於腳踝的 twist 這些全部的 combine起來呢
+
+都會幫助我們達到一個更有效的換刃的動作接下來呢叔叔要示範如何在我們的滑行當中使用 extend to release的方式來幫助我們做到一個
+
+換刃的動作OK
+
+so extend to release的時候你一定要從一個比較低的站姿開始OK
+
+一樣我們往旁邊 traversetraverse traverseand extend and back所以 extend 換完換完認你後有沒有做完H2H的一個動作了以後
+
+我們就回到一個蹲的站姿and ready for another one蹲低 and extend and downand extend and downand extend and down接下來呢
+
+叔叔要做的示範則是所謂的 flex to release用蹲下或者是用 屈膝的動作來幫助我們達到剪壓的效果這個也是呢
+
+叔叔最喜歡交給不管是出中高階學友們的一個滑行的技巧為什麼叔叔這麼喜歡交 flex to release尤其在我們初學的時候我們遇到 Fall line（滾落線）就是這個最協限版
+
+只要往下指的時候我們身體因為懼怕我們的大腦跟我們講說危險在那裡所以我們的大腦會想要原理這個危險
+
+最發生什麼事有沒有看到我就會做成一個 back seat就是靠後腿壓力在後腿的一個壞動作壞習慣就會導致你的不穩定甚至你的板子會加速的想要離開你
+
+所以是比較危險的一個動作但是如果今天我們做的動作是 flex to release的話當你蹲下來的時候有沒有發現我的身體自然而然非常容易就回到中間來
+
+比較難說我會往後面壓而且我的身體的重心離地越近我的安全感也會越高如果我真的要往旁邊擋的話我離地面也比較近
+
+我說微微的往後面做就可以了OK 所以我認為叔叔認為 flex to release對很多出學者來說是一個非常棒很安全有效果的一個換刃的方式
+
+我們來試試看所以一樣我會稍微比較高的一個站姿開始不是地震站好只是稍微比較高準備了以後
+
+然後我會蹲下來你看我在fall line的時候我是非常低的and慢慢站起來再一次哦fall line的時候有沒有
+
+我是很低的and慢慢站起來and one more timeflex and releaseand flex and highand flex and high
+
+and flex and highAlright 各位Snow Senseii的同學們謝謝你們今天的收看我們今天的提到如何用extend跟如何用flex這兩種方式來 release your edge（釋放板刃壓力）
+
+這兩個方式都是正確的哦所以有機會的話一定要多多做嘗試來找出哪一個對你來說是比較容易也比較安全比較有效率的方式
+
+OK
+
+如果喜歡這一集的內容記得幫我們按讚按訂閱哦Snow Senseii我們下期見`;
+
+        const akTranscript = `大家好歡迎來到今天我們的Special Episode。今天我們要特別謝謝香港的Cristin Au，在信件裡提到想要學平地、平坡的滑行技巧。在很平的雪道上面到底應該如何安全滑行？還有如果要經過一個很平的地方，之前是一個高速坡，我們應該用什麼樣的方式去幫助我們安全度過？
+各位同學最怕就是遇到這種狀況：這一段我要直衝，直衝了以後還有一段很長很長的平坡，到底要怎麼克服呢？
+首先在這種直衝的時候，一定要注意安全，維持在安全速度範圍之內，建議大家還是做一點微微的S-turn，隨時去控制速度。
+直走緩坡的時候，我們會利用稍微一點的Twist（板面扭轉）。黑叔叔的習慣是做Toe-side Twist，來幫助我們把雪板鎖在直線上面，微微壓在鋼邊上，板子就不會左右晃動而容易卡到另外一面的鋼邊。
+在平地找直線時，後腿膝蓋微微壓進來，造成一點點Twist，會幫助板尾的Toe-side edge微微抓一點雪。如果板子開始往Heelside旋轉，因為加壓在Toe-side，可以隨時變成Toe-side煞車或Speed Check來保證安全，而不會在全平板時卡到Heelside鋼邊摔倒。
+什麼是Speed Check？它的意思就是讓我們在不改變前進方向的狀況下，降低或控制我們的速度。
+做Speed Check有幾個重點：
+第一是「Unweighting（釋壓/卸力）」，肩膀跟前進方向處於平行線，當要把板子轉過來橫向推雪時，需要釋壓並旋轉上半身做Counter-rotation，再轉回來，這會降低鋼邊上的重量，達到上下半身分開旋轉的效果。
+第二是Toe-side Speed Check，人體構造上Toe-side比較難，建議夾緊腰側肌肉（Love handle），由核心旋轉帶動，眼睛持續看著前進方向。
+Heelside Speed Check的技巧則是前後腿非常重要：前腿往內收、後腿往外推，配合Unweighting，達到90度的橫向減速推雪，再回到前進方向。
+Speed Check在進跳台前速度太快時也能微調速度，上下半身的反向旋轉（Counter-rotation）是核心關鍵。
+第二種狀況是「林間道（Tree Runs）」，林間道又窄又平，常常左彎右彎上上下下，如果只會直板走非常危險，因為無法控制速度。走林間道一定要用Speed Check控速。
+當遇到很平的地形，為什麼全平板容易跌倒？因為當板子行走的方向跟板子指向的方向不一致時，只要壓錯鋼邊就會卡逆刃跌倒。
+要讓板子前進方向跟板身保持平行，必須做「Edge Roll」：稍微壓一邊、再壓另一邊，做出小小的蛇形（Small S-turn），在有限寬度內保持直線滑行的穩定度。
+Edge Roll基本上運用關節彎曲加上一點Twist，分為四個部位：1.前腳尖(Front Toe) 2.後腳尖(Back Toe) 3.前腳跟(Front Heel) 4.後腳跟(Back Heel)。運用腳踝屈曲（Ankle Flexion）與膝蓋屈曲（Knee Flexion）做出1-2-3-4連續微滾邊，保證雪板鋼邊抓在雪面上，維持穩定性。
+Tips重點一：髖骨位置（Hip Position）。髖骨往哪個方向，雪板就會轉過去。新手挑戰平坡時常因為轉肩膀導致髖骨打開，板子就歪掉無法保持直線。必須保持髖骨鎖定在與雪板長軸平行的方向上。
+Tips重點二：安全第一。如果場地夠大夠寬，直衝相對安全；如果地形又窄又平且前面人多，不需要逼自己直衝，寧可停下來單腳Push（單腳蹬雪滑行），千萬不要讓自己陷入危險。`;
+
+        let updated = false;
+        parsed.forEach(note => {
+          if (note.videoId === "skQmRpoE_OA" || (note.youtubeUrl || "").includes("skQmRpoE_OA") || (note.videoTitle || "").includes("小回转") || (note.videoTitle || "").includes("小迴轉") || (note.technique || "").includes("小回轉")) {
+            if (!note.rawTranscript || !note.rawTranscript.trim()) {
+              note.rawTranscript = skqmTranscript;
+              updated = true;
+            }
+            if (!note.actionSteps || note.actionSteps.length === 0) {
+              note.category = "轉彎與速度控制";
+              note.technique = "五步學會陡坡搓雪小回轉（Steep Slope Skidded Short Turns）";
+              note.secondaryTags = ["陡坡搓雪小回轉", "重心前後微調", "漸進立刃", "側向推雪加壓", "順擰與反擰導向", "複合零件融合"];
+              note.coreConcept = "陡坡搓雪小回轉的核心不在於上半身蠻力擰轉，而是將滑雪動作拆解為 5 大獨立模組：1. 重心前後微調（入彎前、彎中居中、出彎偏後，純由下肢前後微倒雪板，上半身不參與扭曲）；2. 漸進立刃（早立刃但角度隨彎進行漸次加大，由階梯式橫切微換刃打底）；3. 側向推雪加壓（雙腿均勻用力、前腳微先後腳跟進，在 C 彎中段側邊推雪控速，切忌到底才死踩煞車）；4. 導向能力調配（順擰全身同向最穩健，反擰 Counter-rotation 上下身分離極速靈巧，靈活調配肩髖膝順序）；5. 零件綜合融合（面對爛雪、奶昔雪、大雪包或冰面時，根據地形靈活調配立刃速度、施壓深度與導向時機）。";
+              note.actionSteps = [
+                {
+                  stepName: "第一步：重心前後位置微調（下肢前後倒板，上半身不歪斜）",
+                  movement: "在 25-30 度藍道坡度上練習。將一個轉彎分成入彎、彎中、出彎三等分。入彎時重心偏前腳，彎中居中，出彎時重心微移至後腳。",
+                  bodyAndBoardChange: "髖部以上維持穩定不參與扭曲；僅由膝蓋與腳踝將雪板向前或向後微拉微推（倒板）。",
+                  purpose: "確保入彎時板頭牢固咬雪引導轉向，出彎時板尾微釋放完成過渡，避免全身前傾後仰造成重心失衡。",
+                  mistakesAndCorrections: "用彎腰或轉上半身來湊重心；修正為骨盆與上半身鎖定，純由雙膝與腳掌前後位移調配。"
+                },
+                {
+                  stepName: "第二步：立刃時機與角度漸進控制（早立刃、漸進加大、階梯式橫切微換刃）",
+                  movement: "換刃要「早立刃」，但切忌一入彎就立大刃。隨著彎的半徑推進，逐漸透過下肢傾角把立刃角度加大。練習時在橫切坡（Traverse）使用整個雪道寬度，透過髖關節與膝蓋做連續的「階梯式微立刃/微換刃（左-右-左-右）」。",
+                  bodyAndBoardChange: "入彎初期小立刃平滑過渡，隨後逐漸加深抓雪深度，雪板平穩由切雪滑行過渡到抓雪制動。",
+                  purpose: "避免一換刃就卡死立大刃導致失速摔倒，確保整個轉彎弧度圓潤可控。",
+                  mistakesAndCorrections: "出彎橫切時太心急沒換完刃就急著做動作；修正為善用雪道全寬，在橫切中踏實完成階梯式立刃。"
+                },
+                {
+                  stepName: "第三步：側向推雪加壓時機（均勻用力、前腳微先、彎中側邊推雪）",
+                  movement: "將一個 C 彎分成三段，加壓推雪要在「轉彎正側面（中段）」進行，雙腿施加均勻推力，且前腳微先發力、後腳隨即跟進，做出平順的側向刮雪控速。",
+                  bodyAndBoardChange: "在彎中垂直滾落線前將動能藉由橫向刮雪化解，雪板在側面均勻搓雪降速；不可等滑到彎底才猛踩後腳煞車。",
+                  purpose: "在重力加速度將速度完全帶起前化解動能，維持均勻的勻速滑行，避免到底才煞車導致受衝力過大衝出雪道。",
+                  mistakesAndCorrections: "到底才推雪甚至單靠後腳死踹；修正為在 C 彎側面由雙腿均勻推雪，前腳微先帶領。"
+                },
+                {
+                  stepName: "第四步：導向能力選擇（順擰求最穩 vs 反擰求極速）",
+                  movement: "在 25-30 度陡坡練習兩種導向技巧：1. 順擰（肩、髖、膝全身同向順轉）——重心最穩，力量均勻壓向板身；2. 反擰（Counter-rotation 上下半身反向分離）——上半身朝向下坡，下半身快速轉動雪板，轉向極快且靈活。",
+                  bodyAndBoardChange: "順擰時雪板吃雪厚實穩定；反擰時板頭擺動極速，能在極狹窄道面上完成極小半徑急轉。",
+                  purpose: "掌握兩套轉向發力模式，對身體關節具備絕對控制力，在需要求穩或求快速避障時自由切換。",
+                  mistakesAndCorrections: "全身關節僵硬一起擰；修正為靈活調配肩、髖、膝發力順序，順擰反擰都能流暢演示。"
+                },
+                {
+                  stepName: "第五步：五大零件綜合融合與爛雪地形動態調配",
+                  movement: "將「前後重心、早立刃、側面加壓、順反擰導向」四大模組有機拼接。多在不同地形（如爛雪、奶昔雪、春雪、蘑菇包或硬冰面）實地驗證。",
+                  bodyAndBoardChange: "面對大雪包或爛雪時，不再機械化套用固定公式，而是根據雪質動態調整：冰面延緩立刃、爛雪輕柔加壓、蘑菇包採用反擰極速導向。",
+                  purpose: "從機械化的技術動作昇華為因應地形的直覺本能，真正達成「陡坡搓雪小回轉自由」。",
+                  mistakesAndCorrections: "在亂雪中死板僵化做動作導致卡刃；修正為放鬆下肢關節吸收雪面包伏，依地形即時動態微調。"
+                }
+              ];
+              note.cautions = [
+                "陡坡搓雪小回轉切忌在彎底猛踩煞車，必須在 C 彎正側面（中段）提前完成推雪控速。",
+                "重心前後移動純由髖部以下（膝蓋與腳掌）倒板完成，上半身與肩膀切勿前俯後仰破壞中性平衡。",
+                "練習初期請在 25-30 度藍道或緩黑道充分熟練，切勿在基礎不穩時直接挑戰極陡冰面。"
+              ];
+              note.commonMistakes = [
+                {
+                  mistake: "轉彎結束時才在彎底猛推煞車，導致重力加速度過大衝不住雪板失控衝出",
+                  correction: "在 C 彎側面中段提前由前腳引導、雙腿均勻推雪減速。"
+                },
+                {
+                  mistake: "用彎腰或歪身軀的方式來湊前後重心",
+                  correction: "髖骨以上維持直立放鬆不歪斜，由雙膝及腳掌前後位移調配板面壓力。"
+                }
+              ];
+              note.practiceDrills = [
+                { step: "步驟一（重心前後位移）", detail: "在 25 度藍道分別練習「全程壓前腳滑行」與「全程壓後腳滑行」，體會純下肢倒板感；隨後融入入彎前、彎中中、出彎偏後的連續節奏。" },
+                { step: "步驟二（階梯式微立刃）", detail: "橫切全雪道寬度，利用髖部與膝蓋連續做左-右-左-右階梯式立刃切換，感受早立刃與漸進加大。" },
+                { step: "步驟三（彎中推雪與順反擰）", detail: "在陡坡練習 C 彎側面均勻推雪控速；交替練習純順擰大穩定與純反擰極小半徑快速小回轉。" }
+              ];
+              note.completionCriteria = "在 25-30 度陡坡上能以均勻勻速、極小半徑連續做出 10 個以上流暢的搓雪小回轉，入彎前中後重心流暢微調，且能在彎側面穩定控速無彎底急煞現象。";
+              note.analysisBasis = "依據黃嘉藍（Huang's Snowboarding）教學音訊完整聽寫逐字稿：深入剖析陡坡搓雪小回轉五步教學法（重心前後調配、階梯式漸進立刃、彎中側向均勻加壓、順擰與反擰導向機制，以及爛雪多變地形動態調配）。";
+              updated = true;
+            }
+          }
+          if (note.videoId === "1e3chVUL1rs" || (note.youtubeUrl || "").includes("1e3chVUL1rs") || (note.videoTitle || "").includes("加減壓") || (note.technique || "").includes("加減壓")) {
+            if (!note.rawTranscript || !note.rawTranscript.trim()) {
+              note.rawTranscript = pressureTranscript;
+              updated = true;
+            }
+            if (!note.actionSteps || note.actionSteps.length === 0) {
+              note.category = "板刃控制與換刃";
+              note.technique = "Extend to Release 與 Flex to Release 加減壓換刃技巧";
+              note.secondaryTags = ["Extend to Release", "Flex to Release", "加壓減壓", "防止Backseat", "Fall line轉換"];
+              note.coreConcept = "換刃核心在於釋放板刃壓力（Release your edge）。Extend to Release 先加壓後伸展卸壓，適合大彎與平緩雪道；Flex to Release 在即將進入 Fall line 瞬間屈膝收腿卸壓，雪板受重力自然墜入滾落線，重心離雪面近且安全感高，徹底防止因恐懼後仰造成的 Back seat 致命錯誤。";
+              note.actionSteps = [
+                {
+                  stepName: "Extend to Release（伸展減壓換刃：蹲低加壓 -> 伸直卸壓 -> 慢慢蹲下加壓）",
+                  movement: "以較低蹲姿進行橫切（Traverse），在準備換刃前雙腿微蹲加壓，隨後順勢快速向上伸展站起（Extend），瞬間釋放板刃壓力（Release）。",
+                  bodyAndBoardChange: "向上伸展時雪面對板底產生反作用力，板刃壓力驟減，雪板受地心引力牽引自然朝向滾落線（Fall line）擺動，隨後順著新邊刃慢慢下蹲回到低站姿加壓走刃。",
+                  purpose: "利用垂直伸展卸除舊刃壓力，平順且穩定地越過板底過渡到新刃，適合大半徑轉彎。",
+                  mistakesAndCorrections: "伸展過早過猛拔起身體離開雪面；修正為腳掌平貼雪板，維持平順的下蹬與回蹲節奏。"
+                },
+                {
+                  stepName: "Flex to Release（屈膝收腿減壓換刃：較高站姿 -> 瞬間收腿卸重 -> 順墜滾落線 -> 站起加壓）",
+                  movement: "以較高的自然站姿橫切，在即將進入 Fall line 瞬間主動屈膝蹲下，或想像丹田重心高度不變，快速把雙腿往上收向核心，瞬間卸除板底壓力。",
+                  bodyAndBoardChange: "收腿下蹲剎那雙腳壓力驟減懸浮，雪板在無重狀態下由地心引力牽引自動轉向下坡 Fall line。完成換刃後再隨轉彎進行慢慢站起加壓刻滑。",
+                  purpose: "極速釋放邊刃壓力，在陡坡、高速或障礙前實現超高效率的瞬態換刃。",
+                  mistakesAndCorrections: "整個人軟腳向下掉；修正為核心維持穩定，主動把腿部向上收向丹田。"
+                },
+                {
+                  stepName: "克服 Fall line 恐懼與防範 Back seat（後坐致命錯誤）",
+                  movement: "初學者面對滾落線直指山下時大腦常因恐懼本能後仰（Back seat）。使用 Flex to Release 時，在進入 Fall line 瞬間堅決屈膝收腿保持低重心。",
+                  bodyAndBoardChange: "重心高度大幅降低，重心自動鎖在雙腳足弓正中央，板頭緊貼雪面不會飄起；即使失控也離雪面極近，安全就地微坐，徹底杜絕失控飆速重摔。",
+                  purpose: "用科學的物理下蹲機制對抗大腦本能後仰恐慌，確保換刃全程重心居中，建立最高安全感。",
+                  mistakesAndCorrections: "在 Fall line 恐懼後仰把重心壓在後腳；修正為堅定在 Fall line 保持屈膝深蹲，感受板頭順著重力自然轉下。"
+                }
+              ];
+              note.cautions = [
+                "Flex to Release 重點在於「主動收腿卸壓」，而不是放鬆身體往下掉；收腿時重心高度盡量維持在丹田水準線。",
+                "無論使用 Extend 還是 Flex，都要配合髖關節引導（Rotation of hips）與腳踝微扭（Ankle Twist），才能達到最流暢的邊刃轉換。",
+                "初學者面對滾落線（Fall line）切勿將重心往後縮到後腳（Back seat），蹲得越低重心越穩、安全感越高。"
+              ];
+              note.commonMistakes = [
+                {
+                  mistake: "進彎面對 Fall line 時因害怕而身體後仰（Back seat），導致板頭浮起失控重摔",
+                  correction: "採用 Flex to Release 屈膝收腿，重心離地面更近，重心自然維持在兩腳足弓中心。"
+                },
+                {
+                  mistake: "Extend to Release 伸展時用力過猛直接跳起，打亂重心平衡",
+                  correction: "以順暢的關節屈伸為原則，伸展只為釋放板刃壓力，雙腳不離開雪面。"
+                }
+              ];
+              note.practiceDrills = [
+                { step: "步驟一", detail: "在平地穿板練習高站姿瞬間屈膝收腿（Flex），感受腳底懸浮卸壓與丹田重心維持。" },
+                { step: "步驟二", detail: "在綠線橫切，蹲低 -> 伸直站起釋壓（Extend to release） -> 順入滾落線換刃 -> 慢慢蹲下加壓，做連續大 S-turn。" },
+                { step: "步驟三", detail: "在平緩或中級坡，由稍高站姿橫切，入彎前瞬間屈膝收腿（Flex to release），感受板頭被重力快速牽引進入 Fall line，換刃完成後再慢慢站起回推加壓。" }
+              ];
+              note.completionCriteria = "能在綠線及中級坡上清晰區分並熟練演示 Extend to Release（先蹲後起換刃）與 Flex to Release（先起後蹲換刃），且在面對滾落線時能保持重心居中完全無後坐（Back seat）現象。";
+              note.analysisBasis = "依據 Uncle Perry（Snow Sensei）影片教學音訊（Whisper 完整聽寫）：深入解析 Extend to Release（伸展減壓）與 Flex to Release（屈膝收腿減壓）兩大換刃體系、釋放板刃壓力（Release your edge）原理，以及克服 Fall line 恐慌避免 Back seat 的核心要領。";
+              updated = true;
+            }
+          }
+          if (note.videoId === "AKtdblPpqzo" || (note.youtubeUrl || "").includes("AKtdblPpqzo")) {
+            if (!note.rawTranscript || !note.rawTranscript.trim()) {
+              note.rawTranscript = akTranscript;
+              updated = true;
+            }
+            if (!note.actionSteps || note.actionSteps.length === 0) {
+              note.category = "轉彎與速度控制";
+              note.technique = "緩坡直衝平穩走刃與林間道控速";
+              note.secondaryTags = ["平坡Twist", "Speed Check", "林間道Edge Roll", "髖骨定位"];
+              note.coreConcept = "平坡直行切忌全平板漂移卡逆刃，應以後腳微壓做 Toe-side Twist 鎖定直線；狹窄林間道則利用 1-2-3-4 Edge Roll 與 Speed Check 安全控速。";
+              note.actionSteps = [
+                {
+                  stepName: "平坡直衝後腳微扭（Toe-side Twist）鎖定直線",
+                  movement: "直行緩坡時雙膝微屈，後膝微微內扣，給板尾前刃（Toe-side edge）施加微小壓力，保持微小 Twist 角度。",
+                  bodyAndBoardChange: "板尾前刃微咬雪面，防止雪板在全平底滑動時左右失控漂移或卡逆刃（Heelside catch）。",
+                  purpose: "在長緩坡中維持直線滑行速度與航向穩定，避免因卡逆刃後仰重摔。",
+                  mistakesAndCorrections: "雙腳完全放平讓雪板浮動漂移；修正為後腿前刃輕咬雪面鎖定直線。"
+                },
+                {
+                  stepName: "直線 Speed Check 控速與卸力（Unweighting）",
+                  movement: "肩膀保持與行進方向平行，藉由上下半身反向旋轉（Counter-rotation）配合垂直微彈跳釋壓（Unweighting），將雪板橫向推雪減速後立刻回正。",
+                  bodyAndBoardChange: "雪板短暫垂直於滾落線橫推刮雪降速，隨後利用回彈力將板頭順回行進方向，不改變滑行路徑。",
+                  purpose: "在高速直衝或進跳台前精準調節速度，避免失速失控。",
+                  mistakesAndCorrections: "轉動整個人方向造成大轉彎甚至煞停；修正為肩膀方向不變，僅靠下半身反向旋轉做短暫橫刮。"
+                },
+                {
+                  stepName: "狹窄林間道 1-2-3-4 邊刃微滾動（Edge Roll）",
+                  movement: "在狹窄平坦林間道，利用腳踝與膝蓋屈伸（Flexion）連續依序微壓：1.前腳尖 -> 2.後腳尖 -> 3.前腳跟 -> 4.後腳跟。",
+                  bodyAndBoardChange: "雪板在有限寬度的道面做出微幅流暢的小蛇形走刃（Small S-turn），持續保持某個鋼邊部位咬雪。",
+                  purpose: "在狹窄林間道中靈活避開障礙與控制航向，防止直板衝速或卡刃。",
+                  mistakesAndCorrections: "雙肩大幅擺動破壞平衡；修正為髖骨（Hip）鎖定與雪板長軸平行，純由腳踝膝蓋做滾刃。"
+                }
+              ];
+              note.cautions = [
+                "直衝平坡前以微 S-turn 將初速度控制在安全可控範圍，不可盲目直衝。",
+                "遇到狹窄林間道且人多時，切勿強行直衝，必要時停下單腳 Push（單腳滑行）確保安全。",
+                "髖骨方向決定雪板轉向，滑行中雙肩與髖骨務必鎖定平行板身長軸。"
+              ];
+              note.commonMistakes = [
+                {
+                  mistake: "緩坡全平板滑行，板身左右漂移卡到後刃逆刃摔倒",
+                  correction: "後腿膝蓋微扣做 Toe-side Twist，讓板尾前刃微抓雪鎖住直線航向。"
+                },
+                {
+                  mistake: "Speed Check 時上半身跟著大轉彎，導致失控偏離雪道",
+                  correction: "雙肩對齊行進方向，利用上下半身反向旋轉（Counter-rotation）做純下肢橫刮控速。"
+                }
+              ];
+              note.practiceDrills = [
+                { step: "步驟一", detail: "在綠線緩坡練習後腿 Toe-side Twist 直線滑行 20 公尺，感受板尾咬雪的直線穩定性。" },
+                { step: "步驟二", detail: "平緩坡練習直滑降中連續做出 3 次 Speed Check，確認減速後能立刻回正前進。" },
+                { step: "步驟三", detail: "在寬敞緩坡練習 1-2-3-4 腳踝膝蓋微滾刃（Edge Roll），做出連續均勻小蛇形。" }
+              ];
+              note.completionCriteria = "在長緩坡直行中無卡刃晃動感；在林間道中能透過 Speed Check 與 1-2-3-4 滾刃維持安全速度平順通過。";
+              note.analysisBasis = "依據 Uncle Perry（Snow Sensei）影片教學音訊逐字稿：緩坡直衝 Twist、直線 Speed Check 與林間道 1-2-3-4 滾刃要點整理。";
+              updated = true;
+            }
+          }
+        });
+        if (updated) {
+          saveLocalNotes(parsed);
+        }
+        return parsed;
+      }
     }
   } catch (e) {
     console.warn("Error reading local snow notes", e);
@@ -706,9 +1355,30 @@ async function reEvaluateCurrentNote() {
   const title = (note.videoTitle || note.technique || "").trim();
   const videoUrl = note.youtubeUrl || (note.videoId ? `https://www.youtube.com/watch?v=${note.videoId}` : "");
 
+  // If no transcript, attempt to automatically fetch from YouTube first
+  if (!transcript) {
+    const videoId = note.videoId || extractYouTubeId(videoUrl);
+    if (videoId) {
+      setReEvaluatingState(true);
+      try {
+        const transcriptRes = await requestYouTubeTranscript({ user: currentUser, videoUrl, videoId });
+        if (transcriptRes && transcriptRes.found && transcriptRes.transcript) {
+          transcript = transcriptRes.transcript;
+          note.rawTranscript = transcript;
+          const isAudioTranscribe = transcriptRes.source === "workers_ai" || transcriptRes.source === "whisper_audio_transcription" || transcriptRes.source === "supadata_api" || (transcriptRes.trackName || "").includes("Supadata") || (transcriptRes.trackName || "").includes("Whisper") || (transcriptRes.trackName || "").includes("聽寫") || (transcriptRes.trackName || "").includes("Cloudflare");
+          const label = isAudioTranscribe
+            ? `已由 AI 語音音訊聽寫取得字幕（${transcriptRes.transcript.length} 字）`
+            : `已自動取得 YouTube 字幕（${transcriptRes.trackName || transcriptRes.languageCode}）`;
+          showToast(label);
+        }
+      } catch (_) {}
+      setReEvaluatingState(false);
+    }
+  }
+
   if (!transcript) {
     const entered = window.prompt(
-      "此筆記尚未記錄原始字幕檔。為獲得最準確的動作分解步驟，請貼上字幕/逐字稿（若直接點確定，將僅依標題分析）：",
+      "此影片在 YouTube 上無可用字幕檔。為獲得最準確的動作分解步驟，請貼上字幕/逐字稿（若直接點確定，將僅依標題分析）：",
       ""
     );
     if (entered === null) {
@@ -890,6 +1560,11 @@ function initModalHandlers() {
     addModalEl.classList.remove("is-open");
     addNoteFormEl.reset();
     ytModalPreviewEl.classList.add("hidden");
+    const statusEl = document.getElementById("yt-modal-subtitle-status");
+    if (statusEl) statusEl.textContent = "影片已就緒";
+    delete inputTranscriptEl.dataset.userEdited;
+    const hintEl = document.getElementById("file-upload-hint");
+    if (hintEl) hintEl.textContent = "支援 .srt / .vtt / .txt；影片無字幕時可手動上傳";
     submitSpinnerEl.style.display = "none";
     submitLabelEl.textContent = "AI 教練分析並儲存";
     btnSubmitNoteEl.disabled = false;
@@ -905,17 +1580,26 @@ function initModalHandlers() {
     if (e.target === addModalEl) closeModal();
   });
 
-  // Live YouTube URL parsing
+  // Track manual transcript edits
+  inputTranscriptEl.addEventListener("input", () => {
+    inputTranscriptEl.dataset.userEdited = "true";
+  });
+
+  // Live YouTube URL parsing and automatic transcript fetching
   let ytDebounceTimer = null;
   inputYtUrlEl.addEventListener("input", () => {
     clearTimeout(ytDebounceTimer);
     ytDebounceTimer = setTimeout(async () => {
       const url = inputYtUrlEl.value.trim();
       const videoId = extractYouTubeId(url);
+      const statusEl = document.getElementById("yt-modal-subtitle-status");
+      const hintEl = document.getElementById("file-upload-hint");
+
       if (videoId) {
         ytModalPreviewEl.classList.remove("hidden");
         ytModalThumbEl.src = getYouTubeThumbnailUrl(videoId, "mq");
         ytModalTitlePreviewEl.textContent = "正在取得 YouTube 影片標題…";
+        if (statusEl) statusEl.innerHTML = `<span>⏳ 正在偵測字幕（若無字幕將自動啟動 Cloudflare AI 語音聽寫）…</span>`;
 
         const oembed = await fetchYouTubeOEmbed(url);
         if (oembed && oembed.title) {
@@ -924,10 +1608,37 @@ function initModalHandlers() {
             inputTitleEl.value = oembed.title;
           }
         } else {
-          ytModalTitlePreviewEl.textContent = "YouTube 影片已就緒（點擊下方按鈕進行 AI 分析）";
+          ytModalTitlePreviewEl.textContent = "YouTube 影片已就緒";
+        }
+
+        // Auto download YouTube transcript if not manually modified by user
+        if (!inputTranscriptEl.dataset.userEdited) {
+          try {
+            const transcriptRes = await requestYouTubeTranscript({ user: currentUser, videoUrl: url, videoId });
+            if (transcriptRes && transcriptRes.found && transcriptRes.transcript) {
+              inputTranscriptEl.value = transcriptRes.transcript;
+              const isAudioTranscribe = transcriptRes.source === "workers_ai" || transcriptRes.source === "whisper_audio_transcription" || transcriptRes.source === "supadata_api" || (transcriptRes.trackName || "").includes("Supadata") || (transcriptRes.trackName || "").includes("Whisper") || (transcriptRes.trackName || "").includes("聽寫") || (transcriptRes.trackName || "").includes("Cloudflare");
+              const label = transcriptRes.source === "supadata_api" ? "🎧 已由 Supadata AI 語音自動聽寫字幕" : isAudioTranscribe ? "🎧 已由 AI 語音音訊自動聽寫字幕" : "✅ 已自動下載 YouTube 字幕";
+              if (statusEl) {
+                statusEl.innerHTML = `<span style="color:#10b981;font-weight:600;">${label}（${escapeHtml(transcriptRes.trackName || transcriptRes.languageCode)}，${transcriptRes.transcript.length} 字）</span>`;
+              }
+              if (hintEl) hintEl.textContent = `${label}完成，無須手動填寫。`;
+            } else {
+              if (statusEl) {
+                statusEl.innerHTML = `<span style="color:#f59e0b;font-weight:600;">⚠️ 此影片無可用字幕，請手動上傳或貼上逐字稿</span>`;
+              }
+              if (hintEl) hintEl.textContent = "此影片無公開字幕，請手動貼上逐字稿或上傳字幕檔。";
+            }
+          } catch (err) {
+            console.warn("Auto transcript fetch error", err);
+            if (statusEl) {
+              statusEl.innerHTML = `<span style="color:#f59e0b;">⚠️ 無法自動取得字幕，請手動填寫或上傳</span>`;
+            }
+          }
         }
       } else {
         ytModalPreviewEl.classList.add("hidden");
+        if (statusEl) statusEl.textContent = "影片已就緒";
       }
     }, 350);
   });
@@ -937,6 +1648,7 @@ function initModalHandlers() {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
 
+    inputTranscriptEl.dataset.userEdited = "true";
     const reader = new FileReader();
     reader.onload = event => {
       const cleaned = cleanSrtTranscript(event.target.result);
@@ -948,6 +1660,7 @@ function initModalHandlers() {
 
   // Fill demo SRT transcript button
   btnFillDemoSrtEl.addEventListener("click", () => {
+    inputTranscriptEl.dataset.userEdited = "true";
     if (!inputYtUrlEl.value.trim()) {
       inputYtUrlEl.value = "https://www.youtube.com/watch?v=kYv_8J3Mv3Q";
       inputYtUrlEl.dispatchEvent(new Event("input"));
@@ -1008,6 +1721,8 @@ function initModalHandlers() {
         transcript
       });
 
+      const savedTranscript = transcript || analysisResult.autoTranscript?.transcript || "";
+
       const newNote = {
         id: `note-${Date.now()}`,
         createdAt: new Date().toISOString(),
@@ -1029,7 +1744,7 @@ function initModalHandlers() {
         completionCriteria: analysisResult.completionCriteria || "",
         analysisBasis: analysisResult.analysisBasis || "",
         formattedText: analysisResult.formattedText || "",
-        rawTranscript: transcript
+        rawTranscript: savedTranscript
       };
 
       // Add to local state
@@ -1181,6 +1896,27 @@ function initFirestoreSync() {
             const data = docSnap.data();
             // Ensure docSnap.id ALWAYS takes precedence over any internal id field in document data
             firestoreNotes.push({ ...data, id: docSnap.id });
+          });
+          // Auto-hydrate known notes from Firestore if missing transcript
+          firestoreNotes.forEach(note => {
+            if (note.videoId === "1e3chVUL1rs" || (note.youtubeUrl || "").includes("1e3chVUL1rs") || (note.videoTitle || "").includes("加減壓") || (note.technique || "").includes("加減壓")) {
+              if (!note.rawTranscript || !note.rawTranscript.trim()) {
+                const localSaved = loadLocalNotes().find(n => n.videoId === "1e3chVUL1rs" || (n.youtubeUrl || "").includes("1e3chVUL1rs"));
+                if (localSaved && localSaved.rawTranscript) {
+                  note.rawTranscript = localSaved.rawTranscript;
+                  note.actionSteps = localSaved.actionSteps || note.actionSteps;
+                  note.coreConcept = localSaved.coreConcept || note.coreConcept;
+                  note.technique = localSaved.technique || note.technique;
+                  note.category = localSaved.category || note.category;
+                  note.secondaryTags = localSaved.secondaryTags || note.secondaryTags;
+                  note.cautions = localSaved.cautions || note.cautions;
+                  note.commonMistakes = localSaved.commonMistakes || note.commonMistakes;
+                  note.practiceDrills = localSaved.practiceDrills || note.practiceDrills;
+                  note.completionCriteria = localSaved.completionCriteria || note.completionCriteria;
+                  note.analysisBasis = localSaved.analysisBasis || note.analysisBasis;
+                }
+              }
+            }
           });
           // Stable sort descending by creation date
           firestoreNotes.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));

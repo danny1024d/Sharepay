@@ -105,7 +105,7 @@
       <!-- Notes list -->
       <section class="mac-notes-list-col" aria-label="筆記列表">
         <div class="mac-list-toolbar">
-          <div class="mac-toolbar-row">
+          <div class="mac-toolbar-row" style="display: none;">
             <div class="mac-filter-tabs" role="tablist">
               <button class="mac-filter-tab active" data-filter="all" type="button">全部</button>
               <button class="mac-filter-tab" data-filter="pending" type="button">練習中</button>
@@ -151,7 +151,8 @@
           </div>
 
           <div class="mac-detail-toolbar-right">
-            <button class="mac-action-btn is-re-eval" id="btn-re-evaluate" type="button" title="使用新版 AI 教練重新拆解動作步驟" aria-label="重新評估">
+            <button class="mac-action-btn is-re-eval" id="btn-re-evaluate" type="button" title="使用新版 AI 教練重新拆解動作步驟"
+              aria-label="重新評估">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" id="re-evaluate-icon">
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
@@ -435,7 +436,7 @@
             <img class="mac-yt-modal-thumb" id="yt-modal-thumb" src="" alt="縮圖預覽" />
             <div class="mac-yt-modal-info">
               <div class="mac-yt-modal-title" id="yt-modal-title-preview">正在解析 YouTube 影片資訊…</div>
-              <div class="mac-yt-modal-ready">影片已就緒</div>
+              <div class="mac-yt-modal-ready" id="yt-modal-subtitle-status">影片已就緒</div>
             </div>
           </div>
 
@@ -452,7 +453,7 @@
               <button class="mac-demo-srt-btn" id="btn-fill-demo-srt" type="button">填入示範字幕</button>
             </div>
             <textarea class="mac-form-textarea" id="input-transcript"
-              placeholder="貼上字幕檔（SRT、VTT）或逐字稿。AI 只依實際內容分析，不會憑空臆測。" rows="6"></textarea>
+              placeholder="貼上 YouTube 網址後將自動下載字幕；若該影片無字幕，請在此手動貼上或上傳。" rows="6"></textarea>
 
             <div class="mac-file-upload-row">
               <label class="mac-upload-btn">
@@ -462,10 +463,10 @@
                   <polyline points="17 8 12 3 7 8"></polyline>
                   <line x1="12" y1="3" x2="12" y2="15"></line>
                 </svg>
-                <span>上傳字幕檔</span>
+                <span>手動上傳字幕檔</span>
                 <input type="file" id="input-srt-file" accept=".srt,.vtt,.txt" style="display:none;" />
               </label>
-              <span id="file-upload-hint" class="mac-form-hint">支援 .srt / .vtt / .txt，自動濾除時間碼</span>
+              <span id="file-upload-hint" class="mac-form-hint">支援 .srt / .vtt / .txt；影片無字幕時可手動上傳</span>
             </div>
           </div>
 

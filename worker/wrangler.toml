@@ -3,6 +3,7 @@ main = "src/index.js"
 compatibility_date = "2026-10-12"
 workers_dev = true
 
+
 [vars]
 FIREBASE_PROJECT_ID = "sharepay-f60d3"
 ALLOWED_EMAILS = "zzdanny781024@gmail.com,ben155373@gmail.com"

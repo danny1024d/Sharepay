@@ -26,6 +26,9 @@ import {
   updateItinerarySchedule,
   buildSnowboardAnalysisPrompt,
   analyzeSnowboardVideo,
+  extractYouTubeId,
+  fetchYouTubeTranscript,
+  fetchYouTubeTranscriptWithSupadata,
   UserDailyRateLimiter
 } from "../src/index.js";
 
@@ -1036,3 +1039,259 @@ test("analyzeSnowboardVideo parses structured coaching response", async () => {
   assert.equal(result.cautions.length, 3);
   assert.equal(result.commonMistakes[0].mistake, "後腳過度推板");
 });
+
+test("extractYouTubeId correctly extracts video IDs from various URL formats", () => {
+  assert.equal(extractYouTubeId("https://www.youtube.com/watch?v=dQw4w9WgXcQ"), "dQw4w9WgXcQ");
+  assert.equal(extractYouTubeId("https://youtu.be/dQw4w9WgXcQ"), "dQw4w9WgXcQ");
+  assert.equal(extractYouTubeId("https://www.youtube.com/shorts/dQw4w9WgXcQ"), "dQw4w9WgXcQ");
+  assert.equal(extractYouTubeId("https://www.youtube.com/embed/dQw4w9WgXcQ"), "dQw4w9WgXcQ");
+  assert.equal(extractYouTubeId("https://example.com/not-youtube"), null);
+  assert.equal(extractYouTubeId(""), null);
+});
+
+test("fetchYouTubeTranscript fetches and parses timedtext json3 transcript", async () => {
+  const fetchImpl = async url => {
+    if (url.includes("youtube.com/watch?v=testVideo11")) {
+      return new Response('<html><script>"INNERTUBE_API_KEY":"dummy_api_key_123"</script></html>', { status: 200 });
+    }
+    if (url.includes("youtubei/v1/player")) {
+      return new Response(JSON.stringify({
+        captions: {
+          playerCaptionsTracklistRenderer: {
+            captionTracks: [
+              {
+                languageCode: "zh-TW",
+                name: { simpleText: "繁體中文" },
+                baseUrl: "https://www.youtube.com/api/timedtext?v=testVideo11&lang=zh-TW"
+              }
+            ]
+          }
+        }
+      }), { status: 200 });
+    }
+    if (url.includes("api/timedtext")) {
+      return new Response(JSON.stringify({
+        events: [
+          { tStartMs: 1000, segs: [{ utf8: "哈囉大家好，" }] },
+          { tStartMs: 3000, segs: [{ utf8: "今天來練習換刃動作。" }] }
+        ]
+      }), { status: 200 });
+    }
+    return new Response("Not found", { status: 404 });
+  };
+
+  const result = await fetchYouTubeTranscript("testVideo11", fetchImpl);
+  assert.equal(result.found, true);
+  assert.equal(result.languageCode, "zh-TW");
+  assert.equal(result.trackName, "繁體中文");
+  assert.equal(result.transcript, "哈囉大家好，今天來練習換刃動作。");
+});
+
+test("fetchYouTubeTranscript returns not found when video has no captions", async () => {
+  const fetchImpl = async url => {
+    if (url.includes("youtube.com/watch?v=nocaption11")) {
+      return new Response('<html><script>"INNERTUBE_API_KEY":"dummy_api_key_123"</script></html>', { status: 200 });
+    }
+    if (url.includes("youtubei/v1/player")) {
+      return new Response(JSON.stringify({
+        captions: null
+      }), { status: 200 });
+    }
+    return new Response("Not found", { status: 404 });
+  };
+
+  const result = await fetchYouTubeTranscript("nocaption11", fetchImpl);
+  assert.equal(result.found, false);
+  assert.equal(result.reason, "no_captions");
+});
+
+test("fetchYouTubeTranscript returns cached transcript for AKtdblPpqzo, 1e3chVUL1rs, skQmRpoE_OA", async () => {
+  const fetchResult = await fetchYouTubeTranscript("AKtdblPpqzo");
+  assert.equal(fetchResult.found, true);
+  assert.equal(fetchResult.source, "whisper_audio_transcription");
+  assert.match(fetchResult.transcript, /Cristin Au/);
+  assert.match(fetchResult.transcript, /Speed Check/);
+  assert.match(fetchResult.transcript, /林間道/);
+
+  const fetchResult2 = await fetchYouTubeTranscript("1e3chVUL1rs");
+  assert.equal(fetchResult2.found, true);
+  assert.equal(fetchResult2.source, "whisper_audio_transcription");
+  assert.match(fetchResult2.transcript, /extend to release/i);
+  assert.match(fetchResult2.transcript, /flex to release/i);
+  assert.match(fetchResult2.transcript, /Back seat/i);
+
+  const fetchResult3 = await fetchYouTubeTranscript("skQmRpoE_OA");
+  assert.equal(fetchResult3.found, true);
+  assert.equal(fetchResult3.source, "whisper_audio_transcription");
+  assert.match(fetchResult3.transcript, /黃嘉藍/);
+  assert.match(fetchResult3.transcript, /小回轉/);
+});
+
+test("fetchYouTubeTranscriptWithSupadata handles missing API key, sync string, sync array, and API error", async () => {
+  // 1. Missing API key
+  const noKey = await fetchYouTubeTranscriptWithSupadata("testId123", "", {});
+  assert.equal(noKey.found, false);
+  assert.equal(noKey.reason, "supadata_not_configured");
+
+  // 2. Success with string content (direct sync)
+  let calledUrl = "";
+  let calledHeaders = {};
+  const mockFetchString = async (url, opts) => {
+    calledUrl = url;
+    calledHeaders = opts.headers;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        lang: "zh-Hant",
+        content: "這是 Supadata AI 語音轉錄的繁體中文測試逐字稿內容。"
+      })
+    };
+  };
+
+  const res1 = await fetchYouTubeTranscriptWithSupadata("testId123", "https://www.youtube.com/watch?v=testId123", { SUPADATA_API_KEY: "mock_key_abc" }, mockFetchString);
+  assert.equal(res1.found, true);
+  assert.equal(res1.source, "supadata_api");
+  assert.equal(res1.transcript, "這是 Supadata AI 語音轉錄的繁體中文測試逐字稿內容。");
+  assert.equal(res1.languageCode, "zh-Hant");
+  assert.ok(calledUrl.includes("testId123"));
+  assert.equal(calledHeaders["x-api-key"], "mock_key_abc");
+
+  // 3. Success with array content (direct sync)
+  const mockFetchArray = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      lang: "zh",
+      content: [
+        { text: "第一段話", offset: 0, duration: 1000 },
+        { text: "第二段話", offset: 1000, duration: 1500 }
+      ]
+    })
+  });
+
+  const res2 = await fetchYouTubeTranscriptWithSupadata("testId123", "", { SUPADATA_API_KEY: "mock_key_abc" }, mockFetchArray);
+  assert.equal(res2.found, true);
+  assert.equal(res2.source, "supadata_api");
+  assert.equal(res2.transcript, "第一段話 第二段話");
+
+  // 4. API error handling
+  const mockFetchError = async () => ({
+    ok: false,
+    status: 404,
+    text: async () => "Not Found"
+  });
+
+  const res3 = await fetchYouTubeTranscriptWithSupadata("testId123", "", { SUPADATA_API_KEY: "mock_key_abc" }, mockFetchError);
+  assert.equal(res3.found, false);
+  assert.equal(res3.reason, "supadata_api_failed");
+  assert.equal(res3.status, 404);
+});
+
+test("fetchYouTubeTranscriptWithSupadata handles 202 async jobId and polls until completed", async () => {
+  let pollCount = 0;
+  const mockFetchAsync = async (url) => {
+    if (url.includes("/v1/transcript?")) {
+      return {
+        ok: true,
+        status: 202,
+        json: async () => ({
+          jobId: "job_xyz_789",
+          status: "queued"
+        })
+      };
+    }
+    if (url.includes("/v1/transcript/job_xyz_789")) {
+      pollCount++;
+      if (pollCount === 1) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            jobId: "job_xyz_789",
+            status: "processing"
+          })
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          jobId: "job_xyz_789",
+          status: "completed",
+          lang: "zh-TW",
+          content: "非同步 Whisper 轉錄完成的滑雪教學逐字稿。"
+        })
+      };
+    }
+    return { ok: false, status: 404 };
+  };
+
+  const res = await fetchYouTubeTranscriptWithSupadata(
+    "f_gDeCsnVh0",
+    "https://www.youtube.com/watch?v=f_gDeCsnVh0",
+    { SUPADATA_API_KEY: "mock_key_abc" },
+    mockFetchAsync,
+    { maxPollAttempts: 5, pollIntervalMs: 0 }
+  );
+
+  assert.equal(res.found, true);
+  assert.equal(res.source, "supadata_api");
+  assert.equal(res.transcript, "非同步 Whisper 轉錄完成的滑雪教學逐字稿。");
+  assert.equal(res.languageCode, "zh-TW");
+  assert.equal(pollCount, 2);
+});
+
+test("fetchYouTubeTranscriptWithSupadata handles async jobId failure and timeout", async () => {
+  // 1. Async Job Failed
+  const mockFetchFailed = async (url) => {
+    if (url.includes("/v1/transcript?")) {
+      return {
+        ok: true,
+        status: 202,
+        json: async () => ({ jobId: "job_failed_1", status: "queued" })
+      };
+    }
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ jobId: "job_failed_1", status: "failed", error: "audio_unreachable" })
+    };
+  };
+
+  const failRes = await fetchYouTubeTranscriptWithSupadata(
+    "failVid",
+    "",
+    { SUPADATA_API_KEY: "mock_key_abc" },
+    mockFetchFailed,
+    { maxPollAttempts: 3, pollIntervalMs: 0 }
+  );
+  assert.equal(failRes.found, false);
+  assert.equal(failRes.reason, "supadata_job_failed");
+
+  // 2. Async Job Timeout
+  const mockFetchTimeout = async (url) => {
+    if (url.includes("/v1/transcript?")) {
+      return {
+        ok: true,
+        status: 202,
+        json: async () => ({ jobId: "job_timeout_1", status: "processing" })
+      };
+    }
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ jobId: "job_timeout_1", status: "processing" })
+    };
+  };
+
+  const timeoutRes = await fetchYouTubeTranscriptWithSupadata(
+    "timeoutVid",
+    "",
+    { SUPADATA_API_KEY: "mock_key_abc" },
+    mockFetchTimeout,
+    { maxPollAttempts: 2, pollIntervalMs: 0 }
+  );
+  assert.equal(timeoutRes.found, false);
+  assert.equal(timeoutRes.reason, "supadata_poll_timeout");
+});

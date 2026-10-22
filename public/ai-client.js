@@ -270,3 +270,25 @@ export async function requestSnowboardAnalysis({ user, videoUrl, title, transcri
   }
   return result;
 }
+
+export async function requestYouTubeTranscript({ user, videoUrl, videoId }) {
+  if (!user || typeof user.getIdToken !== "function") throw new Error("請先登入旅遊分帳。");
+  const targetId = videoId || extractYouTubeId(videoUrl);
+  if (!targetId) throw new Error("無效的 YouTube 影片網址。");
+  const token = await user.getIdToken();
+  const response = await fetch(workerUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      action: "fetch_youtube_transcript",
+      videoId: targetId,
+      videoUrl: videoUrl || ""
+    })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "自動取得字幕失敗。");
+  return result;
+}

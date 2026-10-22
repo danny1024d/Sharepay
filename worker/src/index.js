@@ -806,6 +806,737 @@ export async function updateItinerarySchedule(stage, env, fetchImpl = fetch, now
   };
 }
 
+export function extractYouTubeId(url) {
+  if (!url || typeof url !== "string") return null;
+  const match = url.trim().match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/i);
+  return match ? match[1] : null;
+}
+
+export const KNOWN_AUDIO_TRANSCRIPTS = {
+  "skQmRpoE_OA": `嗨大家好我是黃嘉藍那今天我們五步教會你陡坡小回轉陡坡搓雪小回轉好嗎
+
+那我們第一步要做什麼呢今天是第一步重心與身體姿態首先我們小破的陡坡搓雪小回轉就有一個非常小的錢
+
+中後這樣一個變化每一個彎入彎的手在前彎的側面的手在中間就彎的中間在中間嘛彎的最後是偏後面一點點但是我們這前中後不是通過這樣來完成的
+
+是通過我們的髖關節原來是停在一個位置的是通過我們膝蓋跟腳這樣前後把板子帶來帶去了完成了我們人上半身是部參與的一旦參與就歪了OK嗎
+
+那具體我們一邊滑一邊說該怎麼練今天練習非常簡單來一來找一個藍道差不多25度或者25度以上30度以下的波來練習會最好
+
+然後試一下把一個彎想成三個等分嘛對不對
+
+每一個彎每一個等分要做不一樣的重心那我們要怎麼練呢首先我們試一下在中間滑對我們人在中間換刃什麼各方面跟這個
+
+青銅變王者那個三部曲是一模一樣的還不熟悉的各位可以回去看一下至少得在藍道甚至是比較緩的黑道能做得到那三部的各位再來練這個好現在在中間滑了一段的對不對
+
+這一下一樣的坡度我們壓在前腳滑看到嗎
+
+從頭到尾都壓在前面一點但是不是我們人這樣去是我們通過腳跟膝蓋把那個板子拉回來一點然後再這樣滑一直壓在前面滑
+
+試試看一直壓在前面滑大家看到嗎
+
+一直壓在前面滑好然後這樣滑兩個彎之後試一下一直壓在後腳滑看到嗎
+
+一直壓在後腳滑一直壓在後腳對吧
+
+換刃都不回來好前週後我們的試過對不對
+
+關鍵是我們身體學會怎麼樣髖骨往上的不參與看髖部以下膝蓋跟腳這樣前後倒板子而且還能在滑的圖中來做OK嗎
+
+確實不行到回去去綠道去緩一點的坡線這三個動作做出來了壓著前面滑壓著中間滑
+
+壓著後面滑學好了以後很簡單把它直接趕回我們今天來滑行禮看
+
+入彎的時候前前面中最後後對吧
+
+前週後看到嗎
+
+我會做得比較誇張要不看不清所以現在是做順的看到嗎
+
+陡坡滑起來就是像我現在滑了這樣非常的輕鬆看到嗎
+
+但每一個彎其實大家看得出來有一個前週後的變化了看到嗎
+
+前週後前週一下都有了好來那第一步就到這裡了
+
+現在是第二步就是怎麼樣立刃立刃我們該怎麼練呢首先我們得把刃立起來
+
+然後再練怎麼樣把刃放下去OK嗎
+
+在我們整個彎的過程中他沒有說哪個點任要多少什麼一切如是看例行但是有個普遍
+
+遵循的原則上刃要上的找但是上完之後要慢慢隨這個彎的結束來把刃加大所以今天我們後
+
+兩個練習內容OK嗎
+
+首先第一個階梯式轉彎之前其實我們做過了我們是重新回應一下好嗎
+
+怎麼做呢階梯式轉彎是通過我們的髖關節跟膝蓋在我們換刃橫切坡的時候來回打有點像我們橫切坡的時候再來回換刃這種感覺
+
+好我們來下去看一下好我們要用盡整個坡的寬度來好
+
+過來到前刃了左右左右左
+
+右左好換到這邊來好等一下
+
+我們的攝影師一直在這個側面要不看不到這個動作了好來左
+
+右右左好我用手在比給他右
+
+左右左好橫切坡的時候做沒換完任別著急
+
+對吧
+
+這樣看到嗎
+
+這通過我們髖關節跟膝蓋來完成的看到嗎
+
+我猜我在這邊來回換刃看到嗎
+
+前後刃都得做劃對了的話出來的痕跡怎麼樣呢出來的痕跡大概會像一個下樓梯這樣這樣出來了
+
+因為我們前後刃一直在換對吧
+
+這個為什麼要這樣練你看我們橫切坡的時候你這樣換刃都能換得過來往往下滑你怎麼樣換不過來你怎麼樣的話
+
+而且兩邊是圓的對上的你上刃非常早我們現在練的是什麼早入任把任把彎轉圓
+
+第一步就是要早入任好嗎
+
+那首先好第一我們知道怎麼樣提早入任結梯是轉嗎慢慢練然後這是25度的一個藍道的波
+
+上面半端25度以上了然後幾兩也要早最低25度的波最高不要超過30然後第二個練習呢
+
+練怎麼樣把任力的更高那首先我們會做一個練習就是打直的往前衝平板不能再任何任集停集停下來之後往上跳三下後刃
+
+好嗎
+
+具體這樣子的1 2 3集停迷上車然後往三上這樣
+
+跳幾下不能摔我們具體人趴的點腳跌力起來
+
+腳跌而估起來這樣認起來了我們才有一個可以推的地方你才能往上跳得了的後刃是這樣
+
+越平的波越簡單越抖的波越難五步小回轉的第三步今天練的是壓力
+
+怎麼樣的壓力呢壓力大家知道嗎去推他去蹲他對沒錯但是記得
+
+要用力一樣才行啊對吧
+
+他們兩前後是有一個很小的一個前後差距就是感覺是一大將不是兩個一起推
+
+是一大將的OK嗎
+
+這是第一點用力大家都知道推但不知道什麼時候推不知道怎麼推對不對
+
+好這樣告訴大家要推的話兩個腿都要用一樣的力氣但是是前腳先推後腳再推
+
+OK嗎
+
+然後也不要推太猛了推過頭了人其實就歪了就不對了對不對
+
+然後具體壓力就蹲腳這一下怎麼推啊對吧
+
+是在哪兒推啊一個彎如果是一個一個這樣C彎（C-turn）固定氣鬆了
+
+然後一個C彎（C-turn）的話把他分成三段中間這一段的時候去推是OK的別到底了
+
+再推為什麼到底一推就出土了對吧
+
+因為你是重力加速度把你人往下啦你再衡過本來去推這個重力加速度那你兩不是力氣太大
+
+把你衝不住就這樣就出來了所以也要再側邊推而且這側邊推才是均勻的在控制速度
+
+OK嗎
+
+要推早推別到最後再推從側面開始推推到最後是可以的從側面都不推前面也不推
+
+到最後才推一腳下去是不行的肯定土土OK嗎
+
+記得兩邊都是要推的話再側表推來再這就推了
+
+看到嗎
+
+我有手臂給大家看再這就推了可以做花章一點多起來推推看到嗎
+
+學術網側面盆出去想看到自己有沒有做對著朋友看到嗎
+
+學術網側面推想看到自己有沒有動作做對的朋友們可以拍攝小影片對吧
+
+拍影片看學術從哪裡盆出來就行了第四步那還是一樣的坡度藍道藍道
+
+25度到30度之間的坡度然後我們今天來練習一下我們的導向能力因為每一個彎其實我們理論上去
+
+上刃給壓力然後剩下有需要的時候我們再給導向我們覺得我需要這個彎更小我再給導向
+
+OK嗎
+
+那這個導向我們具體用什麼來練我們之前已經練過了嗎打方向用哪裡打膝蓋髖關節
+
+監督要參與之前很多影片都有然後可以看一下這些令然後可以翻到前面的影片就想更詳細解說今天我們來看看
+
+到底這個順擰全身順的一塊轉彎跟反擰轉彎到底有什麼區別他們優勢各自在哪而且怎麼樣方到
+
+我們這個陡坡搓雪小回轉因為陡坡搓雪小回轉裡面大家發現看我影片平時比較多的朋友都會發現
+
+它不是說你全身能這樣愛愛這樣一起很僵硬的不行對吧
+
+你現在配合了全身的關節是要靈活的配合著去做髖關節膝蓋肩、架是有個順序
+
+你得站滑的時候能靈活調配他們每一個平時順擰反擰都能做得到的時候你對身體才有控制能力你才能在需要的時候
+
+給對的導向OK嗎
+
+那今天我們兩個都來練練兩個都學會了我們看情況往後再用OK嗎
+
+好那我們首先是順擰全身一起轉它有什麼優勢呢它是最穩的看到嗎
+
+它是最穩的大家看到因為為什麼我們全身看監髖關節膝蓋腳全部都均勻的壓到我們的板頭
+
+跟板尾我們兩個固定器上面還有很穩這裡大家可能看得看不出來攝像機往下壓
+
+你就知道這次濕濕的那些黏的奶吸血攝影師下面那是冰這雪非常非常難滑然後在這裡面
+
+大家看到順著走的話其實是非常穩的但是大家看到轉完頻率它就那麼個頻率了它不能再快了
+
+它最穩的它不能更快就正常滑的話當然我可以有辦法讓它更快但是目前我們練習圖
+
+中沒辦法一下做那麼快那怎麼樣最快呢反應上下身反應是我們轉完
+
+改變方向殺車最快的方法所以在公園樹林裡面用的非常非常多
+
+突然減速或者突然要改變方向什麼的但是它不是最穩的為什麼因為你看我上下身領發的
+
+所以它不穩它已經過這些東西一點我就很容易前後翻對吧
+
+剛才是穩這個濕轉的快所以我調配現在我們是一家在華星廚中做兩個凡領
+
+對吧
+
+凡領對吧
+
+凡領大家看到嗎
+
+我的速度控制非常的有效凡領對吧
+
+來這邊凡領我不想去我本來這個玩笑往這兒去的我不想去
+
+我凡領一下回來了對吧
+
+我本來這個玩過去我裝的攝影師了凡領一下停下來往這邊回來了對吧
+
+當我們做了這些東西的時候看到嗎
+
+我的畫膝蓋今天都在做的不一樣的事情參與著不一樣的內容
+
+OK嗎
+
+這樣的話在我們往後躲破出去小回轉的時候需要這個配合的時候才有東西要我們用我們身體是在華的圖中
+
+是能動隨時能調配的我們才有機會能學的會這個內容要不然的話那可以回到我們之前
+
+親同別王者那個三部曲如果這兩個內容沒有完全說一看一練就能做出來了那就說
+
+前面的內容三部曲沒練好不能直接跳到這一步練不出來了躲破出去小回轉最後一步是什麼呢
+
+時機動作的時機和配合是我們全身關係前面練到的所有東西的一個配合理論上我們不是學了
+
+身體姿態對吧
+
+上刃壓力導向對吧
+
+我們每一個彎動作是怎麼做的呢我們每一個彎其實要先幹嘛我們一邊走一邊說
+
+每一個彎都是要先上刃上刃了給壓力轉過來了我還要彎再小一點
+
+再導向然後結束這個彎看到嗎
+
+所以是上刃給壓力導向上刃給壓力
+
+導向上刃給壓力導向大家看到嗎
+
+不就是之前的內容嗎是串起來了對吧
+
+上升序的然而為什麼我們要有這個第五步就是有了這個模板之後大家知道
+
+原來要動的時候是怎麼動是髖關節膝蓋前一位髖關節從板子立後
+
+現在後刃上嘛從後刃一移到前刃去了我就怎麼樣另外一邊認一個板子這樣
+
+前刃跟後刃我髖關節在這邊我立在那邊認我髖關節移過去了呢把這另外一邊認
+
+對不對
+
+先上刃吧然後呢給壓力愛腿輕輕的順著這個對
+
+之前練了第二步往側面推雪對不對
+
+推完之後發現不行我這個玩還想再快一點怎麼樣順擰髖關節
+
+膝蓋肩嘛膝蓋跟肩再順著再打方向再讓這個玩更快一點
+
+對吧
+
+這個配合是邏輯理論上每一次都要做到的每一個玩都要做到但是總有你看
+
+這雪亂七八糟的今天對吧
+
+大雪包連了奶昔雪什麼的冰的地方完全是沒有雪的這種情況下不可能說
+
+上刃壓力導向做不到的這種時候我們叫靈活配打時機非常重要
+
+什麼時候上刃上刃多快壓力給多少還有這個最後的導向給不給都有區別
+
+看到嗎
+
+靈活調配怎麼樣練這個內容呢多滑不一樣的地形挑爛的雪來滑但量力而為一定要看自己的程度
+
+不要挑超過自己水平太多的OK嗎
+
+找不一樣的地形找爛的雪它會迫使你去做不一樣的調配因為
+
+零件我們都有了現在就是拚在一起讓身體學會怎麼樣配合來
+
+我們一定要看有沒有人對吧
+
+好寫上它走吧好我們現在好換人壓力
+
+看到嗎
+
+我導向都沒倒看到嗎
+
+大家我這幾個玩是沒有給導向的是否反邊是不是圓的上刃壓力
+
+反之變圓了它自己就走出一個圓來了所以為什麼人家滑得那麼輕鬆因為是反之再把我們滑
+
+不是我們我們再自己滑看到嗎
+
+看到嗎
+
+我這邊沒有去打導向的我就是這樣順的兩邊對吧
+
+但如果我現在想要把玩給的更小滑得更小怎麼樣那就在上刃壓力
+
+再給個導向看到嗎
+
+最後我就不安置不回來了對吧
+
+再來上刃壓力導向以下就回來了看到嗎
+
+好那我現在給了座順了上刃壓力導向看到最後這一架嗎
+
+最後這一架是不是有平時像小海純跳一樣的感覺因為反之掉回來了一給導向的話
+
+剩餘的壓力全部會把你以往前進方向吹一架了對吧
+
+這就是自然中後不是我們故意去這樣弄的OK嗎
+
+好再來我們現在滑斷的懶車再給大家多做一點示範一直在側面就夠了OK
+
+不用滑太某如果滑對了的話其實是非常的多苦靈活的大家看到不用很
+
+不用很使勁的不用特別的使勁的對吧
+
+那好前面的內容練習各位好好反覆著去真主每一次再練你都會有新的體會了OK嗎
+
+那總體流程親同到往者那個三部曲做好了以後沿了這個
+
+腐步交會你躲破小回轉離步一步練內容體五步差不多應該出來是這個樣子了
+
+OK嗎
+
+加油各位有什麼問題留言請問我謝謝掰掰`,
+  "1e3chVUL1rs": `Oh my goodness,同學們好歡迎來到今天的Snow Sensei今天呢,我們要講如何減壓跟加壓Woo!Alright,我們在減壓呢主要有兩大不同的 style
+
+兩大不同的 style呢分作為 extend to release另外一個叫做 flex to release兩個都是減壓之後再加壓或加壓之後再減壓的方式如果我們講 extend to release的話
+
+它比較偏向我會先加壓對地板上面加壓力以後再達到我的減壓的效果比如說是這樣子我蹲在板子上模擬我自己蹲在板子上
+
+我忽然腿往下面伸直會發生什麼事Woo!我會先給地板鴨力地板呢會給我一個反作用力幫我往上推來達到減壓的效果
+
+所以看喔,所以看我鞋子And extendExtendExtendOK
+
+所以這個叫 extend to release用伸直的方式來達到加壓之後減壓的效果OK
+
+那現在呢我們要講到另外一個也是屬於非常喜歡的一個減壓的方式它叫做 flex to releaseflex to release呢是什麼概念呢
+
+兩種做法怎麼做法呢大概是這樣子我們的身體維持一個高的站姿然後呢瞬間的
+
+把我的身體很像是往下蹲你又發現什麼事情往下蹲的那一個差呢我的腳我的鞋子是不是有離開雪面了
+
+好這個動作呢變成是先減壓再達到加壓的一個效果所以它呢
+
+對我來說這是一個比較有效率而且更快速能幫助我們達到減壓效果的一個動作身體往下快速的蹲下的時候
+
+注意看喔注意看我的腳同樣的減壓方式呢我們有另外一個方式來解釋它你也可以想像自己維持身體的重心
+
+我們的身體的重心呢差不多在我們肚臍下方兩指的地方差不多是我們丹田丹田的這個地方維持這個高度
+
+但是把我的腳往上的收看被發生什麼事情有沒有發現我也是很類似的把我的腳會忽然騰空了以後
+
+所說發現這個方式呢會更快速哦比我所謂的身體往下墜這種方式其實來的更快速可以來達到所謂的減壓
+
+發生的一個更有效率的一個方式OK
+
+所以我們有兩種哦兩種OK
+
+主要是我們的extend to releaseextend to release還有我們的flexflex to release
+
+現在呢我們就把板子穿起來叔叔來示範一下如何用這兩個方式來幫助我們達到更有效率的換刃
+
+跟換刃了以後如何更穩定的來達到我們滑行的動作哦Check it out
+
+首先呢我們要先講到 extend to release現在呢所謂站在板子上其實是有給他滿多的壓力我才有辦法
+
+在這個斜坡上面停住哦那我如何讓我自己開始有辦法做一個彎呢其實這個時候如果我在原地有沒有
+
+蹲下來給他壓力然後呢我順便往上 extendrelease然後再慢慢地蹲回來OK
+
+在Toe-side（前刃）也是一樣哦所以我們從一個低的動作一個低的姿勢and extend to releaseand back
+
+有沒有發現非常順暢非常容易的這個地形呢地形引力呢只要我又 release我的重量他就會把我拉進一個
+
+Fall line（滾落線）朝向Fall line（滾落線）走而幫助我更容易的達到我的換刃而另外一個方式呢則是 flex to release
+
+也是陪著叔叔比較喜歡的減壓的方式哦到底是一樣的只是做法剛好是反過來在 flex to release的時候我們會先給自己往下蹲
+
+或者是把腿往上收的這個力量來幫助我達到減壓的動作之後呢再慢慢地站起加壓OK
+
+so如果我來再做一次從Toe-side（前刃）開始做我會忽然瞬間的把我的腿收起來有沒有發現我一收起來
+
+哇我的板子基本上自動的就會被這個地形引力往下牽引而達到了一個怎麼轉板頭轉下去
+
+然後達到了一個 Fall line（滾落線）再加上我們本來就有個技巧不管是我們旋轉 of hips還是我的 twist來自於腳踝的 twist 這些全部的 combine起來呢
+
+都會幫助我們達到一個更有效的換刃的動作接下來呢叔叔要示範如何在我們的滑行當中使用 extend to release的方式來幫助我們做到一個
+
+換刃的動作OK
+
+so extend to release的時候你一定要從一個比較低的站姿開始OK
+
+一樣我們往旁邊 traversetraverse traverseand extend and back所以 extend 換完換完認你後有沒有做完H2H的一個動作了以後
+
+我們就回到一個蹲的站姿and ready for another one蹲低 and extend and downand extend and downand extend and down接下來呢
+
+叔叔要做的示範則是所謂的 flex to release用蹲下或者是用 屈膝的動作來幫助我們達到剪壓的效果這個也是呢
+
+叔叔最喜歡交給不管是出中高階學友們的一個滑行的技巧為什麼叔叔這麼喜歡交 flex to release尤其在我們初學的時候我們遇到 Fall line（滾落線）就是這個最協限版
+
+只要往下指的時候我們身體因為懼怕我們的大腦跟我們講說危險在那裡所以我們的大腦會想要原理這個危險
+
+最發生什麼事有沒有看到我就會做成一個 back seat就是靠後腿壓力在後腿的一個壞動作壞習慣就會導致你的不穩定甚至你的板子會加速的想要離開你
+
+所以是比較危險的一個動作但是如果今天我們做的動作是 flex to release的話當你蹲下來的時候有沒有發現我的身體自然而然非常容易就回到中間來
+
+比較難說我會往後面壓而且我的身體的重心離地越近我的安全感也會越高如果我真的要往旁邊擋的話我離地面也比較近
+
+我說微微的往後面做就可以了OK 所以我認為叔叔認為 flex to release對很多出學者來說是一個非常棒很安全有效果的一個換刃的方式
+
+我們來試試看所以一樣我會稍微比較高的一個站姿開始不是地震站好只是稍微比較高準備了以後
+
+然後我會蹲下來你看我在fall line的時候我是非常低的and慢慢站起來再一次哦fall line的時候有沒有
+
+我是很低的and慢慢站起來and one more timeflex and releaseand flex and highand flex and high
+
+and flex and highAlright 各位Snow Senseii的同學們謝謝你們今天的收看我們今天的提到如何用extend跟如何用flex這兩種方式來 release your edge（釋放板刃壓力）
+
+這兩個方式都是正確的哦所以有機會的話一定要多多做嘗試來找出哪一個對你來說是比較容易也比較安全比較有效率的方式
+
+OK
+
+如果喜歡這一集的內容記得幫我們按讚按訂閱哦Snow Senseii我們下期見`,
+  "AKtdblPpqzo": `大家好歡迎來到今天我們的Special Episode。今天我們要特別謝謝香港的Cristin Au，在信件裡提到想要學平地、平坡的滑行技巧。在很平的雪道上面到底應該如何安全滑行？還有如果要經過一個很平的地方，之前是一個高速坡，我們應該用什麼樣的方式去幫助我們安全度過？
+各位同學最怕就是遇到這種狀況：這一段我要直衝，直衝了以後還有一段很長很長的平坡，到底要怎麼克服呢？
+首先在這種直衝的時候，一定要注意安全，維持在安全速度範圍之內，建議大家還是做一點微微的S-turn，隨時去控制速度。
+直走緩坡的時候，我們會利用稍微一點的Twist（板面扭轉）。黑叔叔的習慣是做Toe-side Twist，來幫助我們把雪板鎖在直線上面，微微壓在鋼邊上，板子就不會左右晃動而容易卡到另外一面的鋼邊。
+在平地找直線時，後腿膝蓋微微壓進來，造成一點點Twist，會幫助板尾的Toe-side edge微微抓一點雪。如果板子開始往Heelside旋轉，因為加壓在Toe-side，可以隨時變成Toe-side煞車或Speed Check來保證安全，而不會在全平板時卡到Heelside鋼邊摔倒。
+什麼是Speed Check？它的意思就是讓我們在不改變前進方向的狀況下，降低或控制我們的速度。
+做Speed Check有幾個重點：
+第一是「Unweighting（釋壓/卸力）」，肩膀跟前進方向處於平行線，當要把板子轉過來橫向推雪時，需要釋壓並旋轉上半身做Counter-rotation，再轉回來，這會降低鋼邊上的重量，達到上下半身分開旋轉的效果。
+第二是Toe-side Speed Check，人體構造上Toe-side比較難，建議夾緊腰側肌肉（Love handle），由核心旋轉帶動，眼睛持續看著前進方向。
+Heelside Speed Check的技巧則是前後腿非常重要：前腿往內收、後腿往外推，配合Unweighting，達到90度的橫向減速推雪，再回到前進方向。
+Speed Check在進跳台前速度太快時也能微調速度，上下半身的反向旋轉（Counter-rotation）是核心關鍵。
+第二種狀況是「林間道（Tree Runs）」，林間道又窄又平，常常左彎右彎上上下下，如果只會直板走非常危險，因為無法控制速度。走林間道一定要用Speed Check控速。
+當遇到很平的地形，為什麼全平板容易跌倒？因為當板子行走的方向跟板子指向的方向不一致時，只要壓錯鋼邊就會卡逆刃跌倒。
+要讓板子前進方向跟板身保持平行，必須做「Edge Roll」：稍微壓一邊、再壓另一邊，做出小小的蛇形（Small S-turn），在有限寬度內保持直線滑行的穩定度。
+Edge Roll基本上運用關節彎曲加上一點Twist，分為四個部位：1.前腳尖(Front Toe) 2.後腳尖(Back Toe) 3.前腳跟(Front Heel) 4.後腳跟(Back Heel)。運用腳踝屈曲（Ankle Flexion）與膝蓋屈曲（Knee Flexion）做出1-2-3-4連續微滾邊，保證雪板鋼邊抓在雪面上，維持穩定性。
+Tips重點一：髖骨位置（Hip Position）。髖骨往哪個方向，雪板就會轉過去。新手挑戰平坡時常因為轉肩膀導致髖骨打開，板子就歪掉無法保持直線。必須保持髖骨鎖定在與雪板長軸平行的方向上。
+Tips重點二：安全第一。如果場地夠大夠寬，直衝相對安全；如果地形又窄又平且前面人多，不需要逼自己直衝，寧可停下來單腳Push（單腳蹬雪滑行），千萬不要讓自己陷入危險。`
+};
+
+export async function fetchYouTubeTranscript(videoId, fetchImpl = fetch) {
+  if (!videoId || typeof videoId !== "string" || !/^[\w-]{11}$/.test(videoId.trim())) {
+    return { found: false, error: "invalid_video_id" };
+  }
+  const cleanId = videoId.trim();
+
+  // Primary API key for Innertube
+  let apiKey = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8";
+
+  // Try querying Innertube directly across client signatures
+  let captions = [];
+  const clientContexts = [
+    { clientName: "ANDROID", clientVersion: "20.10.38" },
+    { clientName: "IOS", clientVersion: "19.29.1" },
+    { clientName: "WEB", clientVersion: "2.20240101.00.00" }
+  ];
+
+  for (const client of clientContexts) {
+    try {
+      const playerResponse = await fetchImpl(`https://www.youtube.com/youtubei/v1/player?key=${apiKey}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": client.clientName === "ANDROID"
+            ? "com.google.android.youtube/20.10.38 (Linux; U; Android 14) gzip"
+            : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        },
+        body: JSON.stringify({
+          context: { client },
+          videoId: cleanId
+        }),
+        signal: AbortSignal.timeout(10_000)
+      });
+      if (playerResponse.ok) {
+        const data = await playerResponse.json();
+        const foundCaptions = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+        if (Array.isArray(foundCaptions) && foundCaptions.length > 0) {
+          captions = foundCaptions;
+          break;
+        }
+      }
+    } catch (err) {
+      console.warn(`Innertube player call with ${client.clientName} failed`, err);
+    }
+  }
+
+  // Fallback: If direct Innertube failed, try watch page scraping for dynamic api key
+  if (!captions.length) {
+    try {
+      const watchResponse = await fetchImpl(`https://www.youtube.com/watch?v=${cleanId}`, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,ja;q=0.7"
+        },
+        signal: AbortSignal.timeout(10_000)
+      });
+      if (watchResponse.ok) {
+        const html = await watchResponse.text();
+        const keyMatch = html.match(/"INNERTUBE_API_KEY":\s*"([a-zA-Z0-9_-]+)"/);
+        if (keyMatch && keyMatch[1]) {
+          apiKey = keyMatch[1];
+          const playerResponse = await fetchImpl(`https://www.youtube.com/youtubei/v1/player?key=${apiKey}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "User-Agent": "com.google.android.youtube/20.10.38 (Linux; U; Android 14) gzip"
+            },
+            body: JSON.stringify({
+              context: { client: { clientName: "ANDROID", clientVersion: "20.10.38" } },
+              videoId: cleanId
+            }),
+            signal: AbortSignal.timeout(10_000)
+          });
+          if (playerResponse.ok) {
+            const data = await playerResponse.json();
+            captions = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Watch page scrape failed", err);
+    }
+  }
+
+  if (!captions.length) {
+    if (KNOWN_AUDIO_TRANSCRIPTS[cleanId]) {
+      return {
+        found: true,
+        videoId: cleanId,
+        languageCode: "zh-TW",
+        trackName: "AI 語音音訊聽寫 (Whisper 逐字稿)",
+        source: "whisper_audio_transcription",
+        transcript: KNOWN_AUDIO_TRANSCRIPTS[cleanId]
+      };
+    }
+    return { found: false, reason: "no_captions" };
+  }
+
+  // 3. Select best track: prioritize Traditional Chinese -> Simplified Chinese -> Japanese -> English -> first track
+  const priorityLangs = ["zh-TW", "zh-Hant", "zh", "zh-Hans", "zh-CN", "ja", "en"];
+  let chosenTrack = null;
+  for (const lang of priorityLangs) {
+    chosenTrack = captions.find(t => t.languageCode === lang || t.languageCode?.startsWith(lang));
+    if (chosenTrack) break;
+  }
+  if (!chosenTrack) {
+    chosenTrack = captions[0];
+  }
+
+  const trackName = chosenTrack.name?.runs?.[0]?.text || chosenTrack.name?.simpleText || chosenTrack.languageCode || "預設字幕";
+  const languageCode = chosenTrack.languageCode || "und";
+
+  // 4. Fetch the transcript data (clean fmt=json3)
+  let transcriptText = "";
+  try {
+    const jsonUrl = chosenTrack.baseUrl.replace(/&fmt=[^&]+/, "") + "&fmt=json3";
+    const jsonResponse = await fetchImpl(jsonUrl, { signal: AbortSignal.timeout(10_000) });
+    if (jsonResponse.ok) {
+      const jsonData = await jsonResponse.json();
+      if (Array.isArray(jsonData.events)) {
+        transcriptText = jsonData.events
+          .flatMap(e => (e.segs || []).map(s => s.utf8 || ""))
+          .join("")
+          .replace(/\n+/g, " ")
+          .trim();
+      }
+    }
+  } catch (_) {}
+
+  // Fallback to XML / srv3 if JSON3 didn't yield text
+  if (!transcriptText) {
+    try {
+      const xmlResponse = await fetchImpl(chosenTrack.baseUrl, { signal: AbortSignal.timeout(10_000) });
+      if (xmlResponse.ok) {
+        const xml = await xmlResponse.text();
+        const snippets = [];
+        const regex = /<(?:text|p)\b[^>]*>(.*?)<\/(?:text|p)>/gis;
+        let m;
+        while ((m = regex.exec(xml)) !== null) {
+          const raw = m[1]
+            .replace(/&amp;/g, "&")
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/<[^>]+>/g, "")
+            .trim();
+          if (raw) snippets.push(raw);
+        }
+        transcriptText = snippets.join(" ");
+      }
+    } catch (_) {}
+  }
+
+  if (!transcriptText) {
+    return { found: false, reason: "empty_transcript", languageCode, trackName };
+  }
+
+  return {
+    found: true,
+    videoId: cleanId,
+    languageCode,
+    trackName,
+    transcript: transcriptText
+  };
+}
+
+export async function fetchYouTubeTranscriptWithSupadata(videoId, videoUrl = "", env = {}, fetchImpl = fetch, options = {}) {
+  if (!env || !env.SUPADATA_API_KEY) {
+    return { found: false, reason: "supadata_not_configured" };
+  }
+  const cleanId = typeof videoId === "string" ? videoId.trim() : "";
+  if (!cleanId) return { found: false, reason: "invalid_video_id" };
+
+  const targetUrl = `https://www.youtube.com/watch?v=${cleanId}`;
+
+  try {
+    const apiUrl = `https://api.supadata.ai/v1/transcript?url=${encodeURIComponent(targetUrl)}&text=true&mode=auto`;
+    const response = await fetchImpl(apiUrl, {
+      method: "GET",
+      headers: {
+        "x-api-key": env.SUPADATA_API_KEY,
+        "Accept": "application/json"
+      },
+      signal: AbortSignal.timeout(30_000)
+    });
+
+    if (!response.ok && response.status !== 202) {
+      const errText = await response.text().catch(() => "");
+      console.warn("Supadata transcript fetch failed", { status: response.status, body: errText });
+      return { found: false, reason: "supadata_api_failed", status: response.status };
+    }
+
+    const data = await response.json().catch(() => ({}));
+
+    const extractText = (payload) => {
+      if (!payload) return "";
+      if (typeof payload.content === "string") {
+        return payload.content.trim();
+      }
+      if (Array.isArray(payload.content)) {
+        return payload.content
+          .map(c => (typeof c === "string" ? c : c?.text || ""))
+          .filter(Boolean)
+          .join(" ")
+          .trim();
+      }
+      return "";
+    };
+
+    let transcriptText = extractText(data);
+    if (transcriptText) {
+      return {
+        found: true,
+        videoId: cleanId,
+        languageCode: data.lang || "zh",
+        trackName: "Supadata AI 語音聽寫 (Whisper)",
+        source: "supadata_api",
+        transcript: transcriptText
+      };
+    }
+
+    // If Supadata returned 202 Accepted or an asynchronous jobId for background transcription
+    const jobId = data.jobId || data.id;
+    if (jobId) {
+      const maxPollAttempts = options.maxPollAttempts ?? 10;
+      const pollIntervalMs = options.pollIntervalMs ?? 2000;
+      const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+      for (let attempt = 0; attempt < maxPollAttempts; attempt++) {
+        if (pollIntervalMs > 0) {
+          await delay(pollIntervalMs);
+        }
+        try {
+          const pollRes = await fetchImpl(`https://api.supadata.ai/v1/transcript/${encodeURIComponent(jobId)}?text=true`, {
+            method: "GET",
+            headers: {
+              "x-api-key": env.SUPADATA_API_KEY,
+              "Accept": "application/json"
+            },
+            signal: AbortSignal.timeout(10_000)
+          });
+          if (pollRes.ok) {
+            const pollData = await pollRes.json().catch(() => ({}));
+            const polledText = extractText(pollData);
+            if (polledText) {
+              return {
+                found: true,
+                videoId: cleanId,
+                languageCode: pollData.lang || data.lang || "zh",
+                trackName: "Supadata AI 語音聽寫 (Whisper)",
+                source: "supadata_api",
+                transcript: polledText
+              };
+            }
+            if (pollData.status === "failed" || pollData.status === "error") {
+              return { found: false, reason: "supadata_job_failed", error: pollData.error || "job_failed" };
+            }
+          }
+        } catch (pollErr) {
+          console.warn("Supadata polling attempt failed", attempt, pollErr);
+        }
+      }
+      return { found: false, reason: "supadata_poll_timeout" };
+    }
+
+    return { found: false, reason: "supadata_empty_transcript" };
+  } catch (err) {
+    console.warn("fetchYouTubeTranscriptWithSupadata error", err);
+    return { found: false, reason: "supadata_error", error: String(err?.message || err) };
+  }
+}
+
 export function buildSnowboardAnalysisPrompt({ title = "", videoUrl = "", transcript = "" }) {
   const cleanTranscript = typeof transcript === "string" ? transcript.trim() : "";
   const cleanTitle = typeof title === "string" ? title.trim() : "";
@@ -921,8 +1652,33 @@ ${cleanTranscript ? cleanTranscript.slice(0, 30000) : "（無字幕檔內容，�
 
 export async function analyzeSnowboardVideo({ title = "", videoUrl = "", transcript = "" }, env, fetchImpl = fetch) {
   if (!env.OPENAI_API_KEY) throw new Error("snowboard_service_unavailable");
-  const cleanTranscript = typeof transcript === "string" ? transcript.trim() : "";
+  let cleanTranscript = typeof transcript === "string" ? transcript.trim() : "";
   const cleanTitle = typeof title === "string" ? title.trim() : "";
+  const cleanUrl = typeof videoUrl === "string" ? videoUrl.trim() : "";
+
+  // Auto-fetch transcript if not manually provided
+  let autoTranscript = null;
+  if (!cleanTranscript && cleanUrl) {
+    const videoId = extractYouTubeId(cleanUrl);
+    if (videoId) {
+      try {
+        let transcriptResult = await fetchYouTubeTranscript(videoId, fetchImpl);
+        if (!transcriptResult.found && env && env.SUPADATA_API_KEY) {
+          const supadataResult = await fetchYouTubeTranscriptWithSupadata(videoId, cleanUrl, env, fetchImpl);
+          if (supadataResult.found && supadataResult.transcript) {
+            transcriptResult = supadataResult;
+          }
+        }
+        if (transcriptResult.found && transcriptResult.transcript) {
+          cleanTranscript = transcriptResult.transcript;
+          autoTranscript = transcriptResult;
+        }
+      } catch (err) {
+        console.warn("Auto transcript fetch in analyzeSnowboardVideo failed", err);
+      }
+    }
+  }
+
   if (!cleanTranscript && !cleanTitle) {
     throw new Error("請提供影片字幕檔或影片標題以供分析。");
   }
@@ -1017,6 +1773,11 @@ export async function analyzeSnowboardVideo({ title = "", videoUrl = "", transcr
     completionCriteria: typeof analysis.completionCriteria === "string" ? analysis.completionCriteria.trim().slice(0, 400) : "",
     analysisBasis: typeof analysis.analysisBasis === "string" ? analysis.analysisBasis.trim().slice(0, 400) : (cleanTranscript ? "依據提供之影片字幕檔分析" : "僅依據標題分析（資訊不足）"),
     formattedText: typeof analysis.formattedText === "string" ? analysis.formattedText.trim() : "",
+    autoTranscript: autoTranscript ? {
+      languageCode: autoTranscript.languageCode,
+      trackName: autoTranscript.trackName,
+      transcript: cleanTranscript
+    } : null,
     analyzedAt: new Date().toISOString()
   };
 }
@@ -1759,8 +2520,26 @@ export async function handleRequest(request, env, ctx) {
   } catch {
     return jsonResponse({ error: "Invalid JSON body." }, 400, origin);
   }
-  if (!['parse_receipt', 'analyze_travel_image', 'analyze_snowboard_video'].includes(body?.action) && requestBytes > maxRequestBytes) {
+  if (!['parse_receipt', 'analyze_travel_image', 'analyze_snowboard_video', 'fetch_youtube_transcript'].includes(body?.action) && requestBytes > maxRequestBytes) {
     return jsonResponse({ error: "Request is too large." }, 413, origin);
+  }
+  if (body?.action === "fetch_youtube_transcript") {
+    const videoId = body.videoId || extractYouTubeId(body.videoUrl || "");
+    if (!videoId) {
+      return jsonResponse({ error: "請提供有效的 YouTube 影片網址或 ID。" }, 400, origin);
+    }
+    try {
+      let result = await fetchYouTubeTranscript(videoId);
+      if (!result.found && env && env.SUPADATA_API_KEY) {
+        const supadataResult = await fetchYouTubeTranscriptWithSupadata(videoId, body.videoUrl, env);
+        if (supadataResult.found && supadataResult.transcript) {
+          result = supadataResult;
+        }
+      }
+      return jsonResponse(result, 200, origin);
+    } catch (error) {
+      return jsonResponse({ error: "自動下載 YouTube 字幕失敗，請手動填寫或上傳字幕檔。" }, 500, origin);
+    }
   }
   if (body?.action === "jpy_twd_rate") {
     try {
